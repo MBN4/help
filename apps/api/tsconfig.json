@@ -1,0 +1,1 @@
+{ "extends": "@buisnez/config/tsconfig/base.json", "compilerOptions": { "module": "NodeNext", "declaration": true, "removeComments": true, "emitDecoratorMetadata": true, "experimentalDecorators": true, "allowSyntheticDefaultImports": true, "sourceMap": true, "outDir": "./dist", "baseUrl": "./", "incremental": true, "skipLibCheck": true }, "include": ["src/**/*.ts"] }

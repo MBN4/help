@@ -1,0 +1,6 @@
+{
+  "name": "@buisnez/database", "version": "0.1.0", "private": true, "main": "dist/index.js", "types": "dist/index.d.ts",
+  "scripts": { "build": "tsc -p tsconfig.json", "db:generate": "prisma generate", "db:seed": "tsx prisma/seed.ts", "lint": "eslint src", "typecheck": "tsc --noEmit -p tsconfig.json", "test": "echo 'No database tests yet'" },
+  "dependencies": { "@prisma/client": "^6.16.2" },
+  "devDependencies": { "@buisnez/config": "workspace:*", "@types/node": "^24.5.2", "eslint": "^9.35.0", "prisma": "^6.16.2", "tsx": "^4.19.2", "typescript": "^5.9.2" }
+}
