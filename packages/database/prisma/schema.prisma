@@ -1,9 +1,333 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider   = "postgresql"
   url        = env("DATABASE_URL")
   extensions = [postgis]
+}
+
+enum Role {
+  CUSTOMER
+  BUSINESS_OWNER
+  ADMIN
+}
+
+enum BusinessStatus {
+  PENDING
+  PUBLISHED
+  SUSPENDED
+  REJECTED
+}
+
+enum ClaimStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ReportTargetType {
+  BUSINESS
+  REVIEW
+}
+
+enum ReportReason {
+  SPAM
+  INAPPROPRIATE
+  FAKE
+  CLOSED
+  DUPLICATE
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  RESOLVED
+  DISMISSED
+}
+
+enum ReviewStatus {
+  PUBLISHED
+  PENDING
+  REMOVED
+}
+
+enum PriceTier {
+  ONE
+  TWO
+  THREE
+  FOUR
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+model User {
+  id                 String    @id @default(uuid())
+  email              String    @unique
+  phone              String?   @unique
+  passwordHash       String
+  name               String
+  role               Role      @default(CUSTOMER)
+  avatarUrl          String?
+  emailVerifiedAt    DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  businesses         Business[]
+  reviews            Review[]
+  photos             Photo[]
+  favorites          Favorite[]
+  claims             Claim[]
+  reports            Report[]
+  emailVerifications EmailVerificationToken[]
+  passwordResets     PasswordResetToken[]
+
+  @@index([role])
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model Province {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
+
+  cities     City[]
+  businesses Business[]
+}
+
+model City {
+  id         String   @id @default(uuid())
+  provinceId String
+  province   Province @relation(fields: [provinceId], references: [id], onDelete: Restrict)
+  name       String
+  slug       String   @unique
+  /// geography(Point, 4326) — created by migration 0001_postgis_and_indexes, not managed by Prisma migrate
+  centroid   Unsupported("geography(Point, 4326)")?
+  createdAt  DateTime @default(now())
+
+  areas      Area[]
+  businesses Business[]
+
+  @@unique([provinceId, name])
+}
+
+model Area {
+  id        String   @id @default(uuid())
+  cityId    String
+  city      City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  name      String
+  slug      String
+  createdAt DateTime @default(now())
+
+  businesses Business[]
+
+  @@unique([cityId, slug])
+}
+
+model Category {
+  id       String     @id @default(uuid())
+  name     String
+  slug     String     @unique
+  icon     String?
+  order    Int        @default(0)
+  parentId String?
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children Category[] @relation("CategoryTree")
+
+  businesses Business[]
+
+  @@index([parentId])
+}
+
+model Feature {
+  id   String  @id @default(uuid())
+  name String  @unique
+  slug String  @unique
+  icon String?
+
+  businesses BusinessFeature[]
+}
+
+model Business {
+  id           String         @id @default(uuid())
+  ownerId      String?
+  owner        User?          @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  name         String
+  slug         String         @unique
+  description  String?
+  categoryId   String
+  category     Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  provinceId   String
+  province     Province       @relation(fields: [provinceId], references: [id], onDelete: Restrict)
+  cityId       String
+  city         City           @relation(fields: [cityId], references: [id], onDelete: Restrict)
+  areaId       String?
+  area         Area?          @relation(fields: [areaId], references: [id], onDelete: SetNull)
+  addressLine  String
+  /// geography(Point, 4326) — created by migration 0001_postgis_and_indexes, not managed by Prisma migrate
+  location     Unsupported("geography(Point, 4326)")?
+  phone        String?
+  whatsapp     String?
+  email        String?
+  website      String?
+  priceTier    PriceTier?
+  status       BusinessStatus @default(PENDING)
+  isVerified   Boolean        @default(false)
+  featured     Boolean        @default(false)
+  viewCount    Int            @default(0)
+  /// tsvector generated column — created by migration 0001_postgis_and_indexes, not managed by Prisma migrate
+  searchVector Unsupported("tsvector")?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  hours     BusinessHours[]
+  features  BusinessFeature[]
+  photos    Photo[]
+  reviews   Review[]
+  favorites Favorite[]
+  claims    Claim[]
+  reports   Report[]
+
+  @@index([categoryId])
+  @@index([cityId])
+  @@index([areaId])
+  @@index([status])
+}
+
+model BusinessHours {
+  id         String    @id @default(uuid())
+  businessId String
+  business   Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  dayOfWeek  DayOfWeek
+  opensAt    String?
+  closesAt   String?
+  isClosed   Boolean   @default(false)
+
+  @@unique([businessId, dayOfWeek])
+}
+
+model BusinessFeature {
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  featureId  String
+  feature    Feature  @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@id([businessId, featureId])
+}
+
+model Photo {
+  id         String    @id @default(uuid())
+  businessId String?
+  business   Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  reviewId   String?
+  review     Review?   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  url        String
+  caption    String?
+  isApproved Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+
+  @@index([businessId])
+  @@index([reviewId])
+}
+
+model Review {
+  id           String       @id @default(uuid())
+  businessId   String
+  business     Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating       Int
+  title        String?
+  body         String?
+  status       ReviewStatus @default(PUBLISHED)
+  ownerReply   String?
+  ownerReplyAt DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  photos  Photo[]
+  reports Report[]
+
+  @@unique([businessId, userId])
+  @@index([businessId])
+}
+
+model Favorite {
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@id([userId, businessId])
+}
+
+model Claim {
+  id           String      @id @default(uuid())
+  businessId   String
+  business     Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status       ClaimStatus @default(PENDING)
+  message      String?
+  documentUrl  String?
+  reviewedById String?
+  reviewedAt   DateTime?
+  createdAt    DateTime    @default(now())
+
+  @@index([businessId])
+  @@index([status])
+}
+
+model Report {
+  id         String           @id @default(uuid())
+  targetType ReportTargetType
+  businessId String?
+  business   Business?        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  reviewId   String?
+  review     Review?          @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  reporterId String
+  reporter   User             @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  reason     ReportReason
+  message    String?
+  status     ReportStatus     @default(PENDING)
+  createdAt  DateTime         @default(now())
+
+  @@index([status])
 }

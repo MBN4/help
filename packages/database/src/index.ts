@@ -7,4 +7,4 @@ if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
 }
 
-export { PrismaClient, Prisma } from '@prisma/client';
+export * from '@prisma/client';
