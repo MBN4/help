@@ -31,12 +31,16 @@ Request/response contracts live once in `@buisnez/shared` as Zod schemas and are
   exception filter below.
 - **Apply it on the specific param decorator** — `@Query(new ZodValidationPipe(schema)) query: X` or
   `@Body(new ZodValidationPipe(schema)) body: X` — **not** `@UsePipes(...)` at the method level whenever the
-  handler has more than one pipelined parameter (`@Body`/`@Query`/`@Param`/`@Headers`; `@Req`/`@Res` are not
-  pipelined and are therefore fine to mix). A method-level pipe runs against _every_ pipelined parameter, so
-  a handler like `getReviews(@Param('id') id: string, @Query() query: PaginationQuery)` with a method-level
-  `@UsePipes(new ZodValidationPipe(paginationQuerySchema))` fails immediately — the pipe also runs the
-  pagination schema against the plain `id` string and rejects it. This bit us in Phase 2's
-  `businesses.controller.ts` before every handler was switched to param-level pipes.
+  handler has more than one pipelined parameter. Pipelined means `@Body`/`@Query`/`@Param`/`@Headers` **and
+  any custom decorator built with `createParamDecorator`** (e.g. `@CurrentUser()`) — only `@Req()`/`@Res()`
+  are exempt (Nest treats those as special host objects, not pipelined data). A method-level pipe runs against
+  _every_ pipelined parameter, so a handler like `getReviews(@Param('id') id: string, @Query() query:
+PaginationQuery)` with a method-level `@UsePipes(new ZodValidationPipe(paginationQuerySchema))` fails
+  immediately — the pipe also runs the pagination schema against the plain `id` string and rejects it. This
+  bit us in Phase 2's `businesses.controller.ts` before every handler was switched to param-level pipes, and
+  again in Phase 5 in a broader form: every new controller combining `@CurrentUser()` with `@Body()`/`@Query()`
+  under a method-level pipe hit the same failure (`@CurrentUser()` is pipelined too, despite not looking like
+  request data) — see `PROGRESS.md`'s Phase 5 entry.
 - The existing global `ValidationPipe` from `@nestjs/common` (Phase 0) is removed once every route has an
   explicit Zod schema; `class-validator`/`class-transformer` stay as transitive Nest dependencies but are not
   used for new DTOs.

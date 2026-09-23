@@ -20,11 +20,31 @@ Two JWTs, both `jsonwebtoken`-compatible via `@nestjs/jwt`:
 
 | Token   | Secret               | Lifetime | Carried as                                                                                          |
 | ------- | -------------------- | -------- | --------------------------------------------------------------------------------------------------- |
-| Access  | `JWT_SECRET`         | 15m      | `Authorization: Bearer <token>` response body                                                       |
+| Access  | `JWT_SECRET`         | 15m      | httpOnly, secure (prod), `SameSite=Lax` cookie named `access_token`, path `/`                       |
 | Refresh | `JWT_REFRESH_SECRET` | 30d      | httpOnly, secure (prod), `SameSite=Lax` cookie named `refresh_token`, scoped to path `/api/v1/auth` |
+
+**Phase 5 transport decision**: both tokens are httpOnly cookies for the web client — neither is ever
+returned in a JSON response body, so web JS can never read either token (`register`/`login` return
+`{ user }` only; `refresh` returns `{ refreshed: true }`). `JwtAuthGuard` reads the access token from the
+`access_token` cookie first; if absent, it falls back to an `Authorization: Bearer` header, which is reserved
+for a future mobile app (mobile has no browser cookie jar, so it authenticates with the header instead — nothing
+else about the token or guard changes for that case). This replaced Phase 1's original design, where the
+access token was returned in the JSON body for any client to store; that broke the requirement that the web
+client never touch a JS-readable token, so it was fixed before Phase 5's login UI was built on top of it. See
+`PROGRESS.md`'s Phase 5 entry.
 
 Access token payload: `{ sub: userId, role, jti }`. Refresh token payload: `{ sub: userId, jti }`, where `jti`
 is a random UUID minted per token.
+
+### CSRF
+
+Cookie-based auth means browsers attach `access_token`/`refresh_token` to cross-site requests automatically;
+`SameSite=Lax` blocks most of that but isn't a complete defense alone. Every mutating request (any method
+other than `GET`/`HEAD`/`OPTIONS`) additionally requires a `X-Requested-With: buisnez-web` header
+(`CsrfGuard`, bound globally, runs before `JwtAuthGuard`) — a cross-site form/script/image tag cannot set a
+custom header, so this blocks CSRF with no extra token-issuing endpoint. The web client attaches it to every
+request (`apps/web/src/lib/api/client.ts`). The future mobile app authenticates via the `Authorization` header
+instead of cookies, so it's unaffected and doesn't need the header.
 
 ### Server-side refresh store (Redis)
 

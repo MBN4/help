@@ -7,11 +7,13 @@ import type {
   DayOfWeek,
   PaginationMeta,
   RatingBreakdown,
+  SubRatings,
 } from '@buisnez/shared';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppException } from '../../common/exceptions/app.exception';
 import { GeoService } from '../geo/geo.service';
 import { SearchService } from '../search/search.service';
+import { getKarachiNow } from '../search/karachi-time.util';
 
 const DAY_ORDER: DayOfWeek[] = [
   'MONDAY',
@@ -22,6 +24,43 @@ const DAY_ORDER: DayOfWeek[] = [
   'SATURDAY',
   'SUNDAY',
 ];
+
+interface HoursWindow {
+  dayOfWeek: DayOfWeek;
+  opensAt: string | null;
+  closesAt: string | null;
+  isClosed: boolean;
+}
+
+/** Mirrors SearchService's openNowExpr()/docs/09-search-discovery.md, applied in application code. */
+function computeIsOpenNow(hours: HoursWindow[]): boolean {
+  const { todayDow, yesterdayDow, nowTime } = getKarachiNow();
+
+  const today = hours.find((entry) => entry.dayOfWeek === todayDow);
+  if (today && !today.isClosed && today.opensAt && today.closesAt) {
+    if (today.opensAt <= today.closesAt) {
+      if (today.opensAt <= nowTime && nowTime <= today.closesAt) {
+        return true;
+      }
+    } else if (nowTime >= today.opensAt) {
+      return true;
+    }
+  }
+
+  const yesterday = hours.find((entry) => entry.dayOfWeek === yesterdayDow);
+  if (
+    yesterday &&
+    !yesterday.isClosed &&
+    yesterday.opensAt &&
+    yesterday.closesAt &&
+    yesterday.opensAt > yesterday.closesAt &&
+    nowTime <= yesterday.closesAt
+  ) {
+    return true;
+  }
+
+  return false;
+}
 
 @Injectable()
 export class BusinessesService {
@@ -92,6 +131,7 @@ export class BusinessesService {
         closesAt: hour.closesAt,
         isClosed: hour.isClosed,
       })),
+      isOpenNow: computeIsOpenNow(hours),
       features: business.features.map(({ feature }) => ({
         id: feature.id,
         name: feature.name,
@@ -116,8 +156,9 @@ export class BusinessesService {
       this.prisma.review.findMany({
         where,
         include: {
-          user: { select: { name: true } },
+          user: { select: { id: true, name: true, avatarUrl: true } },
           photos: { select: { url: true } },
+          _count: { select: { helpfulVotes: true } },
         },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * perPage,
@@ -129,15 +170,19 @@ export class BusinessesService {
       data: reviews.map((review) => ({
         id: review.id,
         rating: review.rating,
+        subRatings: review.subRatings as SubRatings | null,
         title: review.title,
         body: review.body,
+        userId: review.user.id,
         userName: review.user.name,
+        userAvatarUrl: review.user.avatarUrl,
         ownerReply: review.ownerReply,
         ownerReplyAt: review.ownerReplyAt
           ? review.ownerReplyAt.toISOString()
           : null,
         createdAt: review.createdAt.toISOString(),
         photoUrls: review.photos.map((photo) => photo.url),
+        helpfulCount: review._count.helpfulVotes,
       })),
       meta: { page, perPage, total },
     };
@@ -165,6 +210,8 @@ export class BusinessesService {
       data: photos.map((photo) => ({
         id: photo.id,
         url: photo.url,
+        thumbUrl: photo.thumbUrl,
+        cardUrl: photo.cardUrl,
         caption: photo.caption,
         createdAt: photo.createdAt.toISOString(),
       })),

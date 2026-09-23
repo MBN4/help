@@ -23,16 +23,31 @@ export const authUserSchema = z.object({
   id: z.string().uuid(),
   email: z.string().email(),
   name: z.string(),
+  bio: z.string().nullable(),
+  avatarUrl: z.string().nullable(),
   role: roleSchema,
   emailVerifiedAt: z.string().datetime().nullable(),
+  hasPassword: z.boolean(),
 });
 export type AuthUser = z.infer<typeof authUserSchema>;
 
+export const updateProfileRequestSchema = z.object({
+  name: z.string().min(2).max(100).optional(),
+  bio: z.string().max(500).nullable().optional(),
+  avatarUrl: z.string().url().nullable().optional(),
+});
+export type UpdateProfileRequest = z.infer<typeof updateProfileRequestSchema>;
+
+// register/login response: both tokens are set as httpOnly cookies (see docs/10-auth-roles.md) — never in the body.
 export const authResponseSchema = z.object({
   user: authUserSchema,
-  accessToken: z.string(),
 });
 export type AuthResponse = z.infer<typeof authResponseSchema>;
+
+export const refreshResponseSchema = z.object({
+  refreshed: z.literal(true),
+});
+export type RefreshResponse = z.infer<typeof refreshResponseSchema>;
 
 export const verifyEmailRequestSchema = z.object({
   token: z.string().min(1),

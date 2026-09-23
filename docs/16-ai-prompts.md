@@ -104,18 +104,146 @@ success/error + pagination meta shapes from `05-backend.md`; raw SQL only inside
 
 ## Phase 3 — Frontend foundations
 
-To be written in full when this phase starts (Next.js App Router pages/components consuming the Phase 1–2
-API surface).
+Read [`README.md`](README.md), [`15-conventions.md`](15-conventions.md), [`07-frontend.md`](07-frontend.md),
+[`03-tech-stack.md`](03-tech-stack.md), and [`06-api-endpoints.md`](06-api-endpoints.md) first (the real
+endpoint shapes shipped in Phase 2). Shell + design system + data layer only — no public feature pages yet
+(Phase 4).
 
-## Phase 4+ (placeholders — write in full before starting each one)
+**Goal:** a runnable, responsive web shell with a design system, a typed API client wired to the Phase 2 API,
+and i18n seams — mobile-first.
+
+1. Tailwind theme via the `@buisnez/config` preset + shadcn/ui in `components/ui`. Brand tokens (color,
+   type, spacing, radius); distinct, trustworthy, modern Pakistani-local feel; design at 360px first.
+2. Layout: Header (`LocationPicker` via `GET /locations/cities`), Footer, root layout with providers,
+   MobileNav. Logical CSS (`start`/`end`, `ms`/`me`) for future RTL/Urdu.
+3. Typed API client in `src/lib/api` wrapping `fetch`, parsing through `@buisnez/shared` Zod schemas.
+   Centralized base URL (`NEXT_PUBLIC_API_URL`), error handling, auth-token-attach/silent-refresh seam.
+   Endpoint functions for every Phase 2 public read.
+4. TanStack Query provider for client data + Zustand stores (filters, map viewport, UI state). Server data
+   never lives in Zustand.
+5. next-intl wired, English catalog (`i18n/messages/en.json`) — no hardcoded copy in JSX.
+6. Core presentational components (pure, prop-driven): `BusinessCard`, `RatingStars`, `PriceLevel`,
+   `OpenNowBadge`, `FeatureList`, `Breadcrumb`. Add `formatPKR`/`formatPhonePK`/`isOpenNow` to
+   `@buisnez/shared` (didn't exist before this phase).
+7. SEO plumbing for Phase 4: `generateMetadata` helper, JSON-LD builders (`LocalBusiness`, `BreadcrumbList`,
+   `ItemList`, `AggregateRating`), `sitemap.ts`, `robots.ts`.
+8. A single smoke-test home page that server-fetches `GET /discovery/home` and renders `BusinessCard`s in the
+   shell.
+
+**Constraints:** strict TypeScript, no `any`; server components for anything public/SEO, `"use client"` only
+where interactivity is needed; `next/image` for images.
+
+**Acceptance:** `pnpm dev` runs; shell responsive at 360px and desktop; smoke home page renders real seeded
+businesses from `/discovery/home` with a working location switch; no hardcoded JSX strings; basic mobile
+Lighthouse passes with valid metadata; `pnpm lint && pnpm typecheck && pnpm build` clean.
+
+_Actually built together with Phase 4_ (see [`PROGRESS.md`](PROGRESS.md)): item 8's throwaway smoke page was
+skipped in favor of building the real Phase 4 homepage directly, since both phases shipped in the same pass.
+
+## Phase 4 — Public discovery experience
+
+Read [`README.md`](README.md), [`15-conventions.md`](15-conventions.md), [`07-frontend.md`](07-frontend.md),
+[`09-search-discovery.md`](09-search-discovery.md), [`08-maps-location.md`](08-maps-location.md), and
+[`06-api-endpoints.md`](06-api-endpoints.md) first. Reuses the Phase 3 shell, design system, typed API client,
+and shared utils — does not rebuild them. This is the SEO engine: server-rendering and structured data are
+non-negotiable.
+
+**i18n/routing (final):** `app/[locale]` with `next-intl` `localePrefix: 'as-needed'`, default locale `en`
+(prefix-free). hreflang alternates scaffolded for every locale in `routing.locales` (`en` only, for now).
+
+**Pakistan/Lahore defaults:** default city = Lahore when none is selected; default map center = Lahore's
+centroid from `GET /locations/cities/lahore`. Prices in PKR via `formatPKR`; `tel:+92…` call links; distances
+in km. `isOpenNow` is the **server-computed** field from the API payload — never derived client-side for a
+badge.
+
+**Goal:** the public pages that bring organic traffic — home, search, city hub, city+category, business
+profile — all server-rendered and indexable.
+
+1. Homepage (ISR, revalidate 600s) at `/`: `SearchBar`, popular categories/cities (Lahore first), and the
+   `GET /discovery/home` blocks (trending, highly-rated, featured, recent).
+2. Search results (force-dynamic SSR) at `/search`: `SearchBar` + `FilterPanel` (category, city/area,
+   minRating, priceLevel, features, openNow) + `SortSelect` + `BusinessCard` results + a lazy `SearchMapToggle`
+   (markers from `BusinessSummary.location`, no client geocoding) + `UseMyLocationButton` (browser
+   Geolocation → lat/lng/radius, falls back to Lahore's centroid on denial/error). All filters/sort/geo state
+   lives in the URL query string — never in Zustand — so results stay shareable and crawlable.
+3. City hub (ISR) at `/[city]`: intro, category links, top-rated businesses, `BreadcrumbList` JSON-LD.
+4. City + category (ISR) at `/[city]/[category]`: the primary organic-traffic page. `GET /businesses` scoped
+   to city+category, paginated; `BreadcrumbList` + `ItemList` JSON-LD; SEO title/description/canonical.
+5. Business profile (ISR) at `/business/[slug]`: header (name, category breadcrumb, rating+count, server
+   `isOpenNow` badge), `PhotoGallery`, address/phone(`tel:`)/website, `HoursTable`, `FeatureList`, single-marker
+   map (or graceful fallback) + "Get directions" (always works, map or not), reviews (`ReviewCard`, API's
+   default newest-first order — no "helpfulness" signal exists in the schema, so "most helpful first" wasn't
+   literal), similar businesses. `LocalBusiness` (with nested `AggregateRating`) + `BreadcrumbList` + `Review`
+   JSON-LD.
+6. `POST /api/revalidate` (Next.js route handler, not `apps/api`) protected by `REVALIDATE_SECRET`, for the
+   API to call after future business/review writes.
+7. `app/sitemap.ts` (every `PUBLISHED` business + every city + every city×category page) and `app/robots.ts`.
+
+**Constraints:** public pages are server components (ISR/SSR as specified); Google Maps script loads only on
+pages that render a map, lazily; `next/image` everywhere with `alt` text; no hardcoded strings; strict
+TypeScript.
+
+**Acceptance:** search/filter/sort, `/lahore`, `/lahore/restaurants`, and a full business profile all
+server-render correctly; structured data is valid; filters/sort/openNow badges never drift from the server;
+`sitemap.xml`/`robots.txt` served correctly; `pnpm lint && pnpm typecheck && pnpm build` clean; Playwright e2e
+covers the five key pages.
+
+## Phase 5 — Accounts & contributions
+
+Read [`README.md`](README.md), [`15-conventions.md`](15-conventions.md), [`10-auth-roles.md`](10-auth-roles.md),
+[`11-reviews-trust-safety.md`](11-reviews-trust-safety.md), [`05-backend.md`](05-backend.md), and
+[`07-frontend.md`](07-frontend.md) first. Builds on the Phase 1 auth backend (rotation + Redis reuse
+detection) — does not rebuild it, but **does** change its transport (below).
+
+**Auth transport (confirmed before building, changed from Phase 1):** Phase 1 returned the access token in
+the JSON response body for the caller to store — incompatible with "the web client must never hold a
+JS-readable token." Fixed first: both access and refresh tokens are now httpOnly cookies; `JwtAuthGuard`
+checks the cookie first and falls back to `Authorization: Bearer` only for a future mobile client; a new
+`CsrfGuard` requires `X-Requested-With: buisnez-web` on every mutation now that cookies ride along
+automatically. See [`10-auth-roles.md`](10-auth-roles.md).
+
+**Goal:** users can register, sign in, and contribute (reviews with photos, favourites, helpful votes,
+reports).
+
+1. Auth UI: register/login/verify-email/forgot/reset-password + Google/Facebook OAuth (real redirect flow,
+   falling back to a stub consent page when no provider credentials are configured — never fakeable when they
+   _are_ configured). Session via `useSession()` (TanStack Query around `GET /auth/me`); the API client
+   silently refreshes once on `401` and retries.
+2. Write-a-review: overall rating + category-specific sub-ratings (JSON column, category → dimension mapping
+   is frontend-only) + photo attachments. One review per user/business — upsert, never a duplicate.
+3. Photo upload: presign → direct upload to S3-compatible storage (MinIO locally, remapped port — see
+   `PROGRESS.md`) → confirm, which runs `sharp` **synchronously in the request** (resize to thumb/card/full,
+   strip EXIF) — no job queue exists in this stack, and standing one up for a single job type wasn't worth it
+   (confirmed with the user).
+4. Favourites (toggle + `/account/favorites`), helpful votes (toggle), reports (business/review/photo/user +
+   reason).
+5. `/account` (CSR, client-side auth gate + server-side guards as the real boundary): profile edit, my
+   reviews, my photos, favourites.
+
+**Moderation posture (confirmed before building):** reviews/photos publish immediately — there was no
+admin-approval endpoint anywhere in the codebase to move a `PENDING` row to `PUBLISHED`, so holding content
+for approval would have made it permanently invisible. "Moderation job enqueue" is a `TODO(phase-6)` marker
+for a future automated flagging pass, not a pre-publish gate.
+
+**Constraints:** verified email required for writing reviews/uploading photos (`VerifiedEmailGuard`, re-reads
+the DB, never trusts the JWT); frontend surfaces `429`s as a friendly rate-limit message; auth-gated routes
+are guarded client-side _and_ server-side (client-side is UX only, never the real boundary); strict TypeScript;
+`next-intl` for every string; `next/image` for upload previews.
+
+**Acceptance:** register → verify → login → stay logged in across a refresh, with zero tokens in
+`localStorage`/`sessionStorage`; write a review with photos and see the profile's aggregates update;
+save/unsave, vote helpful, report content; unauthenticated `/account` redirects to login; unverified users see
+a clear block message instead of the review form; `pnpm lint && pnpm typecheck && pnpm build` clean; API unit
+
+- e2e green (46 tests across auth + contributions).
+
+## Phase 6+ (placeholders — write in full before starting each one)
 
 - **Business write endpoints**: authenticated business creation (unclaimed by default) and owner-scoped
   editing, wired to `GeoService.geocodeAddress` on write.
-- **Reviews, photos & favorites**: review CRUD with the one-review-per-user-per-business constraint, owner
-  replies, photo upload via the storage integration, favorites; call `DiscoveryService.invalidateHomeCache()`
-  on writes that affect the homepage blocks.
-- **Claims, reports & admin moderation**: claim workflow (submit/approve/reject), report workflow, admin
-  endpoints gated by `RolesGuard`/`ADMIN`, including setting `Business.featured`.
+- **Claims, reports & admin moderation**: claim workflow (submit/approve/reject), the automated content-flag
+  pass noted as a Phase 5 `TODO`, admin review of reports filed in Phase 5, admin endpoints gated by
+  `RolesGuard`/`ADMIN` including setting `Business.featured`.
 
 Each of these gets its own fully-specified prompt section, written just before that phase starts, following
 the same structure as Phase 1/2 (goal, numbered steps, acceptance criteria) — not invented in advance.

@@ -60,7 +60,11 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { email: input.email },
     });
-    if (!user || !(await verify(user.passwordHash, input.password))) {
+    if (
+      !user ||
+      !user.passwordHash ||
+      !(await verify(user.passwordHash, input.password))
+    ) {
       throw new AppException(
         401,
         'INVALID_CREDENTIALS',
@@ -200,15 +204,18 @@ export class AuthService {
   }
 }
 
-function serializeUser(user: User): AuthUser {
+export function serializeUser(user: User): AuthUser {
   return {
     id: user.id,
     email: user.email,
     name: user.name,
+    bio: user.bio,
+    avatarUrl: user.avatarUrl,
     role: user.role,
     emailVerifiedAt: user.emailVerifiedAt
       ? user.emailVerifiedAt.toISOString()
       : null,
+    hasPassword: user.passwordHash !== null,
   };
 }
 

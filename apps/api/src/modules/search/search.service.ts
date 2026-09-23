@@ -28,6 +28,9 @@ interface BusinessRow {
   avgRating: number | null;
   thumbnailUrl: string | null;
   distanceMeters: number | null;
+  isOpenNow: boolean;
+  lat: number | null;
+  lng: number | null;
 }
 
 const REVIEW_COUNT_EXPR = Prisma.sql`COALESCE(rv."reviewCount", 0)`;
@@ -47,7 +50,9 @@ const BASE_SELECT_COLUMNS = Prisma.sql`
   area."slug" AS "areaSlug",
   ${REVIEW_COUNT_EXPR} AS "reviewCount",
   ${AVG_RATING_EXPR} AS "avgRating",
-  thumb."url" AS "thumbnailUrl"
+  thumb."url" AS "thumbnailUrl",
+  ST_Y(b."location"::geometry) AS lat,
+  ST_X(b."location"::geometry) AS lng
 `;
 
 const BASE_FROM = Prisma.sql`
@@ -137,7 +142,7 @@ export class SearchService {
       ) = ${query.features.length}`);
     }
     if (query.openNow) {
-      conditions.push(this.openNowCondition());
+      conditions.push(this.openNowExpr());
     }
     if (hasGeo) {
       conditions.push(Prisma.sql`b."location" IS NOT NULL`);
@@ -170,7 +175,7 @@ export class SearchService {
         Prisma.sql`SELECT COUNT(*)::int AS total ${BASE_FROM} ${whereSql}`,
       ),
       this.prisma.$queryRaw<BusinessRow[]>(Prisma.sql`
-        SELECT ${BASE_SELECT_COLUMNS}, ${distanceExpr} AS "distanceMeters", ${relevanceExpr} AS "relevanceScore"
+        SELECT ${BASE_SELECT_COLUMNS}, ${distanceExpr} AS "distanceMeters", ${relevanceExpr} AS "relevanceScore", ${this.openNowExpr()} AS "isOpenNow"
         ${BASE_FROM}
         ${whereSql}
         ORDER BY ${this.orderBySql(query.sort)}
@@ -190,7 +195,7 @@ export class SearchService {
 
   async listTrending(limit: number): Promise<BusinessSummary[]> {
     const rows = await this.prisma.$queryRaw<BusinessRow[]>(Prisma.sql`
-      SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters"
+      SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters", ${this.openNowExpr()} AS "isOpenNow"
       ${BASE_FROM}
       WHERE b."status" = 'PUBLISHED'
       ORDER BY b."viewCount" DESC
@@ -205,7 +210,7 @@ export class SearchService {
   ): Promise<BusinessSummary[]> {
     const weighted = weightedRatingSql(REVIEW_COUNT_EXPR, AVG_RATING_EXPR);
     const rows = await this.prisma.$queryRaw<BusinessRow[]>(Prisma.sql`
-      SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters"
+      SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters", ${this.openNowExpr()} AS "isOpenNow"
       ${BASE_FROM}
       WHERE b."status" = 'PUBLISHED' AND ${REVIEW_COUNT_EXPR} >= ${minReviews}
       ORDER BY ${weighted} DESC
@@ -216,7 +221,7 @@ export class SearchService {
 
   async listFeatured(limit: number): Promise<BusinessSummary[]> {
     const rows = await this.prisma.$queryRaw<BusinessRow[]>(Prisma.sql`
-      SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters"
+      SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters", ${this.openNowExpr()} AS "isOpenNow"
       ${BASE_FROM}
       WHERE b."status" = 'PUBLISHED' AND b."featured" = true
       ORDER BY b."createdAt" DESC
@@ -227,7 +232,7 @@ export class SearchService {
 
   async listRecent(limit: number): Promise<BusinessSummary[]> {
     const rows = await this.prisma.$queryRaw<BusinessRow[]>(Prisma.sql`
-      SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters"
+      SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters", ${this.openNowExpr()} AS "isOpenNow"
       ${BASE_FROM}
       WHERE b."status" = 'PUBLISHED'
       ORDER BY b."createdAt" DESC
@@ -253,7 +258,7 @@ export class SearchService {
     const weighted = weightedRatingSql(REVIEW_COUNT_EXPR, AVG_RATING_EXPR);
 
     const sameCategory = await this.prisma.$queryRaw<BusinessRow[]>(Prisma.sql`
-      SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters"
+      SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters", ${this.openNowExpr()} AS "isOpenNow"
       ${BASE_FROM}
       WHERE b."status" = 'PUBLISHED'
         AND b."id" != ${input.businessId}
@@ -270,7 +275,7 @@ export class SearchService {
 
     const excludeIds = [input.businessId, ...sameCategory.map((row) => row.id)];
     const siblings = await this.prisma.$queryRaw<BusinessRow[]>(Prisma.sql`
-      SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters"
+      SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters", ${this.openNowExpr()} AS "isOpenNow"
       ${BASE_FROM}
       WHERE b."status" = 'PUBLISHED'
         AND b."id" != ALL(${excludeIds}::text[])
@@ -283,7 +288,24 @@ export class SearchService {
     return [...sameCategory, ...siblings].map((row) => this.mapRow(row));
   }
 
-  private openNowCondition(): Prisma.Sql {
+  /** Reused both as a WHERE filter (openNow=true) and as a SELECT column ("isOpenNow"). */
+  /** Businesses by id, in the given order (e.g. a favorites list ordered by favorited-at). */
+  async listByIds(businessIds: string[]): Promise<BusinessSummary[]> {
+    if (businessIds.length === 0) {
+      return [];
+    }
+    const rows = await this.prisma.$queryRaw<BusinessRow[]>(Prisma.sql`
+      SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters", ${this.openNowExpr()} AS "isOpenNow"
+      ${BASE_FROM}
+      WHERE b."status" = 'PUBLISHED' AND b."id" = ANY(${businessIds}::text[])
+    `);
+    const byId = new Map(rows.map((row) => [row.id, this.mapRow(row)]));
+    return businessIds
+      .map((id) => byId.get(id))
+      .filter((business): business is BusinessSummary => Boolean(business));
+  }
+
+  private openNowExpr(): Prisma.Sql {
     const now = getKarachiNow();
     return Prisma.sql`EXISTS (
       SELECT 1 FROM "BusinessHours" bh
@@ -356,6 +378,11 @@ export class SearchService {
       thumbnailUrl: row.thumbnailUrl,
       distanceMeters:
         row.distanceMeters !== null ? Math.round(row.distanceMeters) : null,
+      isOpenNow: row.isOpenNow,
+      location:
+        row.lat !== null && row.lng !== null
+          ? { lat: row.lat, lng: row.lng }
+          : null,
     };
   }
 }

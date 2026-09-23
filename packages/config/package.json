@@ -7,6 +7,9 @@
     "./tsconfig/base.json": "./tsconfig/base.json",
     "./tailwind/preset": "./tailwind/preset.ts"
   },
+  "dependencies": {
+    "tailwindcss-animate": "^1.0.7"
+  },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.44.0",
     "@typescript-eslint/parser": "^8.44.0",

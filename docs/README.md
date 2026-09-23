@@ -50,12 +50,15 @@ Copy `.env.example` files to local environment files as needed. Secrets must nev
 ## Documentation Map
 
 - [`01-product-overview.md`](01-product-overview.md): product scope, geography model, category tree, feature list.
+- [`03-tech-stack.md`](03-tech-stack.md): full technology stack and why, across backend, frontend, and shared packages.
 - [`04-database.md`](04-database.md): full Prisma schema and the raw PostGIS/full-text SQL migration.
 - [`05-backend.md`](05-backend.md): NestJS module layout, validation, response envelope, security bootstrap.
 - [`06-api-endpoints.md`](06-api-endpoints.md): full public API endpoint catalog and response shapes.
+- [`07-frontend.md`](07-frontend.md): Next.js App Router structure, design system, data layers, and i18n.
 - [`08-maps-location.md`](08-maps-location.md): `GeoService`, geocoding, distance/radius SQL.
 - [`09-search-discovery.md`](09-search-discovery.md): search query params, relevance/rating scoring, homepage discovery blocks.
 - [`10-auth-roles.md`](10-auth-roles.md): roles, JWT/refresh-token design, auth endpoints, guards.
+- [`11-reviews-trust-safety.md`](11-reviews-trust-safety.md): reviews, photo uploads, favourites, helpful votes, reports, OAuth.
 - [`15-conventions.md`](15-conventions.md): coding and architecture conventions.
 - [`16-ai-prompts.md`](16-ai-prompts.md): phase-by-phase build prompts for AI-assisted development.
 - [`PROGRESS.md`](PROGRESS.md): current phase status and verified versions.

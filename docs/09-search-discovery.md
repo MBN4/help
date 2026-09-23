@@ -90,6 +90,15 @@ clock time regardless of the DB server's timezone:
 `todayDow`, `yesterdayDow`, and `nowTime` are computed once per request and passed as bound query
 parameters — the SQL only ever compares against them, it never calls `now()` itself.
 
+**Phase 4 addition — `isOpenNow` on `BusinessSummary`/`BusinessProfile`:** Phase 2 only exposed this logic as
+the `openNow` search _filter_; nothing returned a per-business boolean. The frontend needs one it can trust
+as the source of truth for "Open now" badges (never computed client-side, to avoid timezone/client-clock
+drift). `SearchService.openNowExpr()` is now reused both as the `WHERE` filter and as a `SELECT` column
+(`"isOpenNow"`) on every `BusinessSummary`-producing query; `BusinessesService.getProfileBySlug` computes the
+same boolean in application code from the profile's own `hours` array (see [`06-api-endpoints.md`](06-api-endpoints.md)).
+`packages/shared/src/utils/index.ts`'s `isOpenNow()` mirrors this same logic for client-side display purposes
+only (e.g. highlighting "today" in an hours table) — it is never the source of truth for a badge.
+
 ## Category descendant resolution
 
 `category=<slug>` resolves to a list of category ids (itself plus every descendant, walked recursively — the

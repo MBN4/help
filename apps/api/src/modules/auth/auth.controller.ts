@@ -12,9 +12,11 @@ import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import {
+  AuthResponse,
   AuthUser,
   ForgotPasswordRequest,
   LoginRequest,
+  RefreshResponse,
   RegisterRequest,
   ResetPasswordRequest,
   VerifyEmailRequest,
@@ -30,9 +32,11 @@ import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { AuthService } from './auth.service';
-
-const REFRESH_COOKIE_NAME = 'refresh_token';
-const REFRESH_COOKIE_PATH = '/api/v1/auth';
+import {
+  REFRESH_COOKIE_NAME,
+  clearAuthCookies,
+  setAuthCookies,
+} from '../../common/constants/auth-cookies';
 
 @Controller('auth')
 export class AuthController {
@@ -48,14 +52,16 @@ export class AuthController {
   async register(
     @Body() body: RegisterRequest,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<{ user: AuthUser; accessToken: string }> {
+  ): Promise<AuthResponse> {
     const result = await this.authService.register(body);
-    this.setRefreshCookie(
+    setAuthCookies(
       res,
+      this.isSecure(),
+      result.accessToken,
       result.refreshToken,
       result.refreshTokenExpiresInSeconds,
     );
-    return { user: result.user, accessToken: result.accessToken };
+    return { user: result.user };
   }
 
   @Public()
@@ -65,14 +71,16 @@ export class AuthController {
   async login(
     @Body() body: LoginRequest,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<{ user: AuthUser; accessToken: string }> {
+  ): Promise<AuthResponse> {
     const result = await this.authService.login(body);
-    this.setRefreshCookie(
+    setAuthCookies(
       res,
+      this.isSecure(),
+      result.accessToken,
       result.refreshToken,
       result.refreshTokenExpiresInSeconds,
     );
-    return { user: result.user, accessToken: result.accessToken };
+    return { user: result.user };
   }
 
   @Public()
@@ -81,20 +89,22 @@ export class AuthController {
   async refresh(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<{ accessToken: string }> {
+  ): Promise<RefreshResponse> {
     const refreshToken = this.readRefreshCookie(req);
     if (!refreshToken) {
-      this.clearRefreshCookie(res);
+      clearAuthCookies(res);
       throw new AppException(401, 'UNAUTHORIZED', 'Missing refresh token');
     }
 
     const tokens = await this.authService.refresh(refreshToken);
-    this.setRefreshCookie(
+    setAuthCookies(
       res,
+      this.isSecure(),
+      tokens.accessToken,
       tokens.refreshToken,
       tokens.refreshTokenExpiresInSeconds,
     );
-    return { accessToken: tokens.accessToken };
+    return { refreshed: true };
   }
 
   @Public()
@@ -106,7 +116,7 @@ export class AuthController {
   ): Promise<{ loggedOut: true }> {
     const refreshToken = this.readRefreshCookie(req);
     await this.authService.logout(refreshToken);
-    this.clearRefreshCookie(res);
+    clearAuthCookies(res);
     return { loggedOut: true };
   }
 
@@ -152,21 +162,7 @@ export class AuthController {
     return cookies?.[REFRESH_COOKIE_NAME];
   }
 
-  private setRefreshCookie(
-    res: Response,
-    token: string,
-    maxAgeSeconds: number,
-  ): void {
-    res.cookie(REFRESH_COOKIE_NAME, token, {
-      httpOnly: true,
-      secure: this.config.get('NODE_ENV', { infer: true }) === 'production',
-      sameSite: 'lax',
-      path: REFRESH_COOKIE_PATH,
-      maxAge: maxAgeSeconds * 1000,
-    });
-  }
-
-  private clearRefreshCookie(res: Response): void {
-    res.clearCookie(REFRESH_COOKIE_NAME, { path: REFRESH_COOKIE_PATH });
+  private isSecure(): boolean {
+    return this.config.get('NODE_ENV', { infer: true }) === 'production';
   }
 }

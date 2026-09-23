@@ -18,6 +18,8 @@ export const businessSummarySchema = z.object({
   reviewCount: z.number().int(),
   thumbnailUrl: z.string().nullable(),
   distanceMeters: z.number().nullable(),
+  isOpenNow: z.boolean(),
+  location: geoPointSchema.nullable(),
 });
 export type BusinessSummary = z.infer<typeof businessSummarySchema>;
 
@@ -71,28 +73,43 @@ export const businessProfileSchema = z.object({
   city: locationRefSchema,
   area: locationRefSchema.nullable(),
   hours: z.array(businessHoursEntrySchema),
+  isOpenNow: z.boolean(),
   features: z.array(businessFeatureSchema),
   aggregates: businessAggregatesSchema,
   createdAt: z.string(),
 });
 export type BusinessProfile = z.infer<typeof businessProfileSchema>;
 
+/** Category-specific sub-rating dimensions, e.g. `{ food: 4, service: 5 }` — see docs/11-reviews-trust-safety.md. */
+export const subRatingsSchema = z.record(
+  z.string(),
+  z.number().int().min(1).max(5),
+);
+export type SubRatings = z.infer<typeof subRatingsSchema>;
+
 export const businessReviewSchema = z.object({
   id: z.string().uuid(),
   rating: z.number().int(),
+  subRatings: subRatingsSchema.nullable(),
   title: z.string().nullable(),
   body: z.string().nullable(),
+  userId: z.string().uuid(),
   userName: z.string(),
+  userAvatarUrl: z.string().nullable(),
   ownerReply: z.string().nullable(),
   ownerReplyAt: z.string().nullable(),
   createdAt: z.string(),
   photoUrls: z.array(z.string()),
+  helpfulCount: z.number().int(),
 });
 export type BusinessReview = z.infer<typeof businessReviewSchema>;
 
 export const businessPhotoSchema = z.object({
-  id: z.string().uuid(),
+  // Not `.uuid()`: seed data uses deterministic string ids (e.g. `photo-<slug>-gallery`) for idempotent upserts.
+  id: z.string(),
   url: z.string(),
+  thumbUrl: z.string().nullable(),
+  cardUrl: z.string().nullable(),
   caption: z.string().nullable(),
   createdAt: z.string(),
 });

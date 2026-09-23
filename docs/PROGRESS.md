@@ -21,16 +21,24 @@ Status: **Complete**
 
 These are the versions installed or configured for Phase 0:
 
-| Tool                     | Version                  |
-| ------------------------ | ------------------------ |
-| Node.js                  | `24.3.0`                 |
-| pnpm                     | `9.15.0`                 |
-| Next.js                  | `15.5.25`                |
-| NestJS                   | `11.2.5`                 |
-| Prisma                   | `6.19.3`                 |
-| PostgreSQL/PostGIS image | `postgis/postgis:16-3.4` |
-| Redis image              | `redis:7-alpine`         |
-| MinIO image              | `minio/minio:latest`     |
+| Tool                                    | Version                  |
+| --------------------------------------- | ------------------------ |
+| Node.js                                 | `24.3.0`                 |
+| pnpm                                    | `9.15.0`                 |
+| Next.js                                 | `15.5.25`                |
+| NestJS                                  | `11.2.5`                 |
+| Prisma                                  | `6.19.3`                 |
+| PostgreSQL/PostGIS image                | `postgis/postgis:16-3.4` |
+| Redis image                             | `redis:7-alpine`         |
+| MinIO image                             | `minio/minio:latest`     |
+| next-intl (Phase 3)                     | `3.26.5`                 |
+| @tanstack/react-query (Phase 3)         | `5.103.2`                |
+| zustand (Phase 3)                       | `5.0.15`                 |
+| tailwindcss-animate (Phase 3)           | `1.0.7`                  |
+| @playwright/test (Phase 4, pinned)      | `1.48.0`                 |
+| @aws-sdk/client-s3 (Phase 5)            | `3.1138.0`               |
+| @aws-sdk/s3-request-presigner (Phase 5) | `3.1138.0`               |
+| sharp (Phase 5)                         | `0.33.5`                 |
 
 ## Validation
 
@@ -166,8 +174,225 @@ Status: **Complete**
   2 has no business-mutation endpoints to trigger "geocode on write" from. Also not built: an admin endpoint
   to set `Business.featured` (still a later-phase, admin-moderation concern).
 
+## Phase 3: Frontend Foundations
+
+Status: **Complete** (built in the same pass as Phase 4 — see that section)
+
+- [x] Tailwind theme via `@buisnez/config/tailwind/preset.ts`: brand tokens (deep emerald primary scale,
+      warm saffron accent, type scale, spacing, radius) as CSS variables in `src/styles/globals.css`.
+      `tailwindcss-animate` plugin. shadcn/ui primitives copied into `apps/web/src/components/ui`: Button,
+      Card, Badge, Input, Label, Separator, Skeleton, Checkbox, Select, Sheet.
+- [x] Layout: `Header` (server component; `LocationPicker` client sub-component backed by
+      `GET /locations/cities`, detects current city from the URL pathname), `Footer`, `MobileNav` (fixed
+      bottom tab bar), root layout wiring `NextIntlClientProvider` + `QueryProvider`. Logical CSS
+      (`ms`/`me`/`start`/`end`) throughout.
+- [x] Typed API client (`src/lib/api`): one `apiRequest()` unwrapping the `{success,data,meta}` envelope,
+      parsing every response through `@buisnez/shared` Zod schemas, typed `ApiError`, and an
+      auth-token-attach/silent-refresh-on-401 seam (`setAuthTokenGetter`/`setUnauthorizedHandler`) — unused
+      until Phase 6's real auth UI. Endpoint functions for every Phase 2 read plus Phase 4's new `/features`.
+- [x] `QueryProvider` (`@tanstack/react-query`) + Zustand `useUIStore` (mobile filter sheet) and
+      `useMapViewportStore` (map center/zoom). Filters/sort are **not** duplicated into Zustand — the URL is
+      the single source of truth (see Phase 4).
+- [x] `next-intl` wired with `src/i18n/messages/en.json` — every UI string externalized.
+- [x] Core presentational components: `BusinessCard`, `RatingStars`, `PriceLevel`, `OpenNowBadge`,
+      `FeatureList`, `Breadcrumb`. `formatPKR`, `formatPhonePK`, `toTelHref`, `isOpenNow` added to
+      `@buisnez/shared/src/utils` (didn't exist before — were empty stub files).
+- [x] SEO plumbing: `buildMetadata()` helper, JSON-LD builders (`localBusinessJsonLd`, `breadcrumbListJsonLd`,
+      `itemListJsonLd`, `reviewsJsonLd`), `<JsonLd>` render component.
+
+### Actually built vs. the docs
+
+- **i18n routing decided immediately as `app/[locale]`**, not deferred: the original Phase 3 doc draft said
+  "no locale segment yet" (reading `15-conventions.md`'s "structure future Urdu support through the message
+  layer" as meaning no routing concern at all). The user's Phase 4 prompt then gave the final decision
+  (`app/[locale]`, `next-intl` `localePrefix: 'as-needed'`) before any Phase 3 code existed, so it was built
+  directly per that final shape instead of a plain `app/` structure that would've needed migrating. See
+  [`07-frontend.md`](07-frontend.md).
+- **Smoke-test homepage skipped**: since Phase 3 and Phase 4 shipped together in one session, the "single
+  smoke-test home page" from the Phase 3 prompt was skipped in favor of building the real Phase 4 homepage
+  directly — no throwaway page was written and then replaced.
+- **Font**: system font stack (no `next/font/google`), to avoid a build-time network dependency for
+  self-hosted fonts in this sandboxed environment. Revisit once a real deploy target is confirmed.
+
+## Phase 4: Public Discovery Experience
+
+Status: **Complete**
+
+- [x] Homepage (`/`, ISR 600s): `SearchBar`, popular categories/cities (Lahore first), `GET /discovery/home`
+      blocks.
+- [x] Search (`/search`, `export const dynamic = 'force-dynamic'`): `SearchBar`, `FilterPanel` (category,
+      city, area, minRating, priceLevel, features, openNow — desktop sidebar + `MobileFilterSheet` on
+      mobile), `SortSelect`, `UseMyLocationButton` (Geolocation → lat/lng/radius in the URL; falls back to
+      Lahore's centroid on denial/error/no-geolocation), lazy `SearchMapToggle` (markers from
+      `BusinessSummary.location`). All filter/sort/geo state lives in the URL query string.
+- [x] City hub (`/[city]`, ISR 600s): intro, category links, top-rated businesses, `BreadcrumbList` JSON-LD.
+- [x] City + category (`/[city]/[category]`, ISR 600s): paginated `GET /businesses` scoped to city+category;
+      `BreadcrumbList` + `ItemList` JSON-LD; per-page SEO title/description/canonical.
+- [x] Business profile (`/business/[slug]`, ISR 600s): header with server `isOpenNow` badge, `PhotoGallery`,
+      address/`tel:`/website/WhatsApp, `HoursTable`, `FeatureList`, single-marker `MapView` (or graceful
+      fallback) + always-working "Get directions", reviews (`ReviewCard`), similar businesses. `LocalBusiness`
+      (nested `AggregateRating`) + `BreadcrumbList` + `Review` JSON-LD.
+- [x] `POST /api/revalidate` (Next.js route handler) protected by `REVALIDATE_SECRET`; revalidates the
+      affected business/city/city+category/home paths. No caller yet — Phase 2 has no business-mutation
+      endpoints (same "exists, no caller yet" situation as `GeoService.geocodeAddress`).
+- [x] `app/sitemap.ts` (homepage, `/search`, every city, every city×category combination, every `PUBLISHED`
+      business — paginated internally through the API's 50-per-page cap) and `app/robots.ts`.
+- [x] `MapView`/`LazyMapView`/`useGoogleMapsScript`: real Google Map when `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
+      is set, static fallback otherwise (no key issued yet, same as `GeoService.geocodeAddress`) — verified
+      both the fallback rendering and that "Get directions" works regardless.
+- [x] Playwright e2e (`apps/web/e2e/`): homepage discovery blocks, city hub + city/category JSON-LD, business
+      profile (header/directions/JSON-LD/404), search (city filter via URL, sort-changes-URL, map toggle) — 8
+      tests, all passing against a live dev server backed by the real seeded database.
+- [x] Verified end-to-end in a real headless browser (screenshots + DOM inspection) against the live API,
+      Postgres, and Redis — not just `curl`/typecheck: homepage, search (desktop layout, filters, sort,
+      map toggle), city hub, city+category, and business profile (photos, hours, map fallback, directions,
+      reviews) all confirmed rendering correctly.
+
+### Actually built vs. the docs
+
+- **Three additive Phase 2 API gaps closed** (all read-only, no migrations — user confirmed the approach
+  before each): the real Phase 2 contract was checked against the actual Phase 4 requirements and came up
+  short in three places:
+  1. **`isOpenNow` added to `BusinessSummary` and `BusinessProfile`**. Phase 2 only had `openNow` as a search
+     _filter_ (`SearchService.openNowExpr()` existed only as a `WHERE` condition); nothing returned a
+     per-business boolean, but the task required server-computed open/closed badges everywhere, never
+     client-derived. `openNowExpr()` is now reused as both the filter and a `SELECT` column;
+     `BusinessesService.getProfileBySlug` computes the same boolean in application code from its own `hours`.
+     See [`09-search-discovery.md`](09-search-discovery.md).
+  2. **`location: {lat,lng} | null` added to `BusinessSummary`**. The search results map needs marker
+     coordinates and none were exposed on summaries (only on the full profile). Added via
+     `ST_Y`/`ST_X` on the already-joined `Business.location` column — no new query needed.
+  3. **`GET /features` added** (new `FeaturesModule`, mirrors `CategoriesModule`'s shape). The search filter
+     panel needs the full feature catalog to render amenity checkboxes; Phase 2 only ever returned
+     per-business feature refs, never a standalone list. The `Feature` table already existed from Phase 1.
+- **Pre-existing schema bug found and fixed**: `businessPhotoSchema.id` was declared `z.string().uuid()`,
+  but `seed.ts` intentionally uses deterministic string ids (`photo-<slug>-gallery`, `photo-<slug>-review`)
+  for idempotent upserts — never actual UUIDs. This silently broke `GET /businesses/:id/photos` parsing on
+  the frontend (Zod rejected the response, caught, and swallowed into an empty gallery) and had been latent
+  since Phase 1/2 since neither ever validated its own output against the shared schema at runtime. Fixed by
+  relaxing the field to `z.string()` — found via real browser testing, not just typecheck/build.
+- **"Most helpful first" reviews wasn't literal**: the schema has no helpfulness/vote signal on `Review`
+  (per the Phase 2 API, reviews are always newest-first). Rendered in the API's existing default order rather
+  than inventing a new backend ranking feature outside Phase 4's frontend scope.
+- **`/search`'s zero-query variant is build-time static-optimized** despite `export const dynamic =
+'force-dynamic'` (Next.js build summary still marks `/en/search` "SSG") — verified this doesn't affect
+  correctness: every query-string variant (`?city=`, `?sort=`, etc.) is confirmed dynamic per request via
+  both `curl` and the e2e suite. Cosmetic build-label quirk, not a functional one; not chased further.
+- **Sitemap ships as a single `app/sitemap.ts`** (not `generateSitemaps()`-paginated): tried the
+  `generateSitemaps()` API first, but it serves at `/sitemap/[id].xml` rather than `/sitemap.xml` (no
+  auto-generated index route in this Next.js version), which doesn't match `robots.txt`'s conventional
+  `Sitemap:` reference. A single file comfortably covers current and realistically-foreseeable scale (well
+  under the 50,000-URL limit even at full Pakistan-wide city×category coverage); switch to
+  `generateSitemaps()` if that changes.
+- **Playwright can't run its browser on this machine as configured**: `@playwright/test`'s current major
+  (would have resolved to ~1.6x via the `^1.50.1` range) dropped support for this machine's OS
+  (Ubuntu 20.04.6 LTS — `ERROR: Playwright does not support chromium on ubuntu20.04-x64`). Pinned to `1.48.0`
+  (last version confirmed to install and launch chromium here) instead of the newer range. `apps/web`'s
+  `pnpm test` runs the real suite; on a newer OS or in CI, the version pin can likely be lifted.
+- **MinIO port conflict recurs** (see Phase 0/1 note on Postgres/Redis remapping): this machine's `9000` is
+  already bound by another process, so `docker compose up` starts Postgres/Redis fine but MinIO fails.
+  Doesn't block anything in Phase 3/4 — all seeded photo URLs are `picsum.photos`, not MinIO. Not remapped in
+  `docker-compose.yml` since no code in this phase touches object storage; flagging for whoever hits it next.
+
+## Phase 5: Accounts & Contributions
+
+Status: **Backend complete and verified; frontend built but not yet browser/Playwright-verified** (see below)
+
+- [x] **Auth transport fixed before anything else was built** (per the user's explicit stop-and-confirm
+      instruction): Phase 1 returned the access token in the JSON body for any caller to store. Now both
+      access (`access_token`, path `/`) and refresh (`refresh_token`, path `/api/v1/auth`) tokens are httpOnly,
+      `SameSite=Lax` cookies; `register`/`login` return `{ user }` only, `refresh` returns
+      `{ refreshed: true }` — no token ever appears in a JSON body. `JwtAuthGuard` checks the `access_token`
+      cookie first, falling back to `Authorization: Bearer` only (reserved for a future mobile app). New
+      `CsrfGuard` (global, runs before `JwtAuthGuard`) requires `X-Requested-With: buisnez-web` on every
+      non-`GET`/`HEAD`/`OPTIONS` request. See [`10-auth-roles.md`](10-auth-roles.md).
+- [x] Migration `phase5_accounts_and_contributions`: `User.bio` (new), `User.passwordHash` now nullable
+      (OAuth-only accounts), new `OAuthAccount` model, `Review.subRatings` (`Json?`), new
+      `ReviewHelpfulVote` model, `Report.photoId`/`reportedUserId` + `ReportTargetType` gained `PHOTO`/`USER`,
+      `Photo.thumbUrl`/`cardUrl` (nullable — null for pre-Phase-5 seed photos).
+- [x] Auth: register/login/verify-email/forgot-reset-password UI, `useSession()` (TanStack Query around
+      `GET /auth/me`), silent refresh-on-401 + retry built into the API client, Google/Facebook OAuth (real
+      redirect flow + a stub consent page that's server-side disabled whenever real credentials are
+      configured — see below).
+- [x] Reviews: `PUT /businesses/:businessId/review` (upsert, one per user/business), category-specific
+      sub-ratings, photo attachments, `GET .../review/mine` for the edit-in-place UX, helpful-vote toggle.
+- [x] Photos: presign → direct upload (MinIO locally / R2 in prod, same S3 API) → confirm, running `sharp`
+      **synchronously** in the confirm request (thumb/card/full variants, EXIF stripped via `.rotate()` +
+      no `.withMetadata()`).
+- [x] Favourites (toggle + list + ids), Reports (business/review/photo/user + reason, rate-limited).
+- [x] `/account` (CSR, client-side gate + independent server-side guards): profile edit (name/bio/avatar),
+      my reviews, my photos, favourites.
+- [x] New backend Jest e2e suite (`contributions.e2e-spec.ts`, 8 tests: CSRF rejection, create-then-edit
+      upsert, unverified-email 403, helpful-vote toggle, favourite toggle, report creation, full photo
+      pipeline against real MinIO with EXIF/size assertions, profile update) plus a rewritten
+      `auth.e2e-spec.ts` (cookie assertions, Bearer-fallback, CSRF). **39 → 46 total e2e tests, all green**;
+      9 unit tests still green.
+- [x] `pnpm lint && pnpm typecheck` clean across `@buisnez/api`, `@buisnez/web`, and `@buisnez/shared`.
+
+### Not yet done in this pass
+
+- [ ] **Live browser verification** of the full register → verify → login → write-a-review → favourite flow.
+      The equivalent flow _was_ verified end-to-end via `curl` against the real dev stack (Postgres, Redis,
+      MinIO, the API) during backend development — registration, verification, login, review upsert,
+      favourite toggle, helpful vote, report, profile update, and the full photo pipeline (presign → MinIO
+      upload → sharp processing → publicly-fetchable, correctly-sized, EXIF-stripped variants) all confirmed
+      working that way. What's outstanding is the _frontend_ UI exercised in an actual browser.
+- [ ] **Playwright e2e** for register → verify → login → review → favourite (the acceptance criterion asks for
+      this explicitly). Not written this pass — deferred at the user's instruction to prioritize documentation
+      first.
+
+Both are the natural next step before calling Phase 5 fully done; flagging here rather than silently marking
+the phase complete.
+
+### Actually built vs. the docs
+
+- **Sub-ratings modeled as `Review.subRatings: Json?`**, not fixed columns — confirmed with the user before
+  the migration. The category → dimension mapping (`food`/`service`/`ambience`/`value`, which ones show for
+  which top-level category) lives entirely in the frontend
+  (`apps/web/src/lib/utils/sub-rating-dimensions.ts`); the API accepts any string-keyed rating object. See
+  [`11-reviews-trust-safety.md`](11-reviews-trust-safety.md).
+- **Photo processing is synchronous, not a queued job** — confirmed with the user. No BullMQ/worker process
+  exists in this stack; `sharp` runs inline inside `POST /photos/confirm`. The phase brief's "sharp job"
+  phrasing was interpreted as "the sharp processing step," not literally an async queue.
+- **Reviews/photos publish immediately, no admin-approval gate** — confirmed with the user. There was (and
+  still is) no admin-moderation endpoint anywhere in the codebase to move a `PENDING` row to `PUBLISHED`, so a
+  pre-publish hold would have made new content permanently invisible. "Moderation job enqueue" from the phase
+  brief is now a `TODO(phase-6)` comment in `ReviewsService.createOrUpdate` marking where an automated
+  flag-for-review pass would hook in, once there's an admin surface to consume its output.
+- **A second, broader instance of the already-documented pipe-scoping gotcha** (see Phase 2's note below):
+  it turns out `@UsePipes` at the method level applies to _every_ framework-tracked parameter, not just
+  `@Param`/`@Query` combinations — `@CurrentUser()` (a custom `createParamDecorator`) is affected too, while
+  `@Req()`/`@Res()` are not (Nest treats those as special host objects). Every new Phase 5 controller method
+  that combined `@CurrentUser()` with `@Body()`/`@Query()` hit this (discovered via a live "expected object,
+  received string" error against `reviews`/`favorites`/`reports`/`photos`/`users` controllers) and was fixed
+  by moving the `ZodValidationPipe` onto the specific `@Body()`/`@Query()` decorator instead of the method.
+  `05-backend.md`'s existing note about this gotcha should be read as covering `@CurrentUser()` too, not just
+  `@Param`/`@Query`.
+- **MinIO port conflict recurs a second time**: port `9000` is taken by another project's MinIO on this
+  machine (same root cause as the Phase 4 note), so `docker-compose.yml` now remaps Buisnez's MinIO to
+  `9102`/`9103` (was already going to conflict with the default even after the Phase 4 flag, since that phase
+  never actually started MinIO). `S3_ENDPOINT`/`S3_PUBLIC_URL_BASE` in `.env.example` point at `9102`.
+  `StorageService` also best-effort auto-creates the bucket + a public-read policy on boot, since a fresh
+  MinIO volume starts with neither and Phase 5 was the first phase to actually need object storage.
+- **`GET /businesses/:businessId/review/mine` added** beyond the phase brief's literal endpoint list — needed
+  so the frontend's "edit your review" flow can pre-fill the form instead of always showing a blank one; the
+  brief's "edit existing instead of duplicate" was otherwise only enforced backend-side (via the upsert),
+  which is correct but an incomplete UX without this read.
+- **OAuth verified without real provider credentials**: `docs/16-ai-prompts.md`'s Phase 5 prompt allowed
+  building against the stubbed provider handshake when credentials aren't available locally — no
+  Google/Facebook app was registered for this environment. The stub path
+  (`GET /auth/oauth-stub/:provider/callback`) is hard-disabled server-side (`STUB_DISABLED`) whenever that
+  provider's client id _is_ configured, so it can never activate in a real deployment. Verified end-to-end via
+  the redirect chain and a resulting authenticated session with `hasPassword: false`.
+- **`AuthUser` gained `bio`, `avatarUrl`, and `hasPassword`** (previously just `id`/`email`/`name`/`role`/
+  `emailVerifiedAt`) — needed for the profile page and to show OAuth-only users a "set a password" hint.
+- **`authResponseSchema` in `@buisnez/shared` was already stale before this phase** (declared `accessToken:
+z.string()` but nothing had ever consumed the type) — corrected to match the new `{ user }`-only shape as
+  part of the transport fix; added `refreshResponseSchema` alongside it.
+
 ## Next Phase
 
-Phase 3 (frontend foundations) is next — the user will provide the detailed prompt. It should preserve the
-conventions in [`15-conventions.md`](15-conventions.md), consume the Phase 1–2 API surface, and keep public
-discovery routes SEO-friendly per [`01-product-overview.md`](01-product-overview.md).
+Phase 6 (per [`16-ai-prompts.md`](16-ai-prompts.md): business write endpoints, or claims/reports
+admin-moderation) is next — whichever the user prioritizes; each needs its own fully-specified prompt written
+just before it starts, per Universal Rule 2. Before then: finish Phase 5's outstanding verification (live
+browser pass + the Playwright e2e flow noted above).

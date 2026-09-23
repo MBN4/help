@@ -31,6 +31,8 @@ enum ClaimStatus {
 enum ReportTargetType {
   BUSINESS
   REVIEW
+  PHOTO
+  USER
 }
 
 enum ReportReason {
@@ -75,8 +77,10 @@ model User {
   id                 String    @id @default(uuid())
   email              String    @unique
   phone              String?   @unique
-  passwordHash       String
+  /// Nullable: OAuth-only accounts (Google/Facebook) never set a password.
+  passwordHash       String?
   name               String
+  bio                String?
   role               Role      @default(CUSTOMER)
   avatarUrl          String?
   emailVerifiedAt    DateTime?
@@ -88,11 +92,27 @@ model User {
   photos             Photo[]
   favorites          Favorite[]
   claims             Claim[]
-  reports            Report[]
+  reportsFiled       Report[]                  @relation("Reporter")
+  reportsReceived    Report[]                  @relation("ReportedUser")
+  helpfulVotes       ReviewHelpfulVote[]
+  oauthAccounts      OAuthAccount[]
   emailVerifications EmailVerificationToken[]
   passwordResets     PasswordResetToken[]
 
   @@index([role])
+}
+
+model OAuthAccount {
+  id                String   @id @default(uuid())
+  /// 'google' | 'facebook'
+  provider          String
+  providerAccountId String
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now())
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model EmailVerificationToken {
@@ -257,10 +277,17 @@ model Photo {
   review     Review?   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
   userId     String
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Full-size variant.
   url        String
+  /// Small/thumbnail variant — null for photos seeded before Phase 5's processing pipeline.
+  thumbUrl   String?
+  /// Card/gallery-grid variant — null for photos seeded before Phase 5's processing pipeline.
+  cardUrl    String?
   caption    String?
   isApproved Boolean   @default(true)
   createdAt  DateTime  @default(now())
+
+  reports Report[]
 
   @@index([businessId])
   @@index([reviewId])
@@ -273,6 +300,10 @@ model Review {
   userId       String
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   rating       Int
+  /// Category-specific sub-ratings, e.g. {"food":4,"service":5} — keys vary per business category
+  /// (see docs/11-reviews-trust-safety.md); intentionally not fixed columns since the set of
+  /// dimensions differs per category and isn't queried/filtered on in SQL anywhere.
+  subRatings   Json?
   title        String?
   body         String?
   status       ReviewStatus @default(PUBLISHED)
@@ -281,11 +312,23 @@ model Review {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
-  photos  Photo[]
-  reports Report[]
+  photos       Photo[]
+  reports      Report[]
+  helpfulVotes ReviewHelpfulVote[]
 
   @@unique([businessId, userId])
   @@index([businessId])
+}
+
+model ReviewHelpfulVote {
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewId  String
+  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, reviewId])
+  @@index([reviewId])
 }
 
 model Favorite {
@@ -316,18 +359,22 @@ model Claim {
 }
 
 model Report {
-  id         String           @id @default(uuid())
-  targetType ReportTargetType
-  businessId String?
-  business   Business?        @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  reviewId   String?
-  review     Review?          @relation(fields: [reviewId], references: [id], onDelete: Cascade)
-  reporterId String
-  reporter   User             @relation(fields: [reporterId], references: [id], onDelete: Cascade)
-  reason     ReportReason
-  message    String?
-  status     ReportStatus     @default(PENDING)
-  createdAt  DateTime         @default(now())
+  id             String           @id @default(uuid())
+  targetType     ReportTargetType
+  businessId     String?
+  business       Business?        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  reviewId       String?
+  review         Review?          @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  photoId        String?
+  photo          Photo?           @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  reportedUserId String?
+  reportedUser   User?            @relation("ReportedUser", fields: [reportedUserId], references: [id], onDelete: Cascade)
+  reporterId     String
+  reporter       User             @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reason         ReportReason
+  message        String?
+  status         ReportStatus     @default(PENDING)
+  createdAt      DateTime         @default(now())
 
   @@index([status])
 }

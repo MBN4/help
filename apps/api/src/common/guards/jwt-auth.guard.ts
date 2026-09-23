@@ -8,6 +8,7 @@ import { AppException } from '../exceptions/app.exception';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { RequestUser } from '../decorators/current-user.decorator';
 import { AccessTokenPayload } from '../../modules/auth/token.types';
+import { ACCESS_COOKIE_NAME } from '../constants/auth-cookies';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -49,7 +50,18 @@ export class JwtAuthGuard implements CanActivate {
     }
   }
 
+  /**
+   * Web: the `access_token` httpOnly cookie (never JS-readable). Mobile (future): `Authorization: Bearer`.
+   * Checked in that order so a stray `Authorization` header never shadows the cookie-authenticated web flow.
+   */
   private extractToken(request: Request): string | undefined {
+    const cookies = request.cookies as
+      Record<string, string | undefined> | undefined;
+    const cookieToken = cookies?.[ACCESS_COOKIE_NAME];
+    if (cookieToken) {
+      return cookieToken;
+    }
+
     const header = request.headers.authorization;
     if (!header?.startsWith('Bearer ')) {
       return undefined;

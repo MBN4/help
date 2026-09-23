@@ -8,10 +8,14 @@ are specified in detail in [`09-search-discovery.md`](09-search-discovery.md); g
 
 ## What "public read" means
 
-Every endpoint on this page is `@Public()` and read-only. Unless noted otherwise, business-related reads are
-scoped to `Business.status = 'PUBLISHED'`. The schema has no soft-delete column (no `deletedAt`, no
-`DELETED` status) as of Phase 2, so "published, non-deleted" is currently just "published" — a real
-soft-delete concept can be added if/when a delete endpoint is built (Phase 5+, claims/admin moderation).
+Unless noted otherwise, every endpoint through the "Features" section below is `@Public()` and read-only.
+Business-related reads are scoped to `Business.status = 'PUBLISHED'`. The schema has no soft-delete column
+(no `deletedAt`, no `DELETED` status), so "published, non-deleted" is currently just "published".
+
+Phase 5 added the first **write** endpoints (reviews, photos, favourites, helpful votes, reports, profile) —
+see the "Contributions" section near the bottom of this page and
+[`11-reviews-trust-safety.md`](11-reviews-trust-safety.md) for full detail. Auth endpoints (including OAuth)
+are covered entirely in [`10-auth-roles.md`](10-auth-roles.md).
 
 ## Locations (`modules/locations`)
 
@@ -34,13 +38,15 @@ soft-delete concept can be added if/when a delete endpoint is built (Phase 5+, c
 
 ## Businesses (`modules/businesses`)
 
-| Method | Path                        | Notes                                                                                    |
-| ------ | --------------------------- | ---------------------------------------------------------------------------------------- |
-| GET    | `/businesses`               | Search/list. See [`09-search-discovery.md`](09-search-discovery.md).                     |
-| GET    | `/businesses/:slug`         | Full profile (below).                                                                    |
-| GET    | `/businesses/:id/reviews`   | Paginated (`page`/`perPage`, default 20 max 50), newest first, `PUBLISHED` reviews only. |
-| GET    | `/businesses/:id/photos`    | Paginated, `isApproved = true` only.                                                     |
-| GET    | `/businesses/:slug/similar` | Up to 6, no pagination. See matching rules below.                                        |
+| Method | Path                                  | Notes                                                                                                                                         |
+| ------ | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/businesses`                         | Search/list. See [`09-search-discovery.md`](09-search-discovery.md).                                                                          |
+| GET    | `/businesses/:slug`                   | Full profile (below).                                                                                                                         |
+| GET    | `/businesses/:id/reviews`             | Paginated (`page`/`perPage`, default 20 max 50), newest first, `PUBLISHED` reviews only.                                                      |
+| GET    | `/businesses/:id/photos`              | Paginated, `isApproved = true` only.                                                                                                          |
+| GET    | `/businesses/:slug/similar`           | Up to 6, no pagination. See matching rules below.                                                                                             |
+| PUT    | `/businesses/:businessId/review`      | **Auth + verified email required.** Create-or-update the caller's own review. See [`11-reviews-trust-safety.md`](11-reviews-trust-safety.md). |
+| GET    | `/businesses/:businessId/review/mine` | **Auth required.** The caller's own review, or `null`.                                                                                        |
 
 `GET /businesses/:slug` response:
 
@@ -52,6 +58,7 @@ soft-delete concept can be added if/when a delete endpoint is built (Phase 5+, c
   category: { id, name, slug, parent: { id, name, slug } | null },
   province: { id, name, slug }, city: { id, name, slug }, area: { id, name, slug } | null,
   hours: { dayOfWeek, opensAt, closesAt, isClosed }[],   // 7 entries, Monday–Sunday
+  isOpenNow: boolean,        // server-computed from `hours`, Asia/Karachi — see 09-search-discovery.md
   features: { id, name, slug, icon }[],
   aggregates: { averageRating: number | null, reviewCount: number, ratingBreakdown: { "1": n, "2": n, "3": n, "4": n, "5": n } },
   createdAt
@@ -60,6 +67,35 @@ soft-delete concept can be added if/when a delete endpoint is built (Phase 5+, c
 
 "Services" from the original task phrasing is this endpoint's `features` list — the schema has no separate
 services concept, and features (amenities/offerings) is what it actually maps to.
+
+### `BusinessReview` shape
+
+Used by `GET /businesses/:id/reviews`, `PUT .../review`, and `GET .../review/mine`:
+
+```
+{
+  id, rating: number,
+  subRatings: Record<string, number> | null,   // e.g. {"food":4,"service":5} — see 11-reviews-trust-safety.md
+  title, body,
+  userId, userName, userAvatarUrl: string | null,
+  ownerReply, ownerReplyAt,
+  createdAt,
+  photoUrls: string[],
+  helpfulCount: number
+}
+```
+
+### `BusinessPhoto` shape
+
+Used by `GET /businesses/:id/photos`:
+
+```
+{
+  id, url,                          // url = full-size (1600w max) variant
+  thumbUrl, cardUrl: string | null, // null for photos seeded before Phase 5's processing pipeline
+  caption, createdAt
+}
+```
 
 **Similar businesses** (`/businesses/:slug/similar`): same leaf category, same city, `PUBLISHED`, excluding
 itself, ordered by Bayesian weighted rating (see [`09-search-discovery.md`](09-search-discovery.md))
@@ -84,9 +120,40 @@ Used by `/businesses` search results, `/discovery/home`, and `/businesses/:slug/
   category: { name, slug }, city: { name, slug }, area: { name, slug } | null,
   averageRating: number | null, reviewCount: number,
   thumbnailUrl: string | null,     // first PUBLISHED, approved photo, if any
-  distanceMeters: number | null    // only present when the request included lat/lng
+  distanceMeters: number | null,   // only present (non-null) when the request included lat/lng
+  isOpenNow: boolean,               // server-computed, Asia/Karachi — see 09-search-discovery.md
+  location: { lat, lng } | null    // added in Phase 4 for map markers on search/discovery results
 }
 ```
+
+## Features (`modules/features`)
+
+| Method | Path        | Returns                                        |
+| ------ | ----------- | ---------------------------------------------- |
+| GET    | `/features` | `{ id, name, slug, icon }[]`, ordered by name. |
+
+Added in Phase 4: the frontend's search filter panel needs the full feature catalog to render amenity
+checkboxes, and Phase 2 never shipped a way to list them (only per-business feature refs existed). Small
+additive read, no schema/migration change — the `Feature` table already existed.
+
+## Contributions (Phase 5) — auth required unless noted
+
+Full detail (moderation posture, photo pipeline, OAuth) in
+[`11-reviews-trust-safety.md`](11-reviews-trust-safety.md). Quick catalog:
+
+| Method | Path                          | Notes                                                                                                        |
+| ------ | ----------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| POST   | `/reviews/:reviewId/helpful`  | Toggles the caller's helpful vote → `{ helpful, helpfulCount }`.                                             |
+| GET    | `/reviews/helpful-votes/mine` | Query: `businessId`. Review ids the caller voted helpful on.                                                 |
+| POST   | `/favorites/toggle`           | `{ businessId }` → `{ favorited }`.                                                                          |
+| GET    | `/favorites/mine`             | Paginated `BusinessSummary[]`.                                                                               |
+| GET    | `/favorites/mine/ids`         | Favourited business ids only.                                                                                |
+| POST   | `/reports`                    | `{ targetType: BUSINESS\|REVIEW\|PHOTO\|USER, targetId, reason, message? }` → `{ id }`. Rate-limited 10/min. |
+| POST   | `/photos/presign`             | **+ verified email.** `{ contentType }` → `{ uploadUrl, key }`.                                              |
+| POST   | `/photos/confirm`             | **+ verified email.** `{ key, businessId?, reviewId?, caption? }` → `UploadedPhoto`.                         |
+| PATCH  | `/users/me`                   | `{ name?, bio?, avatarUrl? }` → `AuthUser`.                                                                  |
+| GET    | `/users/me/reviews`           | Paginated `MyReview[]` (review + business ref).                                                              |
+| GET    | `/users/me/photos`            | Paginated `MyPhoto[]` (photo + business ref).                                                                |
 
 ## Schema addition: `Business.featured`
 
