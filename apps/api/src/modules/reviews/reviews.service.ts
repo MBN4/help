@@ -8,6 +8,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AppException } from '../../common/exceptions/app.exception';
 import { DiscoveryService } from '../discovery/discovery.service';
 import { RevalidateService } from '../../integrations/revalidate/revalidate.service';
+import { ModerationService } from '../../integrations/moderation/moderation.service';
 
 @Injectable()
 export class ReviewsService {
@@ -15,6 +16,7 @@ export class ReviewsService {
     private readonly prisma: PrismaService,
     private readonly discoveryService: DiscoveryService,
     private readonly revalidateService: RevalidateService,
+    private readonly moderationService: ModerationService,
   ) {}
 
   async createOrUpdate(
@@ -34,8 +36,6 @@ export class ReviewsService {
     }
 
     // Publishes immediately (see docs/11-reviews-trust-safety.md's Phase 5 moderation decision).
-    // TODO(phase-6): run an automated content-moderation check here and flag suspicious reviews for
-    // admin review once that admin-moderation surface exists.
     const data = {
       rating: input.rating,
       subRatings: input.subRatings ?? undefined,
@@ -48,6 +48,9 @@ export class ReviewsService {
       create: { ...data, businessId, userId },
       update: data,
     });
+
+    // No-op-approve seam for Phase 8's real automated flagging/scoring pass — see ModerationService.
+    await this.moderationService.enqueue('REVIEW', review.id);
 
     if (input.photoIds?.length) {
       // Photos are uploaded (and scoped to this business) before the review form is submitted; this just

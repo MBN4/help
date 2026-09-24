@@ -15,6 +15,14 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 
 export default function LoginPage(): React.ReactElement {
+  return (
+    <React.Suspense fallback={null}>
+      <LoginForm />
+    </React.Suspense>
+  );
+}
+
+function LoginForm(): React.ReactElement {
   const t = useTranslations('auth');
   const router = useRouter();
   const searchParams = useSearchParams();

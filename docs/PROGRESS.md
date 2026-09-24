@@ -296,7 +296,7 @@ Status: **Complete**
 
 ## Phase 5: Accounts & Contributions
 
-Status: **Backend complete and verified; frontend built but not yet browser/Playwright-verified** (see below)
+Status: **Complete and browser-verified**
 
 - [x] **Auth transport fixed before anything else was built** (per the user's explicit stop-and-confirm
       instruction): Phase 1 returned the access token in the JSON body for any caller to store. Now both
@@ -329,20 +329,90 @@ Status: **Backend complete and verified; frontend built but not yet browser/Play
       9 unit tests still green.
 - [x] `pnpm lint && pnpm typecheck` clean across `@buisnez/api`, `@buisnez/web`, and `@buisnez/shared`.
 
-### Not yet done in this pass
+### Verification pass (2026-09-24)
 
-- [ ] **Live browser verification** of the full register → verify → login → write-a-review → favourite flow.
-      The equivalent flow _was_ verified end-to-end via `curl` against the real dev stack (Postgres, Redis,
-      MinIO, the API) during backend development — registration, verification, login, review upsert,
-      favourite toggle, helpful vote, report, profile update, and the full photo pipeline (presign → MinIO
-      upload → sharp processing → publicly-fetchable, correctly-sized, EXIF-stripped variants) all confirmed
-      working that way. What's outstanding is the _frontend_ UI exercised in an actual browser.
-- [ ] **Playwright e2e** for register → verify → login → review → favourite (the acceptance criterion asks for
-      this explicitly). Not written this pass — deferred at the user's instruction to prioritize documentation
-      first.
+Phase 5's code had shipped unverified (no tests run, no browser pass). This pass ran the full existing suite
+and then browser-verified the actual frontend against a live Postgres/Redis/MinIO/API + web stack, per the
+acceptance list below.
 
-Both are the natural next step before calling Phase 5 fully done; flagging here rather than silently marking
-the phase complete.
+- [x] **Full suite green**: `pnpm lint && pnpm typecheck && pnpm build` clean across all 5 workspace packages;
+      9 API unit tests + 37 API e2e tests (46 total, unchanged count from the Phase 5 entry above) all
+      passing from a freshly reset and reseeded database; the new Playwright e2e (below) passing alongside
+      the existing 8 discovery-flow Playwright tests (12/12 total).
+- [x] **Build bug found and fixed**: `pnpm build` failed outright — `login`, `reset-password`, `verify-email`,
+      and `auth/oauth-stub` all call `useSearchParams()` directly in a page component with no `<Suspense>`
+      boundary, which Next.js 15 requires for static prerendering (`missing-suspense-with-csr-bailout`). This
+      had never been caught because `pnpm build` had never been run with the API live enough to get past the
+      sitemap fetch that gates it. Fixed by splitting each page into a thin default export wrapping a
+      `<Suspense fallback={null}>`-wrapped inner component that calls the hook.
+- [x] **Auth transport, browser-verified**: registered a real user, read the verification link from the
+      API's mail-stub log, verified, logged in via the real `/login` form. Confirmed via the Playwright
+      cookie jar (`context.cookies()`) that `access_token`/`refresh_token` are `httpOnly: true`,
+      `sameSite: 'Lax'`, `secure: false` (correct for local plain-HTTP dev — gated on `NODE_ENV=production`
+      per [`10-auth-roles.md`](10-auth-roles.md)), and `refresh_token` is scoped to `/api/v1/auth`. Dumped
+      `window.localStorage`/`sessionStorage` and confirmed neither contains `access_token`, `refresh_token`,
+      or any raw JWT substring. Session survived a hard page reload.
+- [x] **Silent refresh + rotation + reuse-detection, browser-verified**: overwrote the `access_token` cookie
+      with a bogus value to force a `401`, reloaded, and confirmed the client transparently refreshed and
+      retried (`GET /auth/me` succeeded, UI stayed logged in) with no visible error. Confirmed the
+      `refresh_token` cookie value changed after that refresh (rotation). Replayed the **pre-rotation**
+      refresh token directly against `POST /auth/refresh` and confirmed it's rejected with `401` (Redis
+      reuse-detection).
+- [x] **CSRF, browser-verified**: a `POST /favorites/toggle` from the page's own origin without
+      `X-Requested-With: buisnez-web` is rejected `403`; the identical request with the header reaches the
+      handler (`404` for a nonexistent business id, proving the guard let it through).
+- [x] **Contribution flows, browser-verified**: unverified user sees the "verify your email" message and no
+      review-submit button on a business page; a verified user wrote a review with a photo attachment (real
+      upload through presign → MinIO → confirm → sharp), saw it rendered, edited it (title changed, no
+      duplicate row — confirms the upsert), favourited the business (persisted across a reload and visible on
+      `/account/favorites`), toggled a helpful vote, and submitted a report — all via the real UI, not curl.
+      `/account` redirects an unauthenticated visitor to `/login?returnTo=...`.
+- [x] **New Playwright e2e** written: `apps/web/e2e/account-contributions.spec.ts` — the full
+      register→verify→login→review+photo→favourite→vote→report flow plus the auth-transport/CSRF checks
+      above, run against a live dev server. Structured as one consolidated "auth transport" test and one
+      consolidated "contribution flows" test (rather than one test per assertion) specifically to minimize
+      real calls to the rate-limited `/auth/login`/`/auth/register` endpoints — see the rate-limit note below.
+- [x] **Real bug found and fixed via browser testing (not caught by any existing test)**: `FavoriteButton`
+      always initialized `favorited = false` and never checked the caller's actual saved state — `GET
+  /favorites/mine/ids` existed in the API client but nothing called it. A user who favourited a business
+      would see it as un-favourited again after any reload of the business page, and clicking the button in
+      that state would toggle it back **off** while showing it turning "on". Fixed by adding
+      `useFavoriteIds()`/`useInvalidateFavoriteIds()` (`apps/web/src/lib/hooks/use-favorites.ts`) — one shared
+      React Query-deduped fetch of the caller's favourite ids per page, consumed by `FavoriteButton` to
+      hydrate its initial state and invalidated after every toggle. See
+      [`07-frontend.md`](07-frontend.md).
+
+#### Moderation and photo-pipeline deviations, resolved
+
+- **Moderation enqueue seam re-added**: the Phase 5 entry above described "Moderation job enqueue" as a bare
+  `TODO(phase-6)` comment with no actual function call. Per the verification brief, this needed to be a real
+  seam so Phase 8 has an integration point even though it currently auto-approves. Added
+  `ModerationService.enqueue(targetType, targetId)` (`apps/api/src/integrations/moderation`), called from both
+  `ReviewsService.createOrUpdate` and `PhotosService.confirm`. It's a no-op today (always returns
+  `{ status: 'APPROVED' }`) — **moderation hold is still deferred to Phase 8**; this only guarantees the call
+  site exists. See [`11-reviews-trust-safety.md`](11-reviews-trust-safety.md).
+- **Photo upload guards added**: `PhotosService.confirm` had no size limit, no re-check of the uploaded
+  object's actual content type, and no timeout around the synchronous `sharp` pipeline — a large or malformed
+  upload could hang the API process indefinitely. Added a `HeadObjectCommand`-based check
+  (`StorageService.headObject`) rejecting uploads over 10MB or not `image/jpeg`/`png`/`webp` before download,
+  plus a 15s timeout around `ImageProcessingService.processVariants()`. **Still tech debt**: this protects the
+  current synchronous pipeline but the real fix is moving photo processing to a BullMQ image queue (no such
+  queue exists in this stack yet — see the Phase 5 entry above); tracked there, not solved here. See
+  [`11-reviews-trust-safety.md`](11-reviews-trust-safety.md).
+
+#### Environment quirk: browser (Playwright) and jest e2e tests share live state
+
+Running the Playwright browser verification against the live dev stack and then immediately re-running the
+jest e2e suite against the _same_ Postgres/Redis produced 3 failures that were **test cross-contamination, not
+regressions**: two `business-profile.e2e-spec.ts` assertions hardcode the seeded business's review
+count/photo-URL scheme, which the Playwright run had changed by writing a real review/photo to that business;
+several `auth.e2e-spec.ts`/`contributions.e2e-spec.ts` calls got `429`s from the shared Redis-backed
+`@nestjs/throttler` login/register buckets, already partly consumed by the browser session's own
+register/login calls. Resolved by deleting the Playwright-created test users (cascades to their
+reviews/photos/favourites/reports via the schema's `onDelete: Cascade` FKs, restoring the seeded business's
+counts) and `FLUSHALL`-ing Redis before the final jest e2e run. **Anyone doing a browser pass and an
+automated-suite pass in the same session should do the automated suite first, or reset the DB/Redis in
+between** — the two are not isolated from each other on this stack.
 
 ### Actually built vs. the docs
 
@@ -392,7 +462,8 @@ z.string()` but nothing had ever consumed the type) — corrected to match the n
 
 ## Next Phase
 
-Phase 6 (per [`16-ai-prompts.md`](16-ai-prompts.md): business write endpoints, or claims/reports
-admin-moderation) is next — whichever the user prioritizes; each needs its own fully-specified prompt written
-just before it starts, per Universal Rule 2. Before then: finish Phase 5's outstanding verification (live
-browser pass + the Playwright e2e flow noted above).
+Phase 5 is now fully verified (see its "Verification pass" section above). Phase 6 (per
+[`16-ai-prompts.md`](16-ai-prompts.md): business write endpoints, or claims/reports admin-moderation) is next
+— whichever the user prioritizes; each needs its own fully-specified prompt written just before it starts, per
+Universal Rule 2. Phase 6's admin-moderation surface is also where `ModerationService`'s no-op-approve seam
+(see Phase 5's deviation log above) would first get a real consumer.

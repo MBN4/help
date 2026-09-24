@@ -9,6 +9,20 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AppException } from '../../common/exceptions/app.exception';
 import { StorageService } from '../../integrations/storage/storage.service';
 import { ImageProcessingService } from '../../integrations/storage/image-processing.service';
+import { ModerationService } from '../../integrations/moderation/moderation.service';
+
+// Uploads go straight to object storage before `confirm` ever sees them (see the presign→direct-upload
+// pipeline in docs/11-reviews-trust-safety.md), so these guards are the only thing standing between an
+// oversized/malformed file and the synchronous `sharp` pipeline below — there's no queue worker isolating
+// this from the API process. See PROGRESS.md: move this to the BullMQ image queue once one exists so a
+// pathological upload can't hold up a request thread at all.
+const MAX_PHOTO_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
+const ALLOWED_PHOTO_CONTENT_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+]);
+const PROCESSING_TIMEOUT_MS = 15_000;
 
 @Injectable()
 export class PhotosService {
@@ -16,6 +30,7 @@ export class PhotosService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly imageProcessing: ImageProcessingService,
+    private readonly moderationService: ModerationService,
   ) {}
 
   async presign(input: PresignPhotoRequest): Promise<PresignPhotoResponse> {
@@ -47,8 +62,30 @@ export class PhotosService {
       }
     }
 
+    const meta = await this.storage.headObject(input.key);
+    if (meta.contentLength > MAX_PHOTO_UPLOAD_BYTES) {
+      throw new AppException(
+        400,
+        'PHOTO_TOO_LARGE',
+        `Upload exceeds the ${MAX_PHOTO_UPLOAD_BYTES / (1024 * 1024)}MB limit`,
+      );
+    }
+    if (
+      !meta.contentType ||
+      !ALLOWED_PHOTO_CONTENT_TYPES.has(meta.contentType)
+    ) {
+      throw new AppException(
+        400,
+        'PHOTO_INVALID_TYPE',
+        'Uploaded file is not a supported image type',
+      );
+    }
+
     const original = await this.storage.getObject(input.key);
-    const variants = await this.imageProcessing.processVariants(original);
+    const variants = await this.withTimeout(
+      this.imageProcessing.processVariants(original),
+      PROCESSING_TIMEOUT_MS,
+    );
 
     const baseKey = input.key
       .replace(/^uploads\/originals\//, '')
@@ -86,6 +123,9 @@ export class PhotosService {
       },
     });
 
+    // No-op-approve seam for Phase 8's real automated flagging/scoring pass — see ModerationService.
+    await this.moderationService.enqueue('PHOTO', photo.id);
+
     return {
       id: photo.id,
       url: photo.url,
@@ -94,5 +134,31 @@ export class PhotosService {
       caption: photo.caption,
       createdAt: photo.createdAt.toISOString(),
     };
+  }
+
+  private withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(
+        () =>
+          reject(
+            new AppException(
+              408,
+              'PHOTO_PROCESSING_TIMEOUT',
+              'Image processing took too long',
+            ),
+          ),
+        ms,
+      );
+      promise.then(
+        (value) => {
+          clearTimeout(timer);
+          resolve(value);
+        },
+        (error) => {
+          clearTimeout(timer);
+          reject(error);
+        },
+      );
+    });
   }
 }

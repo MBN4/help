@@ -13,6 +13,14 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 
 export default function ResetPasswordPage(): React.ReactElement {
+  return (
+    <React.Suspense fallback={null}>
+      <ResetPasswordForm />
+    </React.Suspense>
+  );
+}
+
+function ResetPasswordForm(): React.ReactElement {
   const t = useTranslations('auth');
   const searchParams = useSearchParams();
   const token = searchParams.get('token');

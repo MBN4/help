@@ -163,7 +163,12 @@ of truth) live in `@buisnez/shared/src/utils`.
 - Auth pages (`register`, `login`, `verify-email`, `forgot-password`, `reset-password`,
   `auth/oauth-stub`) are plain client components, not server components — they're forms with no SEO value, so
   they skip `generateMetadata` (client components can't export it) and inherit the root layout's default
-  title. `login` and the auth-gate redirect both support `?returnTo=<path>`.
+  title. `login` and the auth-gate redirect both support `?returnTo=<path>`. `login`, `reset-password`,
+  `verify-email`, and `auth/oauth-stub` each read `useSearchParams()` for that query param/token and must wrap
+  the component that calls it in `<Suspense>` — Next.js 15 requires this for static prerendering and fails
+  `next build` outright without it (`missing-suspense-with-csr-bailout`), found during the Phase 5
+  verification pass since `pnpm build` had never previously been run with the API live enough to get past the
+  sitemap fetch that gates it (see [`PROGRESS.md`](PROGRESS.md)).
 - OAuth buttons (`src/components/auth/oauth-buttons.tsx`) are plain `<a href>` tags pointing at
   `${NEXT_PUBLIC_API_URL}/auth/google` / `/facebook` — a full top-level navigation, not a `fetch()`, since
   OAuth is a redirect-based handshake the API owns end-to-end (see
@@ -191,7 +196,13 @@ of truth) live in `@buisnez/shared/src/utils`.
   used by `ReviewForm`) and `AvatarUploadButton` (single, used by the profile page) both build on it.
 - **Favourites**: `FavoriteButton` (icon variant on `BusinessCard`, full variant on the profile header) does
   an optimistic toggle against `POST /favorites/toggle`, reverting on failure. Logged-out renders as a link to
-  `/login?returnTo=...` instead of firing the API call.
+  `/login?returnTo=...` instead of firing the API call. Its initial saved/unsaved state is hydrated from
+  `useFavoriteIds()` (`src/lib/hooks/use-favorites.ts`) — one shared, React Query-deduped `GET
+/favorites/mine/ids` fetch per page consumed by every `FavoriteButton` instance on it, since the business
+  detail/card pages are server-rendered (ISR) with no per-user data to pass down as a prop. Found and fixed
+  during the Phase 5 verification pass (see [`PROGRESS.md`](PROGRESS.md)): the button previously always
+  started `favorited = false` regardless of the caller's real state, so a saved business showed as unsaved
+  after any reload, and clicking it there would silently unfavourite it.
 - **Helpful votes**: `ReviewList` fetches the caller's voted review ids once per business
   (`GET /reviews/helpful-votes/mine`) and passes per-review state down to `ReviewCard`, so an optimistic toggle
   only needs to flip one review's local state, not refetch the whole list.

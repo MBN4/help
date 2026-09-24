@@ -10,10 +10,16 @@ decisions below were confirmed with the user before implementation.
 Reviews (`Review.status`) and photos (`Photo.isApproved`) both default to published/approved — there is no
 pre-publish admin queue. This was a deliberate Phase 5 decision: the schema had no admin-approval endpoint of
 any kind before this phase (nothing to move a `PENDING` row to `PUBLISHED`), so holding content for approval
-would have meant it stayed permanently invisible. "Moderation job enqueue" (as the phase brief described it)
-is therefore a placeholder for a future automated flagging pass, not a pre-publish gate — see the
-`TODO(phase-6)` comment in `ReviewsService.createOrUpdate`. Building a real flagging pipeline with nothing to
-consume its output would have been unused infrastructure, so it wasn't built ahead of need.
+would have meant it stayed permanently invisible.
+
+**Moderation enqueue seam (added during the Phase 5 verification pass)**: every review write
+(`ReviewsService.createOrUpdate`) and photo confirm (`PhotosService.confirm`) now calls
+`ModerationService.enqueue(targetType, targetId)` (`apps/api/src/integrations/moderation`). Today this is a
+no-op that logs and always returns `{ status: 'APPROVED' }` — content still publishes immediately — but the
+call site now exists so Phase 8's real automated flagging/scoring pass has somewhere to plug in without
+touching `ReviewsService`/`PhotosService` again. This replaced the earlier `TODO(phase-6)` comment, which had
+no actual function call behind it. **Moderation hold is still deferred to Phase 8** — this seam does not add
+a pre-publish gate.
 
 ## Reviews
 
@@ -93,6 +99,17 @@ up new queue infrastructure for a single job type:
 
 `Photo.thumbUrl`/`cardUrl` are nullable — photos seeded before this phase (Phase 1/2 fixtures) have only
 `url` set; the frontend falls back to `url` wherever a variant is missing.
+
+**Size/type/timeout guards (added during the Phase 5 verification pass)**: `confirm` previously downloaded
+and processed whatever was at `key` with no checks beyond the presign-time `contentType` allowlist (which a
+client could ignore when actually `PUT`ing the file). It now calls `StorageService.headObject(key)` first and
+rejects with `400 PHOTO_TOO_LARGE` above 10MB or `400 PHOTO_INVALID_TYPE` if the object's actual stored
+content type isn't `image/jpeg`/`image/png`/`image/webp`, before ever downloading it or invoking `sharp`. The
+`sharp` call itself is now wrapped with a 15s timeout (`408 PHOTO_PROCESSING_TIMEOUT`) so a malformed image
+can't hang the request indefinitely. **This is still tech debt to revisit**: these guards protect the
+synchronous in-request pipeline, but the right long-term fix is moving photo processing to a real BullMQ
+image queue (see the "Pipeline" section above) so a pathological upload can't hold up an API worker thread at
+all — the guards here are a stopgap, not a replacement for that queue.
 
 ### Storage (`apps/api/src/integrations/storage`)
 

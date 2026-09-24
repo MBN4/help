@@ -5,6 +5,7 @@ import {
   CreateBucketCommand,
   GetObjectCommand,
   HeadBucketCommand,
+  HeadObjectCommand,
   PutBucketPolicyCommand,
   PutObjectCommand,
   S3Client,
@@ -84,6 +85,18 @@ export class StorageService implements OnModuleInit {
     return getSignedUrl(this.client, command, {
       expiresIn: PRESIGN_EXPIRY_SECONDS,
     });
+  }
+
+  async headObject(
+    key: string,
+  ): Promise<{ contentLength: number; contentType: string | undefined }> {
+    const result = await this.client.send(
+      new HeadObjectCommand({ Bucket: this.bucket, Key: key }),
+    );
+    return {
+      contentLength: result.ContentLength ?? 0,
+      contentType: result.ContentType,
+    };
   }
 
   async getObject(key: string): Promise<Buffer> {

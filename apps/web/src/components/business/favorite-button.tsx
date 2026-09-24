@@ -5,24 +5,34 @@ import { Heart } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { toggleFavorite } from '@/lib/api';
 import { useSession } from '@/lib/hooks/use-session';
+import {
+  useFavoriteIds,
+  useInvalidateFavoriteIds,
+} from '@/lib/hooks/use-favorites';
 import { Link, usePathname } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils/cn';
 
 export function FavoriteButton({
   businessId,
-  initialFavorited = false,
   variant = 'icon',
 }: {
   businessId: string;
-  initialFavorited?: boolean;
   variant?: 'icon' | 'full';
 }): React.ReactElement {
   const t = useTranslations('favorites');
   const pathname = usePathname();
   const { isAuthenticated } = useSession();
-  const [favorited, setFavorited] = React.useState(initialFavorited);
+  // The business detail/card pages are server-rendered (ISR) with no per-user data, so the real saved
+  // state has to be hydrated client-side from GET /favorites/mine/ids rather than passed in as a prop.
+  const { favoriteIds } = useFavoriteIds();
+  const invalidateFavoriteIds = useInvalidateFavoriteIds();
+  const [favorited, setFavorited] = React.useState(false);
   const [pending, setPending] = React.useState(false);
+
+  React.useEffect(() => {
+    setFavorited(favoriteIds.has(businessId));
+  }, [favoriteIds, businessId]);
 
   if (!isAuthenticated) {
     return (
@@ -55,6 +65,7 @@ export function FavoriteButton({
     setPending(true);
     try {
       await toggleFavorite(businessId);
+      await invalidateFavoriteIds();
     } catch {
       setFavorited(!next);
     } finally {

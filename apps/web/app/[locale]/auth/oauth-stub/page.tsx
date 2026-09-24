@@ -1,5 +1,6 @@
 'use client';
 
+import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { API_BASE_URL } from '@/lib/api';
@@ -9,6 +10,14 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 
 export default function OAuthStubPage(): React.ReactElement {
+  return (
+    <React.Suspense fallback={null}>
+      <OAuthStubForm />
+    </React.Suspense>
+  );
+}
+
+function OAuthStubForm(): React.ReactElement {
   const t = useTranslations('auth');
   const searchParams = useSearchParams();
   const provider =

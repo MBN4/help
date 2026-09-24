@@ -12,6 +12,14 @@ import { Button } from '@/components/ui/button';
 type Status = 'pending' | 'success' | 'error';
 
 export default function VerifyEmailPage(): React.ReactElement {
+  return (
+    <React.Suspense fallback={null}>
+      <VerifyEmailStatus />
+    </React.Suspense>
+  );
+}
+
+function VerifyEmailStatus(): React.ReactElement {
   const t = useTranslations('auth');
   const searchParams = useSearchParams();
   const invalidateSession = useInvalidateSession();
