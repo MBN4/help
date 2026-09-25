@@ -37,6 +37,7 @@ export default function AccountLayout({
     { href: '/account/reviews', label: t('nav.reviews') },
     { href: '/account/photos', label: t('nav.photos') },
     { href: '/account/favorites', label: t('nav.favorites') },
+    { href: '/account/businesses', label: t('nav.businesses') },
   ];
 
   return (

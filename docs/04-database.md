@@ -6,8 +6,39 @@ are declared as `Unsupported(...)` (visible to Prisma's typing, ignored by `pris
 hand-written raw SQL migration that runs after the initial Prisma migration.
 
 **Schema history**: `Business.featured` was added in Phase 2 (plain Prisma migration, not raw SQL) to back
-the homepage "featured" block — see [`06-api-endpoints.md`](06-api-endpoints.md). Everything else below is
-Phase 1.
+the homepage "featured" block — see [`06-api-endpoints.md`](06-api-endpoints.md). `BusinessService` was added
+in Phase 6 (see below). Everything else below is Phase 1.
+
+## `BusinessService` (Phase 6)
+
+Itemized services/menu items for a business, added for the business-owner listing editor:
+
+```prisma
+model BusinessService {
+  id            String   @id @default(uuid())
+  businessId    String
+  business      Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name          String
+  description   String?
+  priceInPaisa  Int?
+  isAvailable   Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([businessId])
+}
+```
+
+`Business` gained a `services BusinessService[]` relation. `priceInPaisa` is nullable = "price on request",
+matching the existing PKR-as-paisa-integer convention (`formatPKR` in `@buisnez/shared`) — never a separate
+concept from `PriceTier` (the `$`/`$$`/`$$$` tier field, unrelated/unchanged). Public reads
+(`GET /businesses/:slug`) only return `isAvailable: true` rows, ordered by `sortOrder`; the owner-only
+`GET /businesses/:businessId/manage` endpoint returns all of them. Migration
+`20260925061112_add_business_services` was generated with `prisma migrate dev --create-only` and manually
+inspected per the gotcha below — Prisma tried to add 4 spurious `DROP INDEX` statements against the
+raw-SQL-managed GIST/GIN/trigram indexes plus an `ALTER COLUMN "searchVector" DROP DEFAULT`, all stripped
+before applying; the final migration is only `CREATE TABLE "BusinessService"` + its index + FK.
 
 **Gotcha for every future migration touching `Business`/`City`**: `prisma migrate dev --create-only` diffs
 the _declared_ schema (where `location`/`centroid`/`searchVector` are just bare `Unsupported` columns)

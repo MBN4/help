@@ -374,7 +374,7 @@ acceptance list below.
       real calls to the rate-limited `/auth/login`/`/auth/register` endpoints — see the rate-limit note below.
 - [x] **Real bug found and fixed via browser testing (not caught by any existing test)**: `FavoriteButton`
       always initialized `favorited = false` and never checked the caller's actual saved state — `GET
-  /favorites/mine/ids` existed in the API client but nothing called it. A user who favourited a business
+/favorites/mine/ids` existed in the API client but nothing called it. A user who favourited a business
       would see it as un-favourited again after any reload of the business page, and clicking the button in
       that state would toggle it back **off** while showing it turning "on". Fixed by adding
       `useFavoriteIds()`/`useInvalidateFavoriteIds()` (`apps/web/src/lib/hooks/use-favorites.ts`) — one shared
@@ -460,10 +460,89 @@ between** — the two are not isolated from each other on this stack.
 z.string()` but nothing had ever consumed the type) — corrected to match the new `{ user }`-only shape as
   part of the transport fix; added `refreshResponseSchema` alongside it.
 
+## Phase 6: Business Owner Experience
+
+Status: **Complete and browser-verified**
+
+- [x] **Ownership model confirmed with the user**: `Business.ownerId` is the sole source of truth for
+      business-mutation authorization, never `Role`. New `BusinessOwnerGuard`
+      (`apps/api/src/common/guards/business-owner.guard.ts`, modeled on `VerifiedEmailGuard`) checks
+      `business.ownerId === request.user.id || request.user.role === 'ADMIN'` on every route carrying a
+      `:businessId` param. `Role.BUSINESS_OWNER` and the promotion-on-claim-approval behavior were kept exactly
+      as already documented, but are now explicitly labeled cosmetic/display-only in
+      [`10-auth-roles.md`](10-auth-roles.md) — no guard anywhere reads it.
+- [x] **Claims module built from scratch** (`apps/api/src/modules/claims/`, previously just `.gitkeep`):
+      `POST /claims`, `GET /claims/mine[?businessId=]`, `PATCH /claims/:id/approve` and `/reject`
+      (`@Roles(Role.ADMIN)` — the one legitimately role-gated action in this phase, since it _is_ an admin
+      action). Approval sets `Business.ownerId`, promotes `CUSTOMER` → `BUSINESS_OWNER` (never downgrades an
+      ADMIN), all inside one transaction.
+- [x] **Migration `20260925061112_add_business_services`**: new `BusinessService` model (itemized
+      services/menu, `priceInPaisa` nullable = "price on request") + `Business.services` relation. Generated
+      with `prisma migrate dev --create-only` and manually inspected per the standing gotcha
+      ([`04-database.md`](04-database.md)) — Prisma tried to add 4 spurious `DROP INDEX` statements against the
+      raw-SQL-managed indexes plus an `ALTER COLUMN "searchVector" DROP DEFAULT`; stripped before applying. Final
+      SQL is only the new table + index + FK.
+- [x] **Business-owner write endpoints** (`apps/api/src/modules/businesses/business-owner.{controller,service}.ts`,
+      registered in the existing `BusinessesModule`, not a new top-level module):
+      `GET /businesses/owned/mine`, `GET/:businessId/manage`, `PATCH /:businessId` (info), `PUT /:businessId/hours`,
+      `PUT /:businessId/features`, `PATCH /:businessId/location`, services CRUD, owner photo
+      upload/delete, and review-reply PUT/DELETE. `BusinessOwnerController` is registered _before_
+      `BusinessesController` in the module so the static `owned/mine` path isn't swallowed by the `:slug`
+      catch-all — verified explicitly in the e2e suite. Aggregate/open-now logic factored into
+      `business-profile.util.ts`, shared by the public and owner services rather than duplicated.
+- [x] **Photos pipeline extended, not duplicated**: `PhotosService`'s upload pipeline (size/content-type
+      checks, `storage.headObject`, `imageProcessing.processVariants`, variant upload) factored into a private
+      `runPipeline`; new `confirmForBusiness`/`deleteForBusiness` skip the `PUBLISHED`-business requirement,
+      callable only from the owner-guarded route. `StorageService` gained `deleteObject` (didn't exist before;
+      added following the existing `putObject`/`headObject`/`getObject` naming pattern).
+- [x] **`GeoService.setBusinessLocation`** added — the only write path for `Business.location` (raw SQL,
+      since it's an `Unsupported()` Prisma field). See [`08-maps-location.md`](08-maps-location.md) for the
+      pin-always-wins-over-geocoding note and why `geocodeAddress()` ended up unused by any Phase 6 write path
+      (the info-update endpoint's field list has no address/city/area fields to trigger a geocode from).
+- [x] **Owner reply to reviews**: `PUT`/`DELETE businesses/:businessId/reviews/:reviewId/reply`
+      (`BusinessOwnerGuard` — ownership of the _business_, not the review), single nullable-column
+      upsert-by-overwrite on `Review.ownerReply`/`ownerReplyAt`. Every owner mutation in this phase (info,
+      hours, features, location, services, photos, replies) calls `RevalidateService.revalidate({slug, city,
+    category})`, same pattern as `ReviewsService.createOrUpdate()`.
+- [x] **Frontend**: `/account/businesses` (dashboard) and `/account/businesses/[businessId]` (single-page
+      editor: info/hours/features/services/photos/reviews sections) under the existing `account/layout.tsx`
+      auth gate. New `PinDropMap` component (`src/components/business-owner/pin-drop-map.tsx`) — unlike
+      `map-view.tsx`'s dead-end "map unavailable" fallback, it falls back to plain numeric lat/lng inputs so
+      the editor stays usable without a Maps key. Claim CTA on the public profile header
+      (`ClaimBusinessButton`), gated on the new `businessProfileSchema.isClaimed` field. Owner-reply
+      _rendering_ needed no frontend change (`ReviewCard` already rendered it, read-only, for all visitors,
+      since Phase 5); only the reply _composer_ is new, and lives solely on the owner's management page.
+      See [`07-frontend.md`](07-frontend.md).
+
+### Environment quirks
+
+- **`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` is still empty** in this environment (same gap as Phase 4's
+  `map-view.tsx`) — `PinDropMap` therefore renders its manual-lat/lng fallback in practice, not the
+  draggable-marker path (which is implemented and typechecked but unexercised here).
+- Jest e2e suite was run before the Playwright pass in this session (per the ordering documented in Phase 5's
+  entry above), avoiding cross-contamination of `business-profile.e2e-spec.ts`'s hardcoded seeded-business
+  counts. The new `business-owner.e2e-spec.ts` and `business-owner.spec.ts` (Playwright) each create and
+  fully clean up their own fixture business/users/claim — never touch seeded demo data.
+- The Playwright suite's fixture business is seeded directly via `psql` (bypassing the API, since direct
+  business creation is admin-only) — every seeded demo business already has an `ownerId`, so none were
+  eligible for the claim flow used by the new spec.
+
+### Test results
+
+- Backend: new `business-owner.guard.spec.ts` (5/5), full API unit suite 14/14, full API e2e suite **71/71**
+  (46 pre-existing + 25 new in `business-owner.e2e-spec.ts`), `business-profile.e2e-spec.ts` re-run afterward
+  7/7 (no contamination).
+- Frontend: new `apps/web/e2e/business-owner.spec.ts` **5/5** passing live against the dev stack (claim→admin
+  API approve→edit info/hours/features/services/location→reply→authorization-403), pre-existing
+  `business-profile.spec.ts` re-run 2/2 (no regression from the claim-CTA addition). Photo upload in the owner
+  editor was manually smoke-tested but not added as an automated Playwright case (time-boxed).
+- `pnpm lint && pnpm typecheck && pnpm build` clean across the whole monorepo.
+
 ## Next Phase
 
-Phase 5 is now fully verified (see its "Verification pass" section above). Phase 6 (per
-[`16-ai-prompts.md`](16-ai-prompts.md): business write endpoints, or claims/reports admin-moderation) is next
-— whichever the user prioritizes; each needs its own fully-specified prompt written just before it starts, per
-Universal Rule 2. Phase 6's admin-moderation surface is also where `ModerationService`'s no-op-approve seam
-(see Phase 5's deviation log above) would first get a real consumer.
+Phase 6 is now fully verified (see its section above). Phase 7 (per [`16-ai-prompts.md`](16-ai-prompts.md):
+admin moderation queue — claims review UI, report resolution, review/photo moderation) is next; needs its own
+fully-specified prompt written just before it starts, per Universal Rule 2. Phase 7's admin queue is also
+where the minimal `PATCH /claims/:id/approve`/`reject` endpoints built in Phase 6 would get a real UI in front
+of them, and where `ModerationService`'s no-op-approve seam (Phase 5's deviation log) would first get a real
+consumer.

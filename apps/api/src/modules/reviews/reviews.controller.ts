@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -9,11 +10,19 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { z } from 'zod';
-import type { BusinessReview, CreateReviewRequest } from '@buisnez/shared';
-import { createReviewRequestSchema } from '@buisnez/shared';
+import type {
+  BusinessReview,
+  CreateReviewRequest,
+  ReplyToReviewRequest,
+} from '@buisnez/shared';
+import {
+  createReviewRequestSchema,
+  replyToReviewRequestSchema,
+} from '@buisnez/shared';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { VerifiedEmailGuard } from '../../common/guards/verified-email.guard';
+import { BusinessOwnerGuard } from '../../common/guards/business-owner.guard';
 import { ReviewsService } from './reviews.service';
 
 const myHelpfulVotesQuerySchema = z.object({ businessId: z.string().uuid() });
@@ -56,5 +65,25 @@ export class ReviewsController {
     query: { businessId: string },
   ): Promise<string[]> {
     return this.reviewsService.myHelpfulVotes(userId, query.businessId);
+  }
+
+  @Put('businesses/:businessId/reviews/:reviewId/reply')
+  @UseGuards(BusinessOwnerGuard)
+  replyToReview(
+    @Param('businessId') businessId: string,
+    @Param('reviewId') reviewId: string,
+    @Body(new ZodValidationPipe(replyToReviewRequestSchema))
+    body: ReplyToReviewRequest,
+  ): Promise<BusinessReview> {
+    return this.reviewsService.replyToReview(businessId, reviewId, body.reply);
+  }
+
+  @Delete('businesses/:businessId/reviews/:reviewId/reply')
+  @UseGuards(BusinessOwnerGuard)
+  deleteReply(
+    @Param('businessId') businessId: string,
+    @Param('reviewId') reviewId: string,
+  ): Promise<BusinessReview> {
+    return this.reviewsService.deleteReply(businessId, reviewId);
   }
 }

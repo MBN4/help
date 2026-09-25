@@ -55,6 +55,45 @@ export const businessAggregatesSchema = z.object({
 });
 export type BusinessAggregates = z.infer<typeof businessAggregatesSchema>;
 
+/** Public read shape for a business's services — only `isAvailable: true` rows are ever exposed here. */
+export const businessServiceSchema = z.object({
+  id: z.string().uuid(),
+  businessId: z.string().uuid(),
+  name: z.string(),
+  description: z.string().nullable(),
+  priceInPaisa: z.number().int().nullable(),
+  isAvailable: z.boolean(),
+  sortOrder: z.number().int(),
+  createdAt: z.string(),
+});
+export type BusinessServiceItem = z.infer<typeof businessServiceSchema>;
+
+export const createBusinessServiceRequestSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  description: z.string().trim().max(2000).optional(),
+  priceInPaisa: z.number().int().min(0).optional(),
+  isAvailable: z.boolean().optional(),
+  sortOrder: z.number().int().optional(),
+});
+export type CreateBusinessServiceRequest = z.infer<
+  typeof createBusinessServiceRequestSchema
+>;
+
+export const updateBusinessServiceRequestSchema = z
+  .object({
+    name: z.string().trim().min(1).max(200).optional(),
+    description: z.string().trim().max(2000).optional(),
+    priceInPaisa: z.number().int().min(0).optional(),
+    isAvailable: z.boolean().optional(),
+    sortOrder: z.number().int().optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    message: 'At least one field must be provided',
+  });
+export type UpdateBusinessServiceRequest = z.infer<
+  typeof updateBusinessServiceRequestSchema
+>;
+
 export const businessProfileSchema = z.object({
   id: z.string().uuid(),
   slug: z.string(),
@@ -76,6 +115,8 @@ export const businessProfileSchema = z.object({
   isOpenNow: z.boolean(),
   features: z.array(businessFeatureSchema),
   aggregates: businessAggregatesSchema,
+  services: z.array(businessServiceSchema),
+  isClaimed: z.boolean(),
   createdAt: z.string(),
 });
 export type BusinessProfile = z.infer<typeof businessProfileSchema>;

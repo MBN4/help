@@ -186,7 +186,8 @@
       "profile": "Profile",
       "reviews": "My reviews",
       "photos": "My photos",
-      "favorites": "My favourites"
+      "favorites": "My favourites",
+      "businesses": "My businesses"
     },
     "profileTitle": "Your profile",
     "bioLabel": "Bio",
@@ -249,5 +250,79 @@
     "save": "Save",
     "saved": "Saved",
     "loginRequired": "Log in to save favourites."
+  },
+  "businessOwner": {
+    "dashboardTitle": "Your businesses",
+    "noOwnedBusinesses": "You don't own any businesses yet.",
+    "browseToClaim": "Browse listings to claim one",
+    "reviewCount": "{count, plural, one {# review} other {# reviews}}",
+    "status": {
+      "PENDING": "Pending",
+      "PUBLISHED": "Published",
+      "REJECTED": "Rejected",
+      "SUSPENDED": "Suspended"
+    },
+    "saveChanges": "Save changes",
+    "savedSuccess": "Saved.",
+    "errorGeneric": "Something went wrong. Please try again.",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "remove": "Remove",
+    "sections": {
+      "info": "Business info",
+      "hours": "Hours",
+      "features": "Features",
+      "services": "Services",
+      "photos": "Photos",
+      "location": "Location",
+      "reviews": "Reviews"
+    },
+    "info": {
+      "nameLabel": "Business name",
+      "descriptionLabel": "Description",
+      "categoryLabel": "Category",
+      "phoneLabel": "Phone",
+      "whatsappLabel": "WhatsApp",
+      "emailLabel": "Email",
+      "websiteLabel": "Website"
+    },
+    "location": {
+      "latLabel": "Latitude",
+      "lngLabel": "Longitude",
+      "mapUnavailable": "A live map isn't available right now — enter coordinates manually instead."
+    },
+    "services": {
+      "nameLabel": "Name",
+      "descriptionLabel": "Description",
+      "priceLabel": "Price (PKR)",
+      "availableLabel": "Available",
+      "unavailable": "unavailable",
+      "noPrice": "No price set",
+      "addTitle": "Add a service",
+      "add": "Add service"
+    },
+    "photos": {
+      "remove": "Remove photo"
+    },
+    "reviews": {
+      "none": "No reviews yet.",
+      "yourReply": "Your reply",
+      "deleteReply": "Delete reply",
+      "replyPlaceholder": "Write a reply to this review…",
+      "postReply": "Post reply"
+    }
+  },
+  "claims": {
+    "claimCta": "Claim this business",
+    "loginRequired": "Log in to claim this business.",
+    "loginToClaimCta": "Log in to claim",
+    "pendingReview": "Claim pending review",
+    "messageLabel": "Message (optional)",
+    "messagePlaceholder": "Tell us how you're connected to this business",
+    "documentUrlLabel": "Supporting document URL (optional)",
+    "documentUrlPlaceholder": "https://…",
+    "submit": "Submit claim",
+    "cancel": "Cancel",
+    "errorGeneric": "Something went wrong. Please try again."
   }
 }

@@ -155,6 +155,47 @@ Full detail (moderation posture, photo pipeline, OAuth) in
 | GET    | `/users/me/reviews`           | Paginated `MyReview[]` (review + business ref).                                                              |
 | GET    | `/users/me/photos`            | Paginated `MyPhoto[]` (photo + business ref).                                                                |
 
+## Claims (`modules/claims`, Phase 6)
+
+| Method | Path                       | Guard                | Notes                                                                                                                                                                                    |
+| ------ | -------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/claims`                  | `JwtAuthGuard`       | `{ businessId, message?, documentUrl? }` → `Claim`. 409 `BUSINESS_ALREADY_OWNED` / `CLAIM_ALREADY_PENDING`.                                                                              |
+| GET    | `/claims/mine?businessId=` | `JwtAuthGuard`       | Caller's most recent claim for that business, or `null`.                                                                                                                                 |
+| GET    | `/claims/mine`             | `JwtAuthGuard`       | All of the caller's claims.                                                                                                                                                              |
+| PATCH  | `/claims/:id/approve`      | `@Roles(Role.ADMIN)` | Sets `Claim.status = APPROVED`, `Business.ownerId = claim.userId`, promotes user to `BUSINESS_OWNER` (cosmetic — see [`10-auth-roles.md`](10-auth-roles.md)), never downgrades an ADMIN. |
+| PATCH  | `/claims/:id/reject`       | `@Roles(Role.ADMIN)` | Sets `Claim.status = REJECTED`.                                                                                                                                                          |
+
+`Claim` shape: `{ id, businessId, userId, status, message, documentUrl, createdAt, reviewedAt }`.
+
+## Business owner endpoints (`modules/businesses/business-owner.*`, Phase 6)
+
+All mutation routes below are gated by `BusinessOwnerGuard` (route-scoped, requires a `:businessId` uuid path
+param — see [`10-auth-roles.md`](10-auth-roles.md)): `business.ownerId === request.user.id || request.user.role === 'ADMIN'`.
+`BusinessOwnerController` is registered before `BusinessesController` in `BusinessesModule` so the static
+`owned/mine` path isn't swallowed by the `:slug` catch-all route.
+
+| Method | Path                                              | Guard                | Notes                                                                                                                                    |
+| ------ | ------------------------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/businesses/owned/mine`                          | `JwtAuthGuard`       | Businesses owned by the caller, with `{ id, slug, name, status, averageRating, reviewCount, createdAt }` each.                           |
+| GET    | `/businesses/:businessId/manage`                  | `BusinessOwnerGuard` | Full record for editing, no `status` filter — includes `services`, `features`, `hours`, `ownerId`, `status`.                             |
+| PATCH  | `/businesses/:businessId`                         | `BusinessOwnerGuard` | Partial `{ name?, description?, categoryId?, phone?, whatsapp?, email?, website? }`, at least one field required. Revalidates.           |
+| PUT    | `/businesses/:businessId/hours`                   | `BusinessOwnerGuard` | Body: exactly 7 `{ dayOfWeek, opensAt, closesAt, isClosed }` entries (delete+recreate in a transaction). Revalidates.                    |
+| PUT    | `/businesses/:businessId/features`                | `BusinessOwnerGuard` | `{ featureIds: string[] }` (delete+recreate, validates every id exists). Revalidates.                                                    |
+| PATCH  | `/businesses/:businessId/location`                | `BusinessOwnerGuard` | `{ lat, lng }` — pin always wins, calls `GeoService.setBusinessLocation`. Revalidates. See [`08-maps-location.md`](08-maps-location.md). |
+| POST   | `/businesses/:businessId/services`                | `BusinessOwnerGuard` | Create a `BusinessService`. Revalidates.                                                                                                 |
+| PATCH  | `/businesses/:businessId/services/:serviceId`     | `BusinessOwnerGuard` | Update (verifies `serviceId` belongs to `businessId`). Revalidates.                                                                      |
+| DELETE | `/businesses/:businessId/services/:serviceId`     | `BusinessOwnerGuard` | Delete. Revalidates.                                                                                                                     |
+| POST   | `/businesses/:businessId/photos`                  | `BusinessOwnerGuard` | Presign→confirm via `PhotosService.confirmForBusiness` (skips the `PUBLISHED` requirement `PhotosService.confirm` normally enforces).    |
+| DELETE | `/businesses/:businessId/photos/:photoId`         | `BusinessOwnerGuard` | Verifies photo belongs to the business, deletes the row + underlying storage objects via `StorageService.deleteObject`.                  |
+| PUT    | `/businesses/:businessId/reviews/:reviewId/reply` | `BusinessOwnerGuard` | `{ reply }` (1–2000 chars). Sets `Review.ownerReply`/`ownerReplyAt` (upsert-by-overwrite, single nullable column). Revalidates.          |
+| DELETE | `/businesses/:businessId/reviews/:reviewId/reply` | `BusinessOwnerGuard` | Clears `ownerReply`/`ownerReplyAt`. Revalidates.                                                                                         |
+
+`GET /businesses/:slug` (public) now additionally returns `services: BusinessService[]` (only
+`isAvailable: true`, ordered by `sortOrder`) and `isClaimed: boolean` (derived from `ownerId !== null`,
+`ownerId` itself is never exposed on the public profile).
+
+`BusinessService` shape (public, `isAvailable:true` only shown): `{ id, businessId, name, description, priceInPaisa, isAvailable, sortOrder, createdAt }`. `priceInPaisa: null` means "price on request".
+
 ## Schema addition: `Business.featured`
 
 Phase 2 adds `Business.featured Boolean @default(false)` via a new migration. There is no admin endpoint to

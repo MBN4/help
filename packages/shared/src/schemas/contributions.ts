@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { subRatingsSchema } from './business';
 
+export const replyToReviewRequestSchema = z.object({
+  reply: z.string().min(1).max(2000),
+});
+export type ReplyToReviewRequest = z.infer<typeof replyToReviewRequestSchema>;
+
 export const createReviewRequestSchema = z.object({
   rating: z.number().int().min(1).max(5),
   subRatings: subRatingsSchema.optional(),

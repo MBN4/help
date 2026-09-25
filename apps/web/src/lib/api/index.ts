@@ -7,3 +7,5 @@ export * from './discovery';
 export * from './features';
 export * from './auth';
 export * from './contributions';
+export * from './claims';
+export * from './business-owner';

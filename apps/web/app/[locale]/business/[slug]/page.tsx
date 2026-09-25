@@ -33,6 +33,7 @@ import { ReviewSection } from '@/components/review/review-section';
 import { BusinessCard } from '@/components/business/business-card';
 import { FavoriteButton } from '@/components/business/favorite-button';
 import { ReportButton } from '@/components/report/report-button';
+import { ClaimBusinessButton } from '@/components/business-owner/claim-business-button';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -149,6 +150,12 @@ export default async function BusinessProfilePage({
           </span>
           <PriceLevel tier={business.priceTier} />
         </div>
+        {!business.isClaimed && (
+          <ClaimBusinessButton
+            businessId={business.id}
+            isClaimed={business.isClaimed}
+          />
+        )}
       </header>
 
       <PhotoGallery photos={photos} businessName={business.name} />

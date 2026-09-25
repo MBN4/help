@@ -62,6 +62,50 @@ export class PhotosService {
       }
     }
 
+    return this.runPipeline(userId, input);
+  }
+
+  /**
+   * Same upload pipeline as `confirm()`, but skips the `status: 'PUBLISHED'` business check — safe to call
+   * only from a route that has already verified ownership of `businessId` (see `BusinessOwnerGuard`), since
+   * an owner needs to add photos to their listing before/while it's still PENDING.
+   */
+  async confirmForBusiness(
+    userId: string,
+    businessId: string,
+    input: ConfirmPhotoRequest,
+  ): Promise<UploadedPhoto> {
+    return this.runPipeline(userId, { ...input, businessId });
+  }
+
+  async deleteForBusiness(businessId: string, photoId: string): Promise<void> {
+    const photo = await this.prisma.photo.findUnique({
+      where: { id: photoId },
+      select: {
+        id: true,
+        businessId: true,
+        url: true,
+        thumbUrl: true,
+        cardUrl: true,
+      },
+    });
+    if (!photo || photo.businessId !== businessId) {
+      throw new AppException(404, 'NOT_FOUND', 'Photo not found');
+    }
+
+    await this.prisma.photo.delete({ where: { id: photoId } });
+
+    const keys = [photo.url, photo.thumbUrl, photo.cardUrl]
+      .filter((url): url is string => Boolean(url))
+      .map((url) => this.storage.keyFromPublicUrl(url))
+      .filter((key): key is string => Boolean(key));
+    await Promise.all(keys.map((key) => this.storage.deleteObject(key)));
+  }
+
+  private async runPipeline(
+    userId: string,
+    input: ConfirmPhotoRequest,
+  ): Promise<UploadedPhoto> {
     const meta = await this.storage.headObject(input.key);
     if (meta.contentLength > MAX_PHOTO_UPLOAD_BYTES) {
       throw new AppException(

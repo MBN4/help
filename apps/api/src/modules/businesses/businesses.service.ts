@@ -4,63 +4,18 @@ import type {
   BusinessProfile,
   BusinessReview,
   BusinessSummary,
-  DayOfWeek,
   PaginationMeta,
-  RatingBreakdown,
   SubRatings,
 } from '@buisnez/shared';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppException } from '../../common/exceptions/app.exception';
 import { GeoService } from '../geo/geo.service';
 import { SearchService } from '../search/search.service';
-import { getKarachiNow } from '../search/karachi-time.util';
-
-const DAY_ORDER: DayOfWeek[] = [
-  'MONDAY',
-  'TUESDAY',
-  'WEDNESDAY',
-  'THURSDAY',
-  'FRIDAY',
-  'SATURDAY',
-  'SUNDAY',
-];
-
-interface HoursWindow {
-  dayOfWeek: DayOfWeek;
-  opensAt: string | null;
-  closesAt: string | null;
-  isClosed: boolean;
-}
-
-/** Mirrors SearchService's openNowExpr()/docs/09-search-discovery.md, applied in application code. */
-function computeIsOpenNow(hours: HoursWindow[]): boolean {
-  const { todayDow, yesterdayDow, nowTime } = getKarachiNow();
-
-  const today = hours.find((entry) => entry.dayOfWeek === todayDow);
-  if (today && !today.isClosed && today.opensAt && today.closesAt) {
-    if (today.opensAt <= today.closesAt) {
-      if (today.opensAt <= nowTime && nowTime <= today.closesAt) {
-        return true;
-      }
-    } else if (nowTime >= today.opensAt) {
-      return true;
-    }
-  }
-
-  const yesterday = hours.find((entry) => entry.dayOfWeek === yesterdayDow);
-  if (
-    yesterday &&
-    !yesterday.isClosed &&
-    yesterday.opensAt &&
-    yesterday.closesAt &&
-    yesterday.opensAt > yesterday.closesAt &&
-    nowTime <= yesterday.closesAt
-  ) {
-    return true;
-  }
-
-  return false;
-}
+import {
+  DAY_ORDER,
+  computeIsOpenNow,
+  getBusinessAggregates,
+} from './business-profile.util';
 
 @Injectable()
 export class BusinessesService {
@@ -80,6 +35,10 @@ export class BusinessesService {
         area: true,
         hours: true,
         features: { include: { feature: true } },
+        services: {
+          where: { isAvailable: true },
+          orderBy: { sortOrder: 'asc' },
+        },
       },
     });
     if (!business) {
@@ -88,7 +47,7 @@ export class BusinessesService {
 
     const [location, aggregates] = await Promise.all([
       this.geoService.getBusinessLocation(business.id),
-      this.getAggregates(business.id),
+      getBusinessAggregates(this.prisma, business.id),
     ]);
 
     const hours = [...business.hours].sort(
@@ -139,6 +98,17 @@ export class BusinessesService {
         icon: feature.icon,
       })),
       aggregates,
+      services: business.services.map((service) => ({
+        id: service.id,
+        businessId: service.businessId,
+        name: service.name,
+        description: service.description,
+        priceInPaisa: service.priceInPaisa,
+        isAvailable: service.isAvailable,
+        sortOrder: service.sortOrder,
+        createdAt: service.createdAt.toISOString(),
+      })),
+      isClaimed: business.ownerId !== null,
       createdAt: business.createdAt.toISOString(),
     };
   }
@@ -252,36 +222,5 @@ export class BusinessesService {
     if (!business) {
       throw new AppException(404, 'NOT_FOUND', 'Business not found');
     }
-  }
-
-  private async getAggregates(businessId: string): Promise<{
-    averageRating: number | null;
-    reviewCount: number;
-    ratingBreakdown: RatingBreakdown;
-  }> {
-    const grouped = await this.prisma.review.groupBy({
-      by: ['rating'],
-      where: { businessId, status: 'PUBLISHED' },
-      _count: { _all: true },
-    });
-
-    const ratingBreakdown: RatingBreakdown = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-    let reviewCount = 0;
-    let ratingSum = 0;
-    for (const group of grouped) {
-      const rating = group.rating as 1 | 2 | 3 | 4 | 5;
-      ratingBreakdown[rating] = group._count._all;
-      reviewCount += group._count._all;
-      ratingSum += rating * group._count._all;
-    }
-
-    return {
-      averageRating:
-        reviewCount > 0
-          ? Math.round((ratingSum / reviewCount) * 10) / 10
-          : null,
-      reviewCount,
-      ratingBreakdown,
-    };
   }
 }

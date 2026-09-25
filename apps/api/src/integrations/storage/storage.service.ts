@@ -3,6 +3,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   CreateBucketCommand,
+  DeleteObjectCommand,
   GetObjectCommand,
   HeadBucketCommand,
   HeadObjectCommand,
@@ -124,6 +125,18 @@ export class StorageService implements OnModuleInit {
       }),
     );
     return this.publicUrl(key);
+  }
+
+  async deleteObject(key: string): Promise<void> {
+    await this.client.send(
+      new DeleteObjectCommand({ Bucket: this.bucket, Key: key }),
+    );
+  }
+
+  /** Reverses `publicUrl()` — extracts the storage key from a full public URL, or `null` if it doesn't match. */
+  keyFromPublicUrl(url: string): string | null {
+    const base = `${this.publicUrlBase.replace(/\/$/, '')}/`;
+    return url.startsWith(base) ? url.slice(base.length) : null;
   }
 
   publicUrl(key: string): string {

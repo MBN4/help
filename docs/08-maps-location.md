@@ -39,6 +39,25 @@ only needed when a business has no coordinates yet.
 used by [`packages/database`](04-database.md) seed-adjacent tests) — nearest-first business ids within a
 radius, for simple callers that don't need the full search/filter machinery.
 
+## Writing a business's location (Phase 6)
+
+`GeoService.setBusinessLocation(businessId, lat, lng): Promise<void>` — the only write path for
+`Business.location`. Since `location` is a Prisma `Unsupported("geography(Point, 4326)")` field it can only
+be written via raw SQL, never `.update()`:
+
+```sql
+UPDATE "Business" SET "location" = ST_SetSRID(ST_MakePoint($lng, $lat), 4326)::geography WHERE "id" = $businessId
+```
+
+Called from `PATCH /businesses/:businessId/location` (owner-guarded, see
+[`06-api-endpoints.md`](06-api-endpoints.md)). **The pin always wins over geocoding** — there is no
+"geocode on write" trigger wired into the info-update endpoint (`PATCH /businesses/:businessId`), because
+that endpoint's field list (`name`/`description`/`categoryId`/`phone`/`whatsapp`/`email`/`website`) has no
+address/city/area fields to react to. `geocodeAddress()` therefore remains unused by any Phase 6 write path;
+the location endpoint is the sole, exact-pin write path for a business's coordinates. A future phase that adds
+address-editing to the info form would be the natural place to call `geocodeAddress()` as a fallback when no
+explicit pin accompanies the same request.
+
 ## Units & precision
 
 - All radii and distances are **meters** everywhere in the API (query params, response fields, SQL) — never

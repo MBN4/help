@@ -212,6 +212,37 @@ of truth) live in `@buisnez/shared/src/utils`.
 - **Account pages** (`/account`, `/account/reviews`, `/account/photos`, `/account/favorites`) are thin CSR
   pages, each a `useQuery` over the corresponding `GET /users/me/...` or `GET /favorites/mine` endpoint.
 
+## Business owner experience (Phase 6)
+
+- **`/account/businesses`** — owner dashboard (CSR, gated by the existing `account/layout.tsx`, no new auth
+  gate needed). Fetches `GET /businesses/owned/mine`; empty state links to `/search` rather than redirecting
+  (owning zero businesses isn't an auth failure). Non-empty renders a card per business (name, status badge,
+  rating, review count) linking to `/account/businesses/[businessId]`.
+- **`/account/businesses/[businessId]`** — single-page listing editor (sections, not sub-routes): core info
+  form (mirrors `account/page.tsx`'s pattern), hours editor (7 rows, past-midnight-aware per
+  `09-search-discovery.md`'s existing `computeIsOpenNow` semantics — write side just collects the same shape),
+  features checklist, services/menu CRUD (PKR entered by the owner is converted to `priceInPaisa` client-side,
+  display uses `formatPKR`), photo management (adapted from `photo-attachments.tsx`'s presign→PUT→confirm
+  pattern), and a reviews section listing all the business's reviews with a reply box per unreplied review.
+  Every section calls its own `BusinessOwnerGuard`-protected endpoint independently and handles a 403
+  gracefully (visible error, not silent) — see [`06-api-endpoints.md`](06-api-endpoints.md).
+- **Pin-drop map**: `src/components/business-owner/pin-drop-map.tsx`, built on the existing
+  `useGoogleMapsScript` hook, renders a draggable `google.maps.Marker` with a `dragend` listener. Unlike
+  `map-view.tsx`'s read-only "map unavailable" fallback, this component falls back to plain
+  `<Input type="number">` lat/lng fields when no Maps key is configured, since an editor must stay usable
+  either way. `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` is still empty in this environment (same gap noted for Phase
+  4's `map-view.tsx`), so the manual-input path is what's actually exercised today — see
+  [`PROGRESS.md`](PROGRESS.md).
+- **Claim CTA**: `ClaimBusinessButton` on the business profile header renders when `!business.isClaimed`.
+  Logged out → prompt to log in first. Logged in → inline expand/collapse form (message + optional
+  `documentUrl`, mirroring `ReviewForm`/`ReportButton`'s existing inline-expand convention rather than
+  introducing a `Dialog` primitive that doesn't exist in `src/components/ui/`) calling `POST /claims`, then
+  polls `GET /claims/mine?businessId=` to show "claim pending review" / hide entirely once claimed by someone
+  else / allow re-claiming after a `REJECTED` status.
+- **Owner replies**: `ReviewCard` already rendered `review.ownerReply`/`ownerReplyAt` as a "Response from the
+  owner" block for all visitors (Phase 5 shipped the read side); Phase 6 only added the reply _composer_,
+  which lives exclusively on the owner's management page reviews section, never inline on the public page.
+
 ## Known gaps carried from Phase 2 that Phase 4 needed and closed
 
 Building the real pages surfaced three places where the Phase 2 API contract didn't cover what the frontend

@@ -7,6 +7,33 @@
 logic, not part of Phase 1). `ADMIN` is only ever set by direct DB action/seed — there is no self-service
 admin signup.
 
+**`BUSINESS_OWNER` is cosmetic (Phase 6)**: it reflects "this user has at least one approved claim" for
+UI/display purposes only (e.g. showing an "owner" badge, or which dashboard nav to render) — it is **never**
+read by any authorization guard. Ownership of a specific business is per-business, not per-role: the source
+of truth is `Business.ownerId` (nullable FK to `User`), set when an admin approves that business's `Claim`
+(`ClaimsService.approve()`, `apps/api/src/modules/claims/claims.service.ts`) and cleared to `null` if the
+business is ever unclaimed. A user can own zero, one, or several businesses; their `Role` says nothing about
+which ones. All business-mutation authorization goes through `BusinessOwnerGuard`, checked fresh on every
+request — never cached on the JWT or the `Role` column.
+
+## `BusinessOwnerGuard` (`apps/api/src/common/guards/business-owner.guard.ts`)
+
+Route-scoped (`@UseGuards(BusinessOwnerGuard)`), applied after the global `JwtAuthGuard`. Every route it
+protects must expose the target business's id as a `:businessId` path param — the guard reads
+`request.params.businessId` directly, so a route without that exact param name will look up `undefined` and 404. On each request it:
+
+1. 401s with `AppException(401, 'UNAUTHORIZED', ...)` if `request.user` is missing (defensive — `JwtAuthGuard`
+   should already have rejected this).
+2. Loads `Business.ownerId` for `businessId` and 404s with `AppException(404, 'NOT_FOUND', ...)` if no such
+   business exists.
+3. Allows the request if `business.ownerId === request.user.id`, **or** `request.user.role === Role.ADMIN`
+   (an admin override, not a role-based grant for a business the admin doesn't own). Otherwise 403s with
+   `AppException(403, 'FORBIDDEN', ...)`.
+
+Used by every business-owner route in `apps/api/src/modules/businesses/business-owner.controller.ts`, the
+owner photo routes, and the review owner-reply routes
+(`apps/api/src/modules/reviews/reviews.controller.ts`).
+
 ## Password storage
 
 `argon2id` via `@node-rs/argon2` (`hash(password)` / `verify(hash, password)`) — a napi-rs binding that

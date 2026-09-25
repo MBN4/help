@@ -115,6 +115,19 @@ export class GeoService {
     return point;
   }
 
+  /** Sets a business's coordinate — the pin-drop write path (see `BusinessOwnerController`'s location route). */
+  async setBusinessLocation(
+    businessId: string,
+    lat: number,
+    lng: number,
+  ): Promise<void> {
+    await this.prisma.$executeRaw`
+      UPDATE "Business"
+      SET "location" = ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography
+      WHERE "id" = ${businessId}
+    `;
+  }
+
   /** A business's coordinate as `{ lat, lng }`, or `null` if unset. */
   async getBusinessLocation(businessId: string): Promise<GeoPoint | null> {
     const rows = await this.prisma.$queryRaw<{ lat: number; lng: number }[]>`

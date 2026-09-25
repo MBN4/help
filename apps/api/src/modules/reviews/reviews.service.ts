@@ -120,6 +120,55 @@ export class ReviewsService {
     return review ? this.getOne(review.id) : null;
   }
 
+  async replyToReview(
+    businessId: string,
+    reviewId: string,
+    reply: string,
+  ): Promise<BusinessReview> {
+    return this.setOwnerReply(businessId, reviewId, reply);
+  }
+
+  async deleteReply(
+    businessId: string,
+    reviewId: string,
+  ): Promise<BusinessReview> {
+    return this.setOwnerReply(businessId, reviewId, null);
+  }
+
+  private async setOwnerReply(
+    businessId: string,
+    reviewId: string,
+    reply: string | null,
+  ): Promise<BusinessReview> {
+    const review = await this.prisma.review.findUnique({
+      where: { id: reviewId },
+    });
+    if (!review || review.businessId !== businessId) {
+      throw new AppException(404, 'NOT_FOUND', 'Review not found');
+    }
+
+    const business = await this.prisma.business.findUniqueOrThrow({
+      where: { id: businessId },
+      include: {
+        city: { select: { slug: true } },
+        category: { select: { slug: true } },
+      },
+    });
+
+    await this.prisma.review.update({
+      where: { id: reviewId },
+      data: { ownerReply: reply, ownerReplyAt: reply ? new Date() : null },
+    });
+
+    await this.revalidateService.revalidate({
+      slug: business.slug,
+      city: business.city.slug,
+      category: business.category.slug,
+    });
+
+    return this.getOne(reviewId);
+  }
+
   async myHelpfulVotes(userId: string, businessId: string): Promise<string[]> {
     const votes = await this.prisma.reviewHelpfulVote.findMany({
       where: { userId, review: { businessId } },

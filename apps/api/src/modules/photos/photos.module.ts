@@ -8,5 +8,6 @@ import { PhotosService } from './photos.service';
   imports: [StorageModule, ModerationModule],
   controllers: [PhotosController],
   providers: [PhotosService],
+  exports: [PhotosService],
 })
 export class PhotosModule {}

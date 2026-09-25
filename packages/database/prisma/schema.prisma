@@ -241,11 +241,27 @@ model Business {
   favorites Favorite[]
   claims    Claim[]
   reports   Report[]
+  services  BusinessService[]
 
   @@index([categoryId])
   @@index([cityId])
   @@index([areaId])
   @@index([status])
+}
+
+model BusinessService {
+  id           String   @id @default(uuid())
+  businessId   String
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name         String
+  description  String?
+  priceInPaisa Int?
+  isAvailable  Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([businessId])
 }
 
 model BusinessHours {

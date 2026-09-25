@@ -25,6 +25,7 @@ import { FavoritesModule } from './modules/favorites/favorites.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { PhotosModule } from './modules/photos/photos.module';
 import { UsersModule } from './modules/users/users.module';
+import { ClaimsModule } from './modules/claims/claims.module';
 
 @Controller('health')
 class HealthController {
@@ -62,6 +63,7 @@ class HealthController {
     ReportsModule,
     PhotosModule,
     UsersModule,
+    ClaimsModule,
   ],
   controllers: [HealthController],
   providers: [
