@@ -3,10 +3,19 @@ import { Role } from '@buisnez/database';
 import type { Claim, CreateClaimRequest } from '@buisnez/shared';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppException } from '../../common/exceptions/app.exception';
+import { MailService } from '../../integrations/mail/mail.service';
+import {
+  ModerationLogService,
+  MODERATION_ACTIONS,
+} from '../../integrations/moderation/moderation-log.service';
 
 @Injectable()
 export class ClaimsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly moderationLog: ModerationLogService,
+    private readonly mail: MailService,
+  ) {}
 
   async create(userId: string, input: CreateClaimRequest): Promise<Claim> {
     const business = await this.prisma.business.findUnique({
@@ -65,7 +74,23 @@ export class ClaimsService {
     return claims.map((claim) => this.toClaim(claim));
   }
 
-  async approve(claimId: string, adminId: string): Promise<Claim> {
+  /** Admin/moderator claims queue read — every claim at `status`, with claimant + target business joined. */
+  async listAll(status: 'PENDING' | 'APPROVED' | 'REJECTED' = 'PENDING') {
+    return this.prisma.claim.findMany({
+      where: { status },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        business: { select: { id: true, name: true, slug: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async approve(
+    claimId: string,
+    actorId: string,
+    verifyBusiness = false,
+  ): Promise<Claim> {
     const claim = await this.prisma.claim.findUnique({
       where: { id: claimId },
     });
@@ -76,7 +101,7 @@ export class ClaimsService {
     const updated = await this.prisma.$transaction(async (tx) => {
       const business = await tx.business.findUniqueOrThrow({
         where: { id: claim.businessId },
-        select: { ownerId: true },
+        select: { ownerId: true, name: true },
       });
       if (business.ownerId && business.ownerId !== claim.userId) {
         throw new AppException(
@@ -90,21 +115,25 @@ export class ClaimsService {
         where: { id: claimId },
         data: {
           status: 'APPROVED',
-          reviewedById: adminId,
+          reviewedById: actorId,
           reviewedAt: new Date(),
         },
       });
 
       await tx.business.update({
         where: { id: claim.businessId },
-        data: { ownerId: claim.userId },
+        data: {
+          ownerId: claim.userId,
+          ...(verifyBusiness ? { isVerified: true } : {}),
+        },
       });
 
       const owner = await tx.user.findUniqueOrThrow({
         where: { id: claim.userId },
-        select: { role: true },
+        select: { role: true, email: true },
       });
-      // Cosmetic role field only — never downgrade an ADMIN, and it's a no-op if already BUSINESS_OWNER.
+      // Cosmetic role field only — never downgrade an ADMIN/MODERATOR, and it's a no-op if already
+      // BUSINESS_OWNER.
       if (owner.role === Role.CUSTOMER) {
         await tx.user.update({
           where: { id: claim.userId },
@@ -112,15 +141,37 @@ export class ClaimsService {
         });
       }
 
-      return approved;
+      return { approved, businessName: business.name, ownerEmail: owner.email };
     });
 
-    return this.toClaim(updated);
+    await this.moderationLog.record({
+      actorId,
+      action: MODERATION_ACTIONS.CLAIM_APPROVED,
+      targetType: 'CLAIM',
+      targetId: claimId,
+      reason: null,
+      metadata: { businessId: claim.businessId, claimantUserId: claim.userId },
+    });
+    this.mail.notifyClaimDecision(
+      updated.ownerEmail,
+      updated.businessName,
+      'approved',
+    );
+
+    return this.toClaim(updated.approved);
   }
 
-  async reject(claimId: string, adminId: string): Promise<Claim> {
+  async reject(
+    claimId: string,
+    actorId: string,
+    reason?: string,
+  ): Promise<Claim> {
     const claim = await this.prisma.claim.findUnique({
       where: { id: claimId },
+      include: {
+        business: { select: { name: true } },
+        user: { select: { email: true } },
+      },
     });
     if (!claim) {
       throw new AppException(404, 'NOT_FOUND', 'Claim not found');
@@ -130,10 +181,25 @@ export class ClaimsService {
       where: { id: claimId },
       data: {
         status: 'REJECTED',
-        reviewedById: adminId,
+        reviewedById: actorId,
         reviewedAt: new Date(),
       },
     });
+
+    await this.moderationLog.record({
+      actorId,
+      action: MODERATION_ACTIONS.CLAIM_REJECTED,
+      targetType: 'CLAIM',
+      targetId: claimId,
+      reason: reason ?? null,
+      metadata: { businessId: claim.businessId, claimantUserId: claim.userId },
+    });
+    this.mail.notifyClaimDecision(
+      claim.user.email,
+      claim.business.name,
+      'rejected',
+    );
+
     return this.toClaim(updated);
   }
 

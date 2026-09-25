@@ -18,6 +18,16 @@ export class MailService {
     this.log(to, 'Reset your Buisnez password', link);
   }
 
+  /** Phase 7: claim decision notice — same log-stub pattern, no real SMTP provider configured. */
+  notifyClaimDecision(
+    to: string,
+    businessName: string,
+    decision: 'approved' | 'rejected',
+  ): void {
+    const link = `${this.config.get('WEB_ORIGIN', { infer: true })}/account/businesses`;
+    this.log(to, `Your claim for "${businessName}" was ${decision}`, link);
+  }
+
   private log(to: string, subject: string, link: string): void {
     // No SMTP provider is configured in Phase 1: log the link so local/dev flows are testable end-to-end.
     this.logger.log(`[mail stub] to=${to} subject="${subject}" link=${link}`);

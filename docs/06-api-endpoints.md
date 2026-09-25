@@ -9,8 +9,9 @@ are specified in detail in [`09-search-discovery.md`](09-search-discovery.md); g
 ## What "public read" means
 
 Unless noted otherwise, every endpoint through the "Features" section below is `@Public()` and read-only.
-Business-related reads are scoped to `Business.status = 'PUBLISHED'`. The schema has no soft-delete column
-(no `deletedAt`, no `DELETED` status), so "published, non-deleted" is currently just "published".
+Business-related reads are scoped to `Business.status = 'PUBLISHED' AND deletedAt IS NULL` (soft-delete added
+Phase 7 — `Business.deletedAt`, set/cleared only via the ADMIN-only `/admin/businesses/:id` DELETE/restore
+routes, never a real row delete).
 
 Phase 5 added the first **write** endpoints (reviews, photos, favourites, helpful votes, reports, profile) —
 see the "Contributions" section near the bottom of this page and
@@ -157,13 +158,13 @@ Full detail (moderation posture, photo pipeline, OAuth) in
 
 ## Claims (`modules/claims`, Phase 6)
 
-| Method | Path                       | Guard                | Notes                                                                                                                                                                                    |
-| ------ | -------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| POST   | `/claims`                  | `JwtAuthGuard`       | `{ businessId, message?, documentUrl? }` → `Claim`. 409 `BUSINESS_ALREADY_OWNED` / `CLAIM_ALREADY_PENDING`.                                                                              |
-| GET    | `/claims/mine?businessId=` | `JwtAuthGuard`       | Caller's most recent claim for that business, or `null`.                                                                                                                                 |
-| GET    | `/claims/mine`             | `JwtAuthGuard`       | All of the caller's claims.                                                                                                                                                              |
-| PATCH  | `/claims/:id/approve`      | `@Roles(Role.ADMIN)` | Sets `Claim.status = APPROVED`, `Business.ownerId = claim.userId`, promotes user to `BUSINESS_OWNER` (cosmetic — see [`10-auth-roles.md`](10-auth-roles.md)), never downgrades an ADMIN. |
-| PATCH  | `/claims/:id/reject`       | `@Roles(Role.ADMIN)` | Sets `Claim.status = REJECTED`.                                                                                                                                                          |
+| Method | Path                       | Guard                                | Notes                                                                                                                                                                                                                                                                                                                                                                          |
+| ------ | -------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| POST   | `/claims`                  | `JwtAuthGuard`                       | `{ businessId, message?, documentUrl? }` → `Claim`. 409 `BUSINESS_ALREADY_OWNED` / `CLAIM_ALREADY_PENDING`.                                                                                                                                                                                                                                                                    |
+| GET    | `/claims/mine?businessId=` | `JwtAuthGuard`                       | Caller's most recent claim for that business, or `null`.                                                                                                                                                                                                                                                                                                                       |
+| GET    | `/claims/mine`             | `JwtAuthGuard`                       | All of the caller's claims.                                                                                                                                                                                                                                                                                                                                                    |
+| PATCH  | `/claims/:id/approve`      | `@Roles(Role.MODERATOR, Role.ADMIN)` | Body: `{ verifyBusiness?: boolean }`. Sets `Claim.status = APPROVED`, `Business.ownerId = claim.userId` (+ `isVerified = true` if `verifyBusiness`), promotes user to `BUSINESS_OWNER` (cosmetic — see [`10-auth-roles.md`](10-auth-roles.md)), never downgrades an ADMIN/MODERATOR. Logs `CLAIM_APPROVED`. Loosened from ADMIN-only in Phase 6 to MODERATOR+ADMIN in Phase 7. |
+| PATCH  | `/claims/:id/reject`       | `@Roles(Role.MODERATOR, Role.ADMIN)` | Body: `{ reason?: string }`. Sets `Claim.status = REJECTED`. Logs `CLAIM_REJECTED`.                                                                                                                                                                                                                                                                                            |
 
 `Claim` shape: `{ id, businessId, userId, status, message, documentUrl, createdAt, reviewedAt }`.
 
@@ -198,7 +199,54 @@ param — see [`10-auth-roles.md`](10-auth-roles.md)): `business.ownerId === req
 
 ## Schema addition: `Business.featured`
 
-Phase 2 adds `Business.featured Boolean @default(false)` via a new migration. There is no admin endpoint to
-set it yet (no admin/business-write surface exists until a later phase) — it defaults `false` everywhere,
-and the seed script flips it `true` on 2 demo businesses so `/discovery/home`'s `featured` block has
-something to return. A real curation endpoint is Phase 5+ (admin moderation) work.
+Phase 2 adds `Business.featured Boolean @default(false)` via a new migration. Phase 7 adds the real
+curation surface: `PATCH /admin/businesses/:id/featured` plus `featuredFrom`/`featuredUntil` window bounds
+(see the Admin section below).
+
+## Admin & moderation (`modules/admin`, Phase 7)
+
+Full route/guard/request/response detail lives in [`12-admin-panel.md`](12-admin-panel.md); this is the
+summary table. All paths are prefixed `/admin`. `@Roles(Role.MODERATOR, Role.ADMIN)` means MODERATOR-tier;
+`@Roles(Role.ADMIN)` means ADMIN-only. See [`10-auth-roles.md`](10-auth-roles.md) for the full role split.
+
+| Method            | Path                                                                     | Guard           | Notes                                                                                       |
+| ----------------- | ------------------------------------------------------------------------ | --------------- | ------------------------------------------------------------------------------------------- |
+| GET               | `/admin/ping`                                                            | `@Roles(ADMIN)` | Phase 1 smoke-test route, unchanged.                                                        |
+| GET               | `/admin/dashboard`                                                       | MODERATOR+ADMIN | Counts: businesses by status, users, reviews, pending claims, open reports, pending photos. |
+| GET               | `/admin/reports?status=`                                                 | MODERATOR+ADMIN | Grouped by target, sorted by open-report count desc (priority).                             |
+| GET               | `/admin/reports/:id`                                                     | MODERATOR+ADMIN | Full detail incl. current target content.                                                   |
+| PATCH             | `/admin/reports/:id/resolve`                                             | MODERATOR+ADMIN | `{ reason?, action: 'REMOVE_CONTENT'\|'BAN_USER'\|'NONE' }` — performs the real action too. |
+| PATCH             | `/admin/reports/:id/dismiss`                                             | MODERATOR+ADMIN | `{ reason? }`.                                                                              |
+| GET               | `/admin/content/reviews?status=&reported=`                               | MODERATOR+ADMIN | Reviews pending or reported.                                                                |
+| GET               | `/admin/content/photos?status=&reported=`                                | MODERATOR+ADMIN | Photos pending or reported.                                                                 |
+| PATCH             | `/admin/content/reviews/:id/approve`                                     | MODERATOR+ADMIN | -> `PUBLISHED`.                                                                             |
+| PATCH             | `/admin/content/reviews/:id/remove`                                      | MODERATOR+ADMIN | `{ reason }` **required**. -> `REMOVED`, revalidates.                                       |
+| PATCH             | `/admin/content/reviews/:id/restore`                                     | MODERATOR+ADMIN | `{ reason? }`. -> `PUBLISHED`, revalidates.                                                 |
+| PATCH             | `/admin/content/photos/:id/approve`                                      | MODERATOR+ADMIN | -> `APPROVED`.                                                                              |
+| PATCH             | `/admin/content/photos/:id/remove`                                       | MODERATOR+ADMIN | `{ reason }` **required**. -> `REMOVED`, revalidates.                                       |
+| PATCH             | `/admin/content/photos/:id/restore`                                      | MODERATOR+ADMIN | -> `APPROVED`, revalidates.                                                                 |
+| GET               | `/admin/businesses?q=&status=&includeDeleted=`                           | MODERATOR+ADMIN | Admin search — all statuses, optionally incl. soft-deleted.                                 |
+| GET               | `/admin/businesses/:id`                                                  | MODERATOR+ADMIN | Full detail, works for soft-deleted businesses too.                                         |
+| PATCH             | `/admin/businesses/:id/status`                                           | MODERATOR+ADMIN | `{ status, reason? }` — reason required moving to `SUSPENDED`/`REJECTED`.                   |
+| PATCH             | `/admin/businesses/:id/verify`                                           | MODERATOR+ADMIN | `{ isVerified }`.                                                                           |
+| PATCH             | `/admin/businesses/:id/featured`                                         | `@Roles(ADMIN)` | `{ featured, featuredFrom?, featuredUntil? }` — busts `/discovery/home` cache.              |
+| POST              | `/admin/businesses`                                                      | `@Roles(ADMIN)` | Direct creation (owners can only create via the claim flow).                                |
+| PATCH             | `/admin/businesses/:id`                                                  | `@Roles(ADMIN)` | Generic edit incl. `ownerId` reassignment.                                                  |
+| DELETE            | `/admin/businesses/:id`                                                  | `@Roles(ADMIN)` | Soft-delete (`deletedAt = now`), revalidates.                                               |
+| POST              | `/admin/businesses/:id/restore`                                          | `@Roles(ADMIN)` | Clears `deletedAt`, revalidates.                                                            |
+| GET               | `/admin/users?search=`                                                   | `@Roles(ADMIN)` | Search, paginated.                                                                          |
+| GET               | `/admin/users/:id`                                                       | `@Roles(ADMIN)` | Full detail + contribution history.                                                         |
+| PATCH             | `/admin/users/:id/ban`                                                   | `@Roles(ADMIN)` | `{ reason }` **required** — "revoke immediately" (see `10-auth-roles.md`).                  |
+| PATCH             | `/admin/users/:id/unban`                                                 | `@Roles(ADMIN)` | Clears ban state.                                                                           |
+| PATCH             | `/admin/users/:id/role`                                                  | `@Roles(ADMIN)` | `{ role }` — the real role-management surface.                                              |
+| POST/PATCH/DELETE | `/admin/taxonomy/categories(/:id)`                                       | `@Roles(ADMIN)` | 409 if the category has children or businesses referencing it.                              |
+| POST/PATCH/DELETE | `/admin/taxonomy/provinces(/:id)`                                        | `@Roles(ADMIN)` | 409 if in use.                                                                              |
+| POST/PATCH/DELETE | `/admin/taxonomy/cities(/:id)`                                           | `@Roles(ADMIN)` | `centroid` written via `GeoService.setCityCentroid` (raw SQL, `Unsupported()` column).      |
+| POST/PATCH/DELETE | `/admin/taxonomy/areas(/:id)`                                            | `@Roles(ADMIN)` | 409 if in use.                                                                              |
+| POST/PATCH/DELETE | `/admin/taxonomy/features(/:id)`                                         | `@Roles(ADMIN)` | —                                                                                           |
+| GET               | `/admin/moderation-log?actorId=&targetType=&targetId=&action=&from=&to=` | MODERATOR+ADMIN | Paginated, newest-first audit trail.                                                        |
+
+Every removal/ban/reject action requires a non-empty `reason` in the body (400 `VALIDATION_ERROR` if
+missing); approvals/restores accept an optional `reason`. Every consequential action writes a `ModerationLog`
+row via `ModerationLogService.record()` — see [`12-admin-panel.md`](12-admin-panel.md) for the action
+vocabulary.

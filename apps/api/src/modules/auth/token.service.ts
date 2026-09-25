@@ -80,7 +80,32 @@ export class TokenService {
     }
   }
 
+  /**
+   * "Revoke immediately" ban flow (docs/10-auth-roles.md): revokes all refresh tokens AND sets a fast,
+   * no-DB-hit Redis marker that `JwtAuthGuard` checks on every authenticated request, so an already-issued,
+   * not-yet-expired access token is rejected too — not just future logins.
+   */
+  async banUser(userId: string): Promise<void> {
+    await Promise.all([
+      this.revokeAllRefreshTokens(userId),
+      this.redis.set(this.bannedKey(userId), '1'),
+    ]);
+  }
+
+  async unbanUser(userId: string): Promise<void> {
+    await this.redis.del(this.bannedKey(userId));
+  }
+
+  async isBanned(userId: string): Promise<boolean> {
+    const exists = await this.redis.exists(this.bannedKey(userId));
+    return exists === 1;
+  }
+
   private refreshKey(userId: string, jti: string): string {
     return `refresh:${userId}:${jti}`;
+  }
+
+  private bannedKey(userId: string): string {
+    return `banned:${userId}`;
   }
 }

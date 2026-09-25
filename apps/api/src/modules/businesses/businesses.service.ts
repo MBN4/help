@@ -27,7 +27,7 @@ export class BusinessesService {
 
   async getProfileBySlug(slug: string): Promise<BusinessProfile> {
     const business = await this.prisma.business.findFirst({
-      where: { slug, status: 'PUBLISHED' },
+      where: { slug, status: 'PUBLISHED', deletedAt: null },
       include: {
         category: { include: { parent: true } },
         province: true,
@@ -165,7 +165,7 @@ export class BusinessesService {
   ): Promise<{ data: BusinessPhoto[]; meta: PaginationMeta }> {
     await this.assertPublishedBusiness(businessId);
 
-    const where = { businessId, isApproved: true };
+    const where = { businessId, status: 'APPROVED' as const };
     const [total, photos] = await Promise.all([
       this.prisma.photo.count({ where }),
       this.prisma.photo.findMany({
@@ -191,7 +191,7 @@ export class BusinessesService {
 
   async getSimilar(slug: string, limit = 6): Promise<BusinessSummary[]> {
     const business = await this.prisma.business.findFirst({
-      where: { slug, status: 'PUBLISHED' },
+      where: { slug, status: 'PUBLISHED', deletedAt: null },
       select: {
         id: true,
         categoryId: true,
@@ -216,7 +216,7 @@ export class BusinessesService {
 
   private async assertPublishedBusiness(businessId: string): Promise<void> {
     const business = await this.prisma.business.findFirst({
-      where: { id: businessId, status: 'PUBLISHED' },
+      where: { id: businessId, status: 'PUBLISHED', deletedAt: null },
       select: { id: true },
     });
     if (!business) {

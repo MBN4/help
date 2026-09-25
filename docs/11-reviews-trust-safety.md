@@ -5,21 +5,33 @@ helpful votes, and reports. Written retroactively against what Phase 5 actually 
 [`PROGRESS.md`](PROGRESS.md) for the full deviation log) — no such doc existed before this phase, and the
 decisions below were confirmed with the user before implementation.
 
-## Moderation posture: publish immediately
+## Moderation posture: publish immediately, real admin/moderator action on top (Phase 7)
 
-Reviews (`Review.status`) and photos (`Photo.isApproved`) both default to published/approved — there is no
-pre-publish admin queue. This was a deliberate Phase 5 decision: the schema had no admin-approval endpoint of
-any kind before this phase (nothing to move a `PENDING` row to `PUBLISHED`), so holding content for approval
-would have meant it stayed permanently invisible.
+Reviews (`Review.status`) and photos (`Photo.status`, replacing the Phase 5 `isApproved` boolean — see below)
+both default to published/approved on write — there is still no automated pre-publish scoring/hold. This was
+a deliberate Phase 5 decision, unchanged in Phase 7: content publishes immediately, and what Phase 7 adds is
+a **real, human-driven queue on top** — a MODERATOR/ADMIN can now approve/remove/restore any review or photo
+after the fact (`PATCH /admin/content/reviews|photos/:id/approve|remove|restore`,
+`apps/api/src/modules/admin/admin-content.service.ts`), and users can report content into the reports queue
+(`/admin/reports/*`) for a moderator to action. This is genuinely new behavior, not just documentation —
+before Phase 7 there was no endpoint that could ever flip a review/photo out of its default status.
 
-**Moderation enqueue seam (added during the Phase 5 verification pass)**: every review write
-(`ReviewsService.createOrUpdate`) and photo confirm (`PhotosService.confirm`) now calls
-`ModerationService.enqueue(targetType, targetId)` (`apps/api/src/integrations/moderation`). Today this is a
-no-op that logs and always returns `{ status: 'APPROVED' }` — content still publishes immediately — but the
-call site now exists so Phase 8's real automated flagging/scoring pass has somewhere to plug in without
-touching `ReviewsService`/`PhotosService` again. This replaced the earlier `TODO(phase-6)` comment, which had
-no actual function call behind it. **Moderation hold is still deferred to Phase 8** — this seam does not add
-a pre-publish gate.
+**`Photo.isApproved` → `Photo.status` (Phase 7)**: replaced the boolean with a `PhotoStatus` enum
+(`PENDING`/`APPROVED`/`REMOVED`), mirroring `ReviewStatus`'s shape exactly. Migration
+`20260925120000_phase7_admin_moderation` backfills `isApproved: true → status: APPROVED`,
+`isApproved: false → status: PENDING` before dropping the old column. Every read site that filtered
+`isApproved: true` now filters `status: 'APPROVED'` (`BusinessesService.getPhotos()`, `SearchService`'s
+thumbnail subquery, `PhotosService.runPipeline()`'s create call).
+
+**Moderation enqueue seam** (added during the Phase 5 verification pass, unchanged in Phase 7): every review
+write (`ReviewsService.createOrUpdate`) and photo confirm (`PhotosService.confirm`) still calls
+`ModerationService.enqueue(targetType, targetId)` (`apps/api/src/integrations/moderation/moderation.service.ts`).
+It is still a no-op that logs and always returns `{ status: 'APPROVED' }` — Phase 8's real automated
+flagging/scoring pass is still the intended consumer of this seam, and Phase 7 did not touch it. What Phase 7
+added is a **separate** service in the same module/directory, `ModerationLogService`
+(`apps/api/src/integrations/moderation/moderation-log.service.ts`) — an audit-trail writer for every
+consequential admin/moderator action, unrelated to the enqueue seam above. Do not confuse the two: `enqueue()`
+is the (still-stubbed) auto-scoring hook; `ModerationLogService.record()` is the (now-real) audit log.
 
 ## Reviews
 

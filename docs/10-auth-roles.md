@@ -2,10 +2,28 @@
 
 ## Roles
 
-`Role` enum on `User`: `CUSTOMER` (default on register), `BUSINESS_OWNER`, `ADMIN`. A user is promoted from
-`CUSTOMER` to `BUSINESS_OWNER` automatically when an admin approves their first `Claim` (Phase 2+ business
-logic, not part of Phase 1). `ADMIN` is only ever set by direct DB action/seed — there is no self-service
-admin signup.
+`Role` enum on `User`: `CUSTOMER` (default on register), `BUSINESS_OWNER`, `MODERATOR` (added Phase 7),
+`ADMIN`. A user is promoted from `CUSTOMER` to `BUSINESS_OWNER` automatically when a claim is approved
+(originally ADMIN-only in Phase 6, now MODERATOR-or-ADMIN as of Phase 7 — see the role split below).
+`ADMIN`/`MODERATOR` are only ever set by direct DB action/seed, or, as of Phase 7, by an ADMIN via
+`PATCH /admin/users/:id/role` — there is no self-service admin/moderator signup.
+
+### MODERATOR vs ADMIN split (Phase 7)
+
+Both are enforced server-side by `RolesGuard`/`@Roles(...)` on every route — the `/admin` frontend route gate
+(`apps/web/app/[locale]/admin/layout.tsx`) is an additional UX nicety, never the source of truth.
+
+- **`MODERATOR`** (`@Roles(Role.MODERATOR, Role.ADMIN)`): day-to-day content/trust-and-safety queue work —
+  claims queue (`PATCH /claims/:id/approve|reject`, loosened from ADMIN-only in Phase 6), reports queue
+  (`/admin/reports/*`), review/photo moderation (`/admin/content/*`), and the business status/verify toggles
+  (`/admin/businesses/:id/status|verify`) and the moderation log viewer (`/admin/moderation-log`).
+- **`ADMIN`** (`@Roles(Role.ADMIN)` only): everything MODERATOR can do, **plus** user/role management
+  (`/admin/users/*`), featured placement (`/admin/businesses/:id/featured`), taxonomy management
+  (`/admin/taxonomy/*`), and direct business creation (`POST /admin/businesses` — owners can only create
+  listings via the claim flow, per the Phase 6 brief; direct creation stays ADMIN-only) plus the generic
+  business edit/soft-delete/restore endpoints.
+
+See [`12-admin-panel.md`](12-admin-panel.md) for the full route table.
 
 **`BUSINESS_OWNER` is cosmetic (Phase 6)**: it reflects "this user has at least one approved claim" for
 UI/display purposes only (e.g. showing an "owner" badge, or which dashboard nav to render) — it is **never**
@@ -88,6 +106,24 @@ what makes refresh tokens revocable despite being stateless JWTs:
 - **Logout** (`POST /auth/logout`): delete `refresh:<userId>:<jti>` for the presented cookie, clear the
   cookie. Does not touch other sessions/devices.
 - **Password reset / detected compromise**: delete all `refresh:<userId>:*` keys, invalidating every session.
+
+### Ban revocation (Phase 7): "revoke immediately"
+
+Banning a user must cut off access **within the request that bans them**, not just block future logins — a
+still-valid, already-issued access token must stop working immediately. `User.isBanned`/`bannedAt` are the
+durable record; the actual enforcement is Redis-only so it's a single fast lookup on every authenticated
+request rather than a DB hit:
+
+- **Ban** (`PATCH /admin/users/:id/ban`, `PATCH /admin/reports/:id/resolve` with `action: 'BAN_USER'`):
+  sets `User.isBanned = true`/`bannedAt = now`, deletes all `refresh:<userId>:*` keys (same mechanism as
+  password-reset/compromise above, via `TokenService.revokeAllRefreshTokens()`), **and** sets
+  `banned:<userId>` in Redis (no TTL — cleared explicitly on unban). Both happen in `TokenService.banUser()`.
+- **`JwtAuthGuard`** (`apps/api/src/common/guards/jwt-auth.guard.ts`): after verifying the JWT signature and
+  before setting `request.user`, checks `banned:<userId>` in Redis and throws
+  `AppException(401, 'UNAUTHORIZED', 'Account banned')` if present — this is what rejects an
+  already-issued, not-yet-expired access token, not just new logins.
+- **Unban** (`PATCH /admin/users/:id/unban`): clears `isBanned`/`bannedAt` and deletes `banned:<userId>`.
+  Refresh tokens are **not** restored — the user simply logs in again.
 
 ## Endpoints (`apps/api/src/modules/auth`)
 

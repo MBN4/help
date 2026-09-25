@@ -12,6 +12,7 @@ datasource db {
 enum Role {
   CUSTOMER
   BUSINESS_OWNER
+  MODERATOR
   ADMIN
 }
 
@@ -56,6 +57,22 @@ enum ReviewStatus {
   REMOVED
 }
 
+enum PhotoStatus {
+  PENDING
+  APPROVED
+  REMOVED
+}
+
+enum ModerationTargetType {
+  BUSINESS
+  REVIEW
+  PHOTO
+  USER
+  CLAIM
+  REPORT
+  CATEGORY
+}
+
 enum PriceTier {
   ONE
   TWO
@@ -74,30 +91,33 @@ enum DayOfWeek {
 }
 
 model User {
-  id                 String    @id @default(uuid())
-  email              String    @unique
-  phone              String?   @unique
+  id              String    @id @default(uuid())
+  email           String    @unique
+  phone           String?   @unique
   /// Nullable: OAuth-only accounts (Google/Facebook) never set a password.
-  passwordHash       String?
-  name               String
-  bio                String?
-  role               Role      @default(CUSTOMER)
-  avatarUrl          String?
-  emailVerifiedAt    DateTime?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  passwordHash    String?
+  name            String
+  bio             String?
+  role            Role      @default(CUSTOMER)
+  avatarUrl       String?
+  emailVerifiedAt DateTime?
+  isBanned        Boolean   @default(false)
+  bannedAt        DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   businesses         Business[]
   reviews            Review[]
   photos             Photo[]
   favorites          Favorite[]
   claims             Claim[]
-  reportsFiled       Report[]                  @relation("Reporter")
-  reportsReceived    Report[]                  @relation("ReportedUser")
+  reportsFiled       Report[]                 @relation("Reporter")
+  reportsReceived    Report[]                 @relation("ReportedUser")
   helpfulVotes       ReviewHelpfulVote[]
   oauthAccounts      OAuthAccount[]
   emailVerifications EmailVerificationToken[]
   passwordResets     PasswordResetToken[]
+  moderationLogs     ModerationLog[]
 
   @@index([role])
 }
@@ -150,14 +170,14 @@ model Province {
 }
 
 model City {
-  id         String   @id @default(uuid())
+  id         String                                 @id @default(uuid())
   provinceId String
-  province   Province @relation(fields: [provinceId], references: [id], onDelete: Restrict)
+  province   Province                               @relation(fields: [provinceId], references: [id], onDelete: Restrict)
   name       String
-  slug       String   @unique
+  slug       String                                 @unique
   /// geography(Point, 4326) — created by migration 0001_postgis_and_indexes, not managed by Prisma migrate
   centroid   Unsupported("geography(Point, 4326)")?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime                               @default(now())
 
   areas      Area[]
   businesses Business[]
@@ -203,36 +223,39 @@ model Feature {
 }
 
 model Business {
-  id           String         @id @default(uuid())
-  ownerId      String?
-  owner        User?          @relation(fields: [ownerId], references: [id], onDelete: SetNull)
-  name         String
-  slug         String         @unique
-  description  String?
-  categoryId   String
-  category     Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  provinceId   String
-  province     Province       @relation(fields: [provinceId], references: [id], onDelete: Restrict)
-  cityId       String
-  city         City           @relation(fields: [cityId], references: [id], onDelete: Restrict)
-  areaId       String?
-  area         Area?          @relation(fields: [areaId], references: [id], onDelete: SetNull)
-  addressLine  String
+  id            String                                 @id @default(uuid())
+  ownerId       String?
+  owner         User?                                  @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  name          String
+  slug          String                                 @unique
+  description   String?
+  categoryId    String
+  category      Category                               @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  provinceId    String
+  province      Province                               @relation(fields: [provinceId], references: [id], onDelete: Restrict)
+  cityId        String
+  city          City                                   @relation(fields: [cityId], references: [id], onDelete: Restrict)
+  areaId        String?
+  area          Area?                                  @relation(fields: [areaId], references: [id], onDelete: SetNull)
+  addressLine   String
   /// geography(Point, 4326) — created by migration 0001_postgis_and_indexes, not managed by Prisma migrate
-  location     Unsupported("geography(Point, 4326)")?
-  phone        String?
-  whatsapp     String?
-  email        String?
-  website      String?
-  priceTier    PriceTier?
-  status       BusinessStatus @default(PENDING)
-  isVerified   Boolean        @default(false)
-  featured     Boolean        @default(false)
-  viewCount    Int            @default(0)
+  location      Unsupported("geography(Point, 4326)")?
+  phone         String?
+  whatsapp      String?
+  email         String?
+  website       String?
+  priceTier     PriceTier?
+  status        BusinessStatus                         @default(PENDING)
+  isVerified    Boolean                                @default(false)
+  featured      Boolean                                @default(false)
+  featuredFrom  DateTime?
+  featuredUntil DateTime?
+  viewCount     Int                                    @default(0)
+  deletedAt     DateTime?
   /// tsvector generated column — created by migration 0001_postgis_and_indexes, not managed by Prisma migrate
-  searchVector Unsupported("tsvector")?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  searchVector  Unsupported("tsvector")?
+  createdAt     DateTime                               @default(now())
+  updatedAt     DateTime                               @updatedAt
 
   hours     BusinessHours[]
   features  BusinessFeature[]
@@ -286,13 +309,13 @@ model BusinessFeature {
 }
 
 model Photo {
-  id         String    @id @default(uuid())
+  id         String      @id @default(uuid())
   businessId String?
-  business   Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  business   Business?   @relation(fields: [businessId], references: [id], onDelete: Cascade)
   reviewId   String?
-  review     Review?   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  review     Review?     @relation(fields: [reviewId], references: [id], onDelete: Cascade)
   userId     String
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   /// Full-size variant.
   url        String
   /// Small/thumbnail variant — null for photos seeded before Phase 5's processing pipeline.
@@ -300,8 +323,8 @@ model Photo {
   /// Card/gallery-grid variant — null for photos seeded before Phase 5's processing pipeline.
   cardUrl    String?
   caption    String?
-  isApproved Boolean   @default(true)
-  createdAt  DateTime  @default(now())
+  status     PhotoStatus @default(APPROVED)
+  createdAt  DateTime    @default(now())
 
   reports Report[]
 
@@ -393,4 +416,21 @@ model Report {
   createdAt      DateTime         @default(now())
 
   @@index([status])
+}
+
+model ModerationLog {
+  id         String               @id @default(uuid())
+  actorId    String
+  actor      User                 @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  action     String
+  targetType ModerationTargetType
+  targetId   String
+  reason     String?
+  notes      String?
+  metadata   Json?
+  createdAt  DateTime             @default(now())
+
+  @@index([targetType, targetId])
+  @@index([actorId])
+  @@index([createdAt])
 }

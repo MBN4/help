@@ -45,7 +45,7 @@ export class PhotosService {
   ): Promise<UploadedPhoto> {
     if (input.businessId) {
       const business = await this.prisma.business.findFirst({
-        where: { id: input.businessId, status: 'PUBLISHED' },
+        where: { id: input.businessId, status: 'PUBLISHED', deletedAt: null },
         select: { id: true },
       });
       if (!business) {
@@ -163,7 +163,7 @@ export class PhotosService {
         thumbUrl,
         cardUrl,
         caption: input.caption ?? null,
-        isApproved: true,
+        status: 'APPROVED',
       },
     });
 

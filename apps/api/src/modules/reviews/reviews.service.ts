@@ -25,7 +25,7 @@ export class ReviewsService {
     input: CreateReviewRequest,
   ): Promise<BusinessReview> {
     const business = await this.prisma.business.findFirst({
-      where: { id: businessId, status: 'PUBLISHED' },
+      where: { id: businessId, status: 'PUBLISHED', deletedAt: null },
       include: {
         city: { select: { slug: true } },
         category: { select: { slug: true } },

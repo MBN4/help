@@ -138,6 +138,19 @@ export class GeoService {
     return rows[0] ?? null;
   }
 
+  /** Sets a city's centroid — the taxonomy-admin write path (mirrors `setBusinessLocation`). */
+  async setCityCentroid(
+    cityId: string,
+    lat: number,
+    lng: number,
+  ): Promise<void> {
+    await this.prisma.$executeRaw`
+      UPDATE "City"
+      SET "centroid" = ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography
+      WHERE "id" = ${cityId}
+    `;
+  }
+
   /** A city's centroid as `{ lat, lng }`, or `null` if unset. */
   async getCityCentroid(cityId: string): Promise<GeoPoint | null> {
     const rows = await this.prisma.$queryRaw<{ lat: number; lng: number }[]>`

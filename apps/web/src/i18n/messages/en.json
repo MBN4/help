@@ -181,6 +181,103 @@
     "oauthStubCta": "Continue",
     "returnToNotice": "Log in to continue."
   },
+  "admin": {
+    "nav": {
+      "dashboard": "Dashboard",
+      "claims": "Claims",
+      "reports": "Reports",
+      "content": "Content",
+      "businesses": "Businesses",
+      "users": "Users",
+      "taxonomy": "Taxonomy",
+      "moderationLog": "Moderation log"
+    },
+    "dashboard": {
+      "title": "Admin dashboard",
+      "totalUsers": "Total users",
+      "totalReviews": "Total reviews",
+      "pendingClaims": "Pending claims",
+      "openReports": "Open reports",
+      "photosPending": "Photos pending",
+      "businessesByStatus": "Businesses by status"
+    },
+    "claims": {
+      "title": "Claims queue",
+      "empty": "No pending claims.",
+      "claimant": "Claimant",
+      "viewDocument": "View document",
+      "alsoVerify": "Also mark business verified",
+      "approve": "Approve",
+      "reject": "Reject",
+      "rejectTitle": "Reject this claim"
+    },
+    "reports": {
+      "title": "Reports queue",
+      "empty": "No open reports.",
+      "reportCount": "{count} reports",
+      "viewDetail": "View detail",
+      "removeContent": "Remove content",
+      "dismiss": "Dismiss",
+      "resolveTitle": "Resolve report by removing content",
+      "dismissTitle": "Dismiss this report",
+      "detailTitle": "Report detail"
+    },
+    "content": {
+      "title": "Content moderation",
+      "reviewsTab": "Reviews",
+      "photosTab": "Photos",
+      "empty": "Nothing pending.",
+      "approve": "Approve",
+      "remove": "Remove",
+      "removeReviewTitle": "Remove this review",
+      "removePhotoTitle": "Remove this photo"
+    },
+    "businesses": {
+      "title": "Businesses",
+      "search": "Search businesses…",
+      "includeDeleted": "Include deleted",
+      "deleted": "Deleted",
+      "verified": "Verified",
+      "featured": "Featured",
+      "viewDetail": "View detail",
+      "publish": "Publish",
+      "suspend": "Suspend",
+      "suspendTitle": "Suspend this business",
+      "verify": "Verify",
+      "unverify": "Unverify",
+      "feature": "Feature",
+      "unfeature": "Unfeature",
+      "restore": "Restore",
+      "softDelete": "Delete",
+      "detailTitle": "Business detail"
+    },
+    "users": {
+      "title": "Users",
+      "search": "Search users…",
+      "viewDetail": "View detail",
+      "banned": "Banned",
+      "ban": "Ban",
+      "unban": "Unban",
+      "banTitle": "Ban this user",
+      "detailTitle": "User detail"
+    },
+    "taxonomy": {
+      "title": "Taxonomy",
+      "categories": "Categories",
+      "provinces": "Provinces",
+      "cities": "Cities",
+      "features": "Features",
+      "name": "Name",
+      "add": "Add",
+      "delete": "Delete",
+      "selectProvince": "Select province"
+    },
+    "moderationLog": {
+      "title": "Moderation log",
+      "filterAction": "Filter by action…",
+      "filterTargetType": "Filter by target type…"
+    }
+  },
   "account": {
     "nav": {
       "profile": "Profile",

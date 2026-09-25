@@ -7,3 +7,4 @@ export * from './business';
 export * from './business-owner';
 export * from './claims';
 export * from './contributions';
+export * from './admin';

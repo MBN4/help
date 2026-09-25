@@ -16,7 +16,7 @@ export class FavoritesService {
     businessId: string,
   ): Promise<{ favorited: boolean }> {
     const business = await this.prisma.business.findFirst({
-      where: { id: businessId, status: 'PUBLISHED' },
+      where: { id: businessId, status: 'PUBLISHED', deletedAt: null },
       select: { id: true },
     });
     if (!business) {

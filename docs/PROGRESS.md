@@ -503,7 +503,7 @@ Status: **Complete and browser-verified**
       (`BusinessOwnerGuard` — ownership of the _business_, not the review), single nullable-column
       upsert-by-overwrite on `Review.ownerReply`/`ownerReplyAt`. Every owner mutation in this phase (info,
       hours, features, location, services, photos, replies) calls `RevalidateService.revalidate({slug, city,
-    category})`, same pattern as `ReviewsService.createOrUpdate()`.
+  category})`, same pattern as `ReviewsService.createOrUpdate()`.
 - [x] **Frontend**: `/account/businesses` (dashboard) and `/account/businesses/[businessId]` (single-page
       editor: info/hours/features/services/photos/reviews sections) under the existing `account/layout.tsx`
       auth gate. New `PinDropMap` component (`src/components/business-owner/pin-drop-map.tsx`) — unlike
@@ -538,11 +538,95 @@ Status: **Complete and browser-verified**
   editor was manually smoke-tested but not added as an automated Playwright case (time-boxed).
 - `pnpm lint && pnpm typecheck && pnpm build` clean across the whole monorepo.
 
+## Phase 7: Admin & Moderation
+
+**Status: built and verified** — schema/migration, ban-revocation, MODERATOR role, and the full `/admin`
+backend surface (dashboard, claims-queue loosening, reports, content moderation, businesses, users, taxonomy,
+moderation log) are implemented and covered by `apps/api/test/admin-moderation.e2e-spec.ts`. The `/admin`
+frontend covers every required page with working queue/action flows; a few pages are intentionally leaner
+than the full spec (see deviations below), with the underlying API fully built and testable regardless.
+
+### What was built
+
+- **Schema** (`packages/database/prisma/migrations/20260925120000_phase7_admin_moderation/`): `Role.MODERATOR`;
+  `User.isBanned`/`bannedAt`; `Business.deletedAt`/`featuredFrom`/`featuredUntil`; `Photo.isApproved` →
+  `Photo.status PhotoStatus` (backfilled, not just renamed — see [`11-reviews-trust-safety.md`](11-reviews-trust-safety.md));
+  new `ModerationLog` model. Migration was hand-written after inspecting `prisma migrate diff`'s output — as
+  documented, it emitted spurious `DROP INDEX`/`ALTER COLUMN ... DROP DEFAULT` statements against the
+  `Unsupported()`-typed PostGIS/tsvector columns on `Business`/`City`, which were stripped.
+- **Ban "revoke immediately"**: `TokenService.banUser()`/`unbanUser()`/`isBanned()` (Redis `banned:<userId>`
+  - refresh-token revocation); `JwtAuthGuard` now checks the Redis flag after JWT verification and before
+    setting `request.user`, rejecting an already-issued access token mid-lifetime. Unit-tested in
+    `jwt-auth.guard.spec.ts` (new).
+- **`ModerationLogService`** (`apps/api/src/integrations/moderation/moderation-log.service.ts`) — sibling
+  service to the existing (unrelated, still-stubbed) `ModerationService.enqueue()` in the same module.
+  `MODERATION_ACTIONS` is a plain TS const object, not a Prisma enum.
+- **Claims queue**: `ClaimsController`/`ClaimsService` extended in place rather than duplicated —
+  approve/reject guards loosened to MODERATOR+ADMIN, `approve` gained `verifyBusiness`, both now log to
+  `ModerationLog` and call `MailService.notifyClaimDecision()` (new log-stub method, same pattern as existing
+  mail stubs). Added `GET /claims?status=` (`ClaimsService.listAll`) since no "list all pending" read existed
+  before — see docs/12-admin-panel.md's deviation note.
+- **New `AdminModule` surface**: `admin-dashboard`, `admin-reports`, `admin-content` (reviews+photos),
+  `admin-businesses`, `admin-users`, `admin-taxonomy`, `admin-moderation-log` controllers/services, all under
+  `apps/api/src/modules/admin/`. `GeoService.setCityCentroid()` added (mirrors `setBusinessLocation`).
+- **Soft-delete + public-read exclusion audit**: `BusinessesService`, `SearchService` (search + every
+  discovery-block query + the featured window), `FavoritesService`, `ReviewsService`, `PhotosService` all now
+  filter `deletedAt: null` on their business-existence checks. `apps/web/app/sitemap.ts` needed no change
+  (goes through the public search API).
+- **`packages/shared/src/schemas/admin.ts`**: full Zod request-schema coverage for every `/admin/*` route.
+- **Frontend**: `/admin` layout (CSR role gate + per-role nav), dashboard, claims queue, reports queue (+
+  detail), content moderation (reviews/photos tabs), businesses (list + status/verify/featured/soft-delete/
+  restore actions, detail as read-only JSON view), users (list + ban/unban/role-change, detail as read-only
+  JSON view), taxonomy (categories with up/down reorder, provinces, cities with lat/lng, features), moderation
+  log (filterable table). New `Dialog` primitive (`apps/web/src/components/ui/dialog.tsx`, Radix-based, same
+  pattern as the existing `Sheet`) and `ReasonDialog` (`apps/web/src/components/admin/reason-dialog.tsx`) used
+  for every destructive action.
+
+### Deviations from the spec (time-boxed, noted rather than silently dropped)
+
+- **Business/user detail pages are read-only JSON viewers**, not full edit forms. `PATCH /admin/businesses/:id`
+  and the ownerId-reassignment path are fully implemented and covered by the Zod schema + backend, but no
+  frontend form calls them yet; the list page covers status/verify/featured/soft-delete/restore inline, which
+  are the actions the e2e/Playwright coverage and the brief's "browser-verify" checklist actually exercise.
+- **Taxonomy frontend covers categories/provinces/cities/features but not areas** — `POST/PATCH/DELETE
+/admin/taxonomy/areas` is fully built and tested at the API layer; no dedicated area-management UI section
+  was added in this pass (areas require a city selector, and cities/areas together didn't fit the time box).
+- **Admin list/detail response shapes use a permissive Zod passthrough** (`z.record`/`z.array`) rather than a
+  hand-written strict schema per response — the response shapes come from Prisma `include`s with significant
+  nested variance across ~15 endpoints. Every **request body**, which is what's actually being validated for
+  correctness/security, has a full strict Zod schema in `packages/shared/src/schemas/admin.ts`.
+- **"Browser-verify for real"**: this session has no interactive GUI browser available to a CLI agent: the
+  Playwright suite (real Chromium, run headlessly against the dev stack) is the actual verification performed,
+  not manual point-and-click. See the Playwright section below for exactly what it exercises.
+
+### Test results
+
+- Backend: new `jwt-auth.guard.spec.ts` (3/3), full API unit suite **17/17** (14 pre-existing + 3 new), full
+  API e2e suite **99/99** (71 pre-existing + 28 new in `admin-moderation.e2e-spec.ts`, which is fully
+  self-seeded/self-cleaned per the shared-DB-contamination note). Two real bugs were caught and fixed by this
+  e2e pass (not just written to pass): `AdminModule` was missing a `RevalidateModule` import (`AdminContentService`/
+  `AdminBusinessesService` failed to construct — every suite in the process failed to compile until fixed), and
+  `BusinessesService.getReviews()` had a copy-paste `deletedAt: null` filter on a `Review` query (`Review` has
+  no such column) — caught by `business-profile.e2e-spec.ts` regressing. `approveClaimRequestSchema`/
+  `rejectClaimRequestSchema` were given `.default({})` after a pre-existing Phase 6 test proved a body-less
+  `PATCH /claims/:id/approve` (no `.send()` call at all) must still validate.
+- Frontend: new `apps/web/e2e/admin.spec.ts` **4/4** passing live against the dev stack (MODERATOR claims
+  queue → owner-guarded-route check → MODERATOR-blocked-from-`/admin/users` redirect → ADMIN ban-revokes-
+  immediately → ADMIN featured-toggle + taxonomy-add → moderation log). Pre-existing `business-owner.spec.ts`
+  (5/5) and the rest of the pre-existing Playwright suite re-run clean in isolation — no regression.
+- `pnpm lint && pnpm typecheck && pnpm build` clean across the whole monorepo.
+- **Environment quirk (new)**: `POST /auth/register` and `POST /auth/login` are both throttled to 5 req/min
+  per IP (`apps/api/src/modules/auth/auth.controller.ts`). Running the full Playwright suite back-to-back
+  with 2 parallel workers (or repeatedly re-running suites during iteration, as happened in this session)
+  exhausts that budget within the same 60s window and produces `getByText(/verify/i)` timeouts that look like
+  app bugs but are the throttle firing — this reproduces identically on the pre-existing, untouched
+  `business-owner.spec.ts`, not just the new `admin.spec.ts`. Workaround used here: `--workers=1` plus a
+  ~65s cooldown between full-suite runs. Not treated as a bug to fix (the throttle is an intentional Phase 1
+  security decision), but worth knowing before assuming a red Playwright run means a real regression.
+
 ## Next Phase
 
-Phase 6 is now fully verified (see its section above). Phase 7 (per [`16-ai-prompts.md`](16-ai-prompts.md):
-admin moderation queue — claims review UI, report resolution, review/photo moderation) is next; needs its own
-fully-specified prompt written just before it starts, per Universal Rule 2. Phase 7's admin queue is also
-where the minimal `PATCH /claims/:id/approve`/`reject` endpoints built in Phase 6 would get a real UI in front
-of them, and where `ModerationService`'s no-op-approve seam (Phase 5's deviation log) would first get a real
-consumer.
+Phase 7 is now built and verified per the results above. Phase 8 (per [`16-ai-prompts.md`](16-ai-prompts.md))
+is next — automated flagging/scoring for the still-stubbed `ModerationService.enqueue()` seam, and a real
+notification/email provider behind `MailService` (still a log-stub through Phase 7) — and needs its own
+fully-specified prompt written just before it starts, per Universal Rule 2.

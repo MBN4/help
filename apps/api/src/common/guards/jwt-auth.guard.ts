@@ -9,6 +9,7 @@ import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { RequestUser } from '../decorators/current-user.decorator';
 import { AccessTokenPayload } from '../../modules/auth/token.types';
 import { ACCESS_COOKIE_NAME } from '../constants/auth-cookies';
+import { TokenService } from '../../modules/auth/token.service';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -16,9 +17,10 @@ export class JwtAuthGuard implements CanActivate {
     private readonly reflector: Reflector,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService<Env, true>,
+    private readonly tokenService: TokenService,
   ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -35,12 +37,11 @@ export class JwtAuthGuard implements CanActivate {
       throw new AppException(401, 'UNAUTHORIZED', 'Missing access token');
     }
 
+    let payload: AccessTokenPayload;
     try {
-      const payload = this.jwtService.verify<AccessTokenPayload>(token, {
+      payload = this.jwtService.verify<AccessTokenPayload>(token, {
         secret: this.config.get('JWT_SECRET', { infer: true }),
       });
-      request.user = { id: payload.sub, role: payload.role };
-      return true;
     } catch {
       throw new AppException(
         401,
@@ -48,6 +49,16 @@ export class JwtAuthGuard implements CanActivate {
         'Invalid or expired access token',
       );
     }
+
+    // "Revoke immediately" ban enforcement (docs/10-auth-roles.md) — a single fast Redis lookup rejects even
+    // an already-issued, not-yet-expired access token, so a ban cuts off access within this request rather
+    // than only blocking future logins.
+    if (await this.tokenService.isBanned(payload.sub)) {
+      throw new AppException(401, 'UNAUTHORIZED', 'Account banned');
+    }
+
+    request.user = { id: payload.sub, role: payload.role };
+    return true;
   }
 
   /**

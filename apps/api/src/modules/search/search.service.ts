@@ -69,7 +69,7 @@ const BASE_FROM = Prisma.sql`
   ) rv ON rv."businessId" = b."id"
   LEFT JOIN LATERAL (
     SELECT "url" FROM "Photo" p
-    WHERE p."businessId" = b."id" AND p."isApproved" = true
+    WHERE p."businessId" = b."id" AND p."status" = 'APPROVED'
     ORDER BY p."createdAt" ASC
     LIMIT 1
   ) thumb ON true
@@ -106,7 +106,10 @@ export class SearchService {
     const hasGeo = query.lat !== undefined && query.lng !== undefined;
     const effectiveRadius = query.radius ?? DEFAULT_SEARCH_RADIUS_METERS;
 
-    const conditions: Prisma.Sql[] = [Prisma.sql`b."status" = 'PUBLISHED'`];
+    const conditions: Prisma.Sql[] = [
+      Prisma.sql`b."status" = 'PUBLISHED'`,
+      Prisma.sql`b."deletedAt" IS NULL`,
+    ];
     if (query.q) {
       conditions.push(
         Prisma.sql`(b."searchVector" @@ plainto_tsquery('english', ${query.q}) OR similarity(b."name", ${query.q}) > 0.3)`,
@@ -197,7 +200,7 @@ export class SearchService {
     const rows = await this.prisma.$queryRaw<BusinessRow[]>(Prisma.sql`
       SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters", ${this.openNowExpr()} AS "isOpenNow"
       ${BASE_FROM}
-      WHERE b."status" = 'PUBLISHED'
+      WHERE b."status" = 'PUBLISHED' AND b."deletedAt" IS NULL
       ORDER BY b."viewCount" DESC
       LIMIT ${limit}
     `);
@@ -212,7 +215,7 @@ export class SearchService {
     const rows = await this.prisma.$queryRaw<BusinessRow[]>(Prisma.sql`
       SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters", ${this.openNowExpr()} AS "isOpenNow"
       ${BASE_FROM}
-      WHERE b."status" = 'PUBLISHED' AND ${REVIEW_COUNT_EXPR} >= ${minReviews}
+      WHERE b."status" = 'PUBLISHED' AND b."deletedAt" IS NULL AND ${REVIEW_COUNT_EXPR} >= ${minReviews}
       ORDER BY ${weighted} DESC
       LIMIT ${limit}
     `);
@@ -223,7 +226,7 @@ export class SearchService {
     const rows = await this.prisma.$queryRaw<BusinessRow[]>(Prisma.sql`
       SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters", ${this.openNowExpr()} AS "isOpenNow"
       ${BASE_FROM}
-      WHERE b."status" = 'PUBLISHED' AND b."featured" = true
+      WHERE b."status" = 'PUBLISHED' AND b."deletedAt" IS NULL AND b."featured" = true AND (b."featuredFrom" IS NULL OR b."featuredFrom" <= now()) AND (b."featuredUntil" IS NULL OR b."featuredUntil" >= now())
       ORDER BY b."createdAt" DESC
       LIMIT ${limit}
     `);
@@ -234,7 +237,7 @@ export class SearchService {
     const rows = await this.prisma.$queryRaw<BusinessRow[]>(Prisma.sql`
       SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters", ${this.openNowExpr()} AS "isOpenNow"
       ${BASE_FROM}
-      WHERE b."status" = 'PUBLISHED'
+      WHERE b."status" = 'PUBLISHED' AND b."deletedAt" IS NULL
       ORDER BY b."createdAt" DESC
       LIMIT ${limit}
     `);
@@ -260,7 +263,7 @@ export class SearchService {
     const sameCategory = await this.prisma.$queryRaw<BusinessRow[]>(Prisma.sql`
       SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters", ${this.openNowExpr()} AS "isOpenNow"
       ${BASE_FROM}
-      WHERE b."status" = 'PUBLISHED'
+      WHERE b."status" = 'PUBLISHED' AND b."deletedAt" IS NULL
         AND b."id" != ${input.businessId}
         AND b."categoryId" = ${input.categoryId}
         AND b."cityId" = ${input.cityId}
@@ -277,7 +280,7 @@ export class SearchService {
     const siblings = await this.prisma.$queryRaw<BusinessRow[]>(Prisma.sql`
       SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters", ${this.openNowExpr()} AS "isOpenNow"
       ${BASE_FROM}
-      WHERE b."status" = 'PUBLISHED'
+      WHERE b."status" = 'PUBLISHED' AND b."deletedAt" IS NULL
         AND b."id" != ALL(${excludeIds}::text[])
         AND category."parentId" = ${input.parentCategoryId}
         AND b."cityId" = ${input.cityId}
@@ -297,7 +300,7 @@ export class SearchService {
     const rows = await this.prisma.$queryRaw<BusinessRow[]>(Prisma.sql`
       SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters", ${this.openNowExpr()} AS "isOpenNow"
       ${BASE_FROM}
-      WHERE b."status" = 'PUBLISHED' AND b."id" = ANY(${businessIds}::text[])
+      WHERE b."status" = 'PUBLISHED' AND b."deletedAt" IS NULL AND b."id" = ANY(${businessIds}::text[])
     `);
     const byId = new Map(rows.map((row) => [row.id, this.mapRow(row)]));
     return businessIds
