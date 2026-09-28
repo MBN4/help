@@ -11,6 +11,7 @@ import { AppException } from '../../common/exceptions/app.exception';
 import { GeoService } from '../geo/geo.service';
 import { RevalidateService } from '../../integrations/revalidate/revalidate.service';
 import { DiscoveryService } from '../discovery/discovery.service';
+import { AnalyticsService } from '../../integrations/analytics/analytics.service';
 import {
   ModerationLogService,
   MODERATION_ACTIONS,
@@ -24,6 +25,7 @@ export class AdminBusinessesService {
     private readonly revalidateService: RevalidateService,
     private readonly discoveryService: DiscoveryService,
     private readonly moderationLog: ModerationLogService,
+    private readonly analytics: AnalyticsService,
   ) {}
 
   async list(query: ListAdminBusinessesQuery) {
@@ -174,6 +176,10 @@ export class AdminBusinessesService {
       action: MODERATION_ACTIONS.BUSINESS_CREATED,
       targetType: 'BUSINESS',
       targetId: business.id,
+    });
+    this.analytics.capture('business_created_via_admin', actorId, {
+      businessId: business.id,
+      name: business.name,
     });
     return this.getById(business.id);
   }

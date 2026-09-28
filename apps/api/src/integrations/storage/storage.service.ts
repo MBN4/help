@@ -72,6 +72,11 @@ export class StorageService implements OnModuleInit {
     }
   }
 
+  /** Lightweight connectivity check for the health endpoint — reuses the existing S3 client, no new one. */
+  async pingBucket(): Promise<void> {
+    await this.client.send(new HeadBucketCommand({ Bucket: this.bucket }));
+  }
+
   generateUploadKey(contentType: string): string {
     const extension = contentType.split('/')[1] ?? 'jpg';
     return `uploads/originals/${randomUUID()}.${extension}`;

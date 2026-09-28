@@ -10,6 +10,7 @@ import { DiscoveryService } from '../discovery/discovery.service';
 import { RevalidateService } from '../../integrations/revalidate/revalidate.service';
 import { ModerationService } from '../../integrations/moderation/moderation.service';
 import { MailService } from '../../integrations/mail/mail.service';
+import { AnalyticsService } from '../../integrations/analytics/analytics.service';
 import {
   getReviewerStats,
   isVerifiedReviewer,
@@ -23,6 +24,7 @@ export class ReviewsService {
     private readonly revalidateService: RevalidateService,
     private readonly moderationService: ModerationService,
     private readonly mailService: MailService,
+    private readonly analyticsService: AnalyticsService,
   ) {}
 
   async createOrUpdate(
@@ -119,6 +121,13 @@ export class ReviewsService {
         data: { reviewId: review.id },
       });
     }
+
+    this.analyticsService.capture('review_submitted', userId, {
+      businessId,
+      reviewId: review.id,
+      rating: input.rating,
+      status: moderation.status,
+    });
 
     // Aggregates are always computed live from `Review` rows (see BusinessesService.getAggregates) — no
     // denormalized counter to update. Only the discovery-block cache and the ISR pages need an explicit bust.

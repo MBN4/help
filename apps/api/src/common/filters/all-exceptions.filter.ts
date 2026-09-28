@@ -9,6 +9,7 @@ import {
 import { Prisma } from '@buisnez/database';
 import type { Response } from 'express';
 import { isAppExceptionPayload } from '../exceptions/app.exception';
+import { SentryService } from '../../integrations/sentry/sentry.service';
 
 interface ErrorResponseBody {
   success: false;
@@ -33,6 +34,8 @@ const STATUS_CODE_FALLBACK: Record<number, string> = {
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionsFilter.name);
 
+  constructor(private readonly sentry: SentryService) {}
+
   catch(exception: unknown, host: ArgumentsHost): void {
     const response = host.switchToHttp().getResponse<Response>();
     const { status, body } = this.resolve(exception);
@@ -41,6 +44,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
       this.logger.error(
         exception instanceof Error ? exception.stack : exception,
       );
+      // Additive observability only — never changes the client-facing envelope/behavior above. Restricted
+      // to the truly unexpected/unmapped cases (INTERNAL_ERROR), not an intentional 500 HttpException with
+      // its own AppException payload/code.
+      if (body.error.code === 'INTERNAL_ERROR') {
+        this.sentry.captureException(exception);
+      }
     }
 
     response.status(status).json(body);

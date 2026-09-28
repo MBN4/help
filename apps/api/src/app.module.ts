@@ -1,4 +1,4 @@
-import { Controller, Get, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
@@ -6,12 +6,14 @@ import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis'
 import { validateEnv, Env } from './config/env.schema';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './integrations/redis/redis.module';
+import { SentryModule } from './integrations/sentry/sentry.module';
+import { AnalyticsModule } from './integrations/analytics/analytics.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { ResponseTransformInterceptor } from './common/interceptors/response.interceptor';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { CsrfGuard } from './common/guards/csrf.guard';
-import { Public } from './common/decorators/public.decorator';
+import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { GeoModule } from './modules/geo/geo.module';
@@ -28,15 +30,6 @@ import { UsersModule } from './modules/users/users.module';
 import { ClaimsModule } from './modules/claims/claims.module';
 import { EditSuggestionsModule } from './modules/edit-suggestions/edit-suggestions.module';
 
-@Controller('health')
-class HealthController {
-  @Public()
-  @Get()
-  getHealth(): { status: 'ok' } {
-    return { status: 'ok' };
-  }
-}
-
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
@@ -51,6 +44,9 @@ class HealthController {
     }),
     PrismaModule,
     RedisModule,
+    SentryModule,
+    AnalyticsModule,
+    HealthModule,
     AuthModule,
     AdminModule,
     GeoModule,
@@ -67,7 +63,6 @@ class HealthController {
     ClaimsModule,
     EditSuggestionsModule,
   ],
-  controllers: [HealthController],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
     { provide: APP_INTERCEPTOR, useClass: ResponseTransformInterceptor },
