@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -37,6 +38,7 @@ export function ReasonDialog({
   destructive = true,
   onConfirm,
 }: ReasonDialogProps): React.ReactElement {
+  const t = useTranslations('admin.reasonDialog');
   const [reason, setReason] = React.useState('');
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -50,7 +52,7 @@ export function ReasonDialog({
 
   const handleConfirm = async (): Promise<void> => {
     if (reasonRequired && !reason.trim()) {
-      setError('A reason is required.');
+      setError(t('reasonRequiredError'));
       return;
     }
     setSubmitting(true);
@@ -59,7 +61,7 @@ export function ReasonDialog({
       await onConfirm(reason.trim());
       onOpenChange(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong.');
+      setError(err instanceof Error ? err.message : t('genericError'));
     } finally {
       setSubmitting(false);
     }
@@ -78,7 +80,9 @@ export function ReasonDialog({
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           placeholder={
-            reasonRequired ? 'Reason (required)' : 'Reason (optional)'
+            reasonRequired
+              ? t('reasonRequiredPlaceholder')
+              : t('reasonOptionalPlaceholder')
           }
           rows={4}
         />
@@ -91,14 +95,14 @@ export function ReasonDialog({
             onClick={() => onOpenChange(false)}
             disabled={submitting}
           >
-            Cancel
+            {t('cancel')}
           </Button>
           <Button
             variant={destructive ? 'destructive' : 'default'}
             onClick={handleConfirm}
             disabled={submitting}
           >
-            {submitting ? 'Working…' : confirmLabel}
+            {submitting ? t('working') : confirmLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

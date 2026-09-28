@@ -56,7 +56,7 @@ export default function AccountProfilePage(): React.ReactElement {
             {avatarUrl ? (
               <Image
                 src={avatarUrl}
-                alt=""
+                alt={t('avatarAlt', { name: name || (user?.name ?? '') })}
                 width={64}
                 height={64}
                 className="h-16 w-16 rounded-full object-cover"

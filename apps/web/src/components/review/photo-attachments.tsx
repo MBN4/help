@@ -62,7 +62,7 @@ export function PhotoAttachments({
               type="button"
               onClick={() => removePhoto(photo.id)}
               className="absolute end-1 top-1 rounded-full bg-background/80 p-0.5"
-              aria-label="Remove photo"
+              aria-label={t('removePhoto')}
             >
               <X className="h-3 w-3" />
             </button>

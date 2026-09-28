@@ -77,7 +77,8 @@
     "allAreas": "All areas",
     "anyRating": "Any rating",
     "ratingAndUp": "{rating}+ stars",
-    "apply": "Apply filters"
+    "apply": "Apply filters",
+    "paginationLabel": "Pagination"
   },
   "city": {
     "metaTitle": "Local Businesses in {city} — Buisnez",
@@ -93,7 +94,8 @@
     "metaDescription": "Compare ratings, prices, and reviews for the best {category} in {city}, Pakistan.",
     "heading": "Best {category} in {city}",
     "resultsSubtitle": "{count, plural, =0 {No businesses found} one {# business} other {# businesses}} in {city}",
-    "notFound": "We couldn't find that category."
+    "notFound": "We couldn't find that category.",
+    "paginationLabel": "Pagination"
   },
   "business": {
     "hours": "Hours",
@@ -130,7 +132,8 @@
     }
   },
   "breadcrumb": {
-    "home": "Home"
+    "home": "Home",
+    "ariaLabel": "Breadcrumb"
   },
   "footer": {
     "about": "About Buisnez",
@@ -331,6 +334,14 @@
       "title": "Moderation log",
       "filterAction": "Filter by action…",
       "filterTargetType": "Filter by target type…"
+    },
+    "reasonDialog": {
+      "reasonRequiredPlaceholder": "Reason (required)",
+      "reasonOptionalPlaceholder": "Reason (optional)",
+      "reasonRequiredError": "A reason is required.",
+      "genericError": "Something went wrong.",
+      "cancel": "Cancel",
+      "working": "Working…"
     }
   },
   "account": {
@@ -353,7 +364,8 @@
     "photosEmpty": "You haven't uploaded any photos yet.",
     "favoritesTitle": "My favourites",
     "favoritesEmpty": "You haven't saved any businesses yet.",
-    "setPassword": "You signed up with a social account — use \"Forgot password\" to set one."
+    "setPassword": "You signed up with a social account — use \"Forgot password\" to set one.",
+    "avatarAlt": "{name}'s profile photo"
   },
   "review": {
     "writeReview": "Write a review",
@@ -380,7 +392,8 @@
     "helpfulCount": "{count, plural, =0 {Helpful} one {Helpful (#)} other {Helpful (#)}}",
     "verifiedReviewer": "Verified reviewer",
     "pendingNotice": "Your review is awaiting moderation review and isn't visible to others yet.",
-    "removedNotice": "This review was removed by a moderator."
+    "removedNotice": "This review was removed by a moderator.",
+    "removePhoto": "Remove photo"
   },
   "report": {
     "reportContent": "Report",
@@ -473,7 +486,8 @@
     "location": {
       "latLabel": "Latitude",
       "lngLabel": "Longitude",
-      "mapUnavailable": "A live map isn't available right now — enter coordinates manually instead."
+      "mapUnavailable": "A live map isn't available right now — enter coordinates manually instead.",
+      "mapKeyboardHint": "Map with draggable pin. Focus this area and use arrow keys to nudge the pin position."
     },
     "services": {
       "nameLabel": "Name",
@@ -508,5 +522,21 @@
     "submit": "Submit claim",
     "cancel": "Cancel",
     "errorGeneric": "Something went wrong. Please try again."
+  },
+  "errors": {
+    "title": "Something went wrong",
+    "description": "We hit a snag loading this page. You can try again, or head back home.",
+    "retry": "Try again",
+    "backHome": "Back to home",
+    "notFoundTitle": "We couldn't find that page",
+    "notFoundDescription": "The page you're looking for doesn't exist or may have moved.",
+    "searchNotFoundDescription": "We couldn't load search results right now.",
+    "businessNotFoundTitle": "We couldn't find that business",
+    "businessNotFoundDescription": "This listing may have been removed or the link may be incorrect.",
+    "cityNotFoundTitle": "We couldn't find that city",
+    "cityNotFoundDescription": "Check the URL, or browse all cities from the home page.",
+    "categoryNotFoundTitle": "We couldn't find that category",
+    "categoryNotFoundDescription": "Check the URL, or browse all categories from the home page.",
+    "accountErrorDescription": "We couldn't load your account right now."
   }
 }

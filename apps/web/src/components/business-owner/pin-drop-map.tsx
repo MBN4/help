@@ -69,6 +69,35 @@ export function PinDropMap({
     }
   }, [status, value]);
 
+  // Keyboard fallback for the mouse-drag-only marker: with the map focused, arrow keys nudge the pin by a
+  // small lat/lng step (~11m at this latitude). This doesn't fully replicate free-form dragging, but gives
+  // keyboard users a way to place the pin without a mouse. See docs/PROGRESS.md Phase 9 a11y notes.
+  const NUDGE_STEP = 0.0001;
+  function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>): void {
+    if (status !== 'ready') {
+      return;
+    }
+    let next: { lat: number; lng: number } | null = null;
+    switch (event.key) {
+      case 'ArrowUp':
+        next = { lat: value.lat + NUDGE_STEP, lng: value.lng };
+        break;
+      case 'ArrowDown':
+        next = { lat: value.lat - NUDGE_STEP, lng: value.lng };
+        break;
+      case 'ArrowLeft':
+        next = { lat: value.lat, lng: value.lng - NUDGE_STEP };
+        break;
+      case 'ArrowRight':
+        next = { lat: value.lat, lng: value.lng + NUDGE_STEP };
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    onChangeRef.current(next);
+  }
+
   if (status !== 'ready') {
     return (
       <div className={cn('grid grid-cols-2 gap-3', className)}>
@@ -106,7 +135,14 @@ export function PinDropMap({
   return (
     <div
       ref={containerRef}
-      className={cn('min-h-[280px] w-full rounded-lg', className)}
+      tabIndex={0}
+      role="application"
+      aria-label={t('location.mapKeyboardHint')}
+      onKeyDown={handleKeyDown}
+      className={cn(
+        'min-h-[280px] w-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        className,
+      )}
     />
   );
 }

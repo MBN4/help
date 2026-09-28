@@ -24,7 +24,7 @@ import { FeaturesEditor } from '@/components/business-owner/features-editor';
 import { ServicesEditor } from '@/components/business-owner/services-editor';
 import { PhotosEditor } from '@/components/business-owner/photos-editor';
 import { ReviewsEditor } from '@/components/business-owner/reviews-editor';
-import { PinDropMap } from '@/components/business-owner/pin-drop-map';
+import { LazyPinDropMap } from '@/components/business-owner/lazy-pin-drop-map';
 
 const LAHORE_FALLBACK_CENTER = { lat: 31.5204, lng: 74.3587 };
 
@@ -60,7 +60,7 @@ function LocationEditor({
 
   return (
     <div className="max-w-xl space-y-3">
-      <PinDropMap value={coords} onChange={setCoords} />
+      <LazyPinDropMap value={coords} onChange={setCoords} />
       {error && <p className="text-sm text-destructive">{error}</p>}
       {saved && <p className="text-sm text-success">{t('savedSuccess')}</p>}
       <Button type="button" disabled={pending} onClick={handleSave}>

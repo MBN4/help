@@ -16,6 +16,7 @@ import { UseMyLocationButton } from '@/components/search/use-my-location-button'
 import { SearchMapToggle } from '@/components/search/search-map-toggle';
 import { BusinessCard } from '@/components/business/business-card';
 import { Button } from '@/components/ui/button';
+import { TrackEvent } from '@/components/analytics/track-event';
 
 // Always server-rendered per request — filters/sort live in the URL and must never serve a stale cached variant.
 export const dynamic = 'force-dynamic';
@@ -79,10 +80,16 @@ export default async function SearchPage({
     ? parsed.data
     : businessSearchQuerySchema.parse({});
 
-  const [t, { data: businesses, meta }] = await Promise.all([
-    getTranslations('search'),
-    searchBusinesses(query),
-  ]);
+  const t = await getTranslations('search');
+  let searchResult: Awaited<ReturnType<typeof searchBusinesses>>;
+  try {
+    searchResult = await searchBusinesses(query);
+  } catch (error) {
+    // No graceful empty-state here — a failed search request is unexpected (network/API outage), so let it
+    // propagate to this route segment's error.tsx boundary instead of rendering a misleading "no results" page.
+    throw error;
+  }
+  const { data: businesses, meta } = searchResult;
 
   const mapCenter = await resolveMapCenter(query);
 
@@ -92,6 +99,15 @@ export default async function SearchPage({
 
   return (
     <div className="container space-y-6 py-6">
+      <TrackEvent
+        event="search performed"
+        properties={{
+          query: query.q ?? null,
+          city: query.city ?? null,
+          category: query.category ?? null,
+          resultsCount: meta?.total ?? businesses.length,
+        }}
+      />
       <SearchBar />
 
       <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
@@ -134,7 +150,7 @@ export default async function SearchPage({
           {totalPages > 1 && (
             <nav
               className="flex items-center justify-center gap-2 pt-4"
-              aria-label="Pagination"
+              aria-label={t('paginationLabel')}
             >
               {query.page > 1 && (
                 <Button asChild variant="outline" size="sm">

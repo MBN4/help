@@ -118,7 +118,7 @@ export default async function CityCategoryPage({
       {totalPages > 1 && (
         <nav
           className="flex items-center justify-center gap-2 pt-4"
-          aria-label="Pagination"
+          aria-label={t('paginationLabel')}
         >
           {page > 1 && (
             <Button asChild variant="outline" size="sm">

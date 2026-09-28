@@ -10,6 +10,7 @@ import {
 } from '@buisnez/shared';
 import { createOrUpdateReview } from '@/lib/api';
 import { authErrorKey } from '@/lib/utils/api-error-message';
+import { trackEvent } from '@/lib/analytics/posthog';
 import {
   subRatingDimensionsForCategory,
   subRatingLabelKey,
@@ -66,6 +67,11 @@ export function ReviewForm({
     setPending(true);
     try {
       const { data } = await createOrUpdateReview(business.id, parsed.data);
+      trackEvent('review submitted', {
+        businessId: business.id,
+        rating,
+        isUpdate: Boolean(existingReview),
+      });
       onSaved(data);
     } catch (err) {
       setError(authT(authErrorKey(err)));

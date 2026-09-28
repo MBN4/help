@@ -6,9 +6,11 @@ import {
   setRequestLocale,
 } from 'next-intl/server';
 import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
 import '../../src/styles/globals.css';
 import { routing } from '@/i18n/routing';
 import { QueryProvider } from '@/components/providers/query-provider';
+import { PostHogProvider } from '@/components/providers/posthog-provider';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { MobileNav } from '@/components/layout/mobile-nav';
@@ -55,6 +57,9 @@ export default async function LocaleLayout({
     <html lang={locale} dir="ltr">
       <body>
         <NextIntlClientProvider messages={messages}>
+          <Suspense fallback={null}>
+            <PostHogProvider />
+          </Suspense>
           <QueryProvider>
             <a
               href="#main-content"
