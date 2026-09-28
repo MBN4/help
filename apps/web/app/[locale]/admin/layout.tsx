@@ -62,6 +62,7 @@ export default function AdminLayout({
     { href: '/admin/reports', label: t('nav.reports') },
     { href: '/admin/content', label: t('nav.content') },
     { href: '/admin/businesses', label: t('nav.businesses') },
+    { href: '/admin/edit-suggestions', label: t('nav.editSuggestions') },
     ...(isAdmin
       ? [
           { href: '/admin/users', label: t('nav.users') },

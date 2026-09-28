@@ -10,6 +10,7 @@ import { AppException } from '../../common/exceptions/app.exception';
 import { StorageService } from '../../integrations/storage/storage.service';
 import { ImageProcessingService } from '../../integrations/storage/image-processing.service';
 import { ModerationService } from '../../integrations/moderation/moderation.service';
+import { MailService } from '../../integrations/mail/mail.service';
 
 // Uploads go straight to object storage before `confirm` ever sees them (see the presign→direct-upload
 // pipeline in docs/11-reviews-trust-safety.md), so these guards are the only thing standing between an
@@ -31,6 +32,7 @@ export class PhotosService {
     private readonly storage: StorageService,
     private readonly imageProcessing: ImageProcessingService,
     private readonly moderationService: ModerationService,
+    private readonly mailService: MailService,
   ) {}
 
   async presign(input: PresignPhotoRequest): Promise<PresignPhotoResponse> {
@@ -42,6 +44,7 @@ export class PhotosService {
   async confirm(
     userId: string,
     input: ConfirmPhotoRequest,
+    ipAddress: string | null,
   ): Promise<UploadedPhoto> {
     if (input.businessId) {
       const business = await this.prisma.business.findFirst({
@@ -62,7 +65,7 @@ export class PhotosService {
       }
     }
 
-    return this.runPipeline(userId, input);
+    return this.runPipeline(userId, input, ipAddress);
   }
 
   /**
@@ -74,8 +77,9 @@ export class PhotosService {
     userId: string,
     businessId: string,
     input: ConfirmPhotoRequest,
+    ipAddress: string | null,
   ): Promise<UploadedPhoto> {
-    return this.runPipeline(userId, { ...input, businessId });
+    return this.runPipeline(userId, { ...input, businessId }, ipAddress);
   }
 
   async deleteForBusiness(businessId: string, photoId: string): Promise<void> {
@@ -105,6 +109,7 @@ export class PhotosService {
   private async runPipeline(
     userId: string,
     input: ConfirmPhotoRequest,
+    ipAddress: string | null,
   ): Promise<UploadedPhoto> {
     const meta = await this.storage.headObject(input.key);
     if (meta.contentLength > MAX_PHOTO_UPLOAD_BYTES) {
@@ -153,7 +158,8 @@ export class PhotosService {
       ),
     ]);
 
-    // Publishes immediately (see docs/11-reviews-trust-safety.md's Phase 5 moderation decision).
+    // Publishes immediately, pending the moderation-scoring pass below (see
+    // docs/11-reviews-trust-safety.md's Phase 5 moderation decision, superseded by Phase 8's real scoring).
     const photo = await this.prisma.photo.create({
       data: {
         userId,
@@ -164,11 +170,44 @@ export class PhotosService {
         cardUrl,
         caption: input.caption ?? null,
         status: 'APPROVED',
+        ipAddress,
       },
     });
 
-    // No-op-approve seam for Phase 8's real automated flagging/scoring pass — see ModerationService.
-    await this.moderationService.enqueue('PHOTO', photo.id);
+    // Real automated flagging/scoring pass (Phase 8) — see ModerationService/ModerationScoringService.
+    const moderation = await this.moderationService.enqueue({
+      targetType: 'PHOTO',
+      targetId: photo.id,
+      userId,
+      businessId: input.businessId ?? null,
+      ipAddress,
+      text: input.caption ?? null,
+      rating: null,
+    });
+
+    const reasonSummary = moderation.reasons.join(', ') || null;
+    const finalStatus =
+      moderation.status === 'PENDING' ? 'PENDING' : 'APPROVED';
+    if (finalStatus !== 'APPROVED') {
+      await this.prisma.photo.update({
+        where: { id: photo.id },
+        data: { status: finalStatus, moderationReason: reasonSummary },
+      });
+    }
+
+    if (finalStatus === 'PENDING') {
+      const uploader = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true },
+      });
+      if (uploader) {
+        this.mailService.notifyContentHeld(
+          uploader.email,
+          'PHOTO',
+          moderation.reasons,
+        );
+      }
+    }
 
     return {
       id: photo.id,

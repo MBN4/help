@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   businessReviewSchema,
   businessSummarySchema,
+  editSuggestionSchema,
   myPhotoSchema,
   myReviewSchema,
   presignPhotoResponseSchema,
@@ -9,6 +10,8 @@ import {
   toggleHelpfulResponseSchema,
   uploadedPhotoSchema,
   type ConfirmPhotoRequest,
+  type CreateAppealRequest,
+  type CreateEditSuggestionRequest,
   type CreateReportRequest,
   type CreateReviewRequest,
   type PresignPhotoRequest,
@@ -74,6 +77,31 @@ export async function createReport(body: CreateReportRequest) {
     method: 'POST',
     body,
   });
+}
+
+export async function createAppeal(body: CreateAppealRequest) {
+  return apiRequest('/reports/appeal', z.object({ id: z.string() }), {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function suggestBusinessEdit(
+  businessId: string,
+  body: CreateEditSuggestionRequest,
+) {
+  return apiRequest(
+    `/businesses/${encodeURIComponent(businessId)}/suggest-edit`,
+    z.object({ id: z.string() }),
+    { method: 'POST', body },
+  );
+}
+
+export async function getMyBusinessEditSuggestions(businessId: string) {
+  return apiRequest(
+    `/businesses/${encodeURIComponent(businessId)}/manage/edit-suggestions`,
+    z.array(editSuggestionSchema),
+  );
 }
 
 export async function presignPhotoUpload(body: PresignPhotoRequest) {

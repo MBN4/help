@@ -4,15 +4,68 @@ import type {
   MyPhoto,
   MyReview,
   PaginationMeta,
+  PublicUserProfile,
   SubRatings,
   UpdateProfileRequest,
 } from '@buisnez/shared';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AppException } from '../../common/exceptions/app.exception';
 import { serializeUser } from '../auth/auth.service';
+import { getReviewerStats, isVerifiedReviewer } from './reviewer-trust.util';
+
+const RECENT_REVIEWS_LIMIT = 10;
 
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
+
+  /** Public reviewer profile (Phase 8) — no auth required, never returns email/phone/other private fields. */
+  async publicProfile(userId: string): Promise<PublicUserProfile> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        avatarUrl: true,
+        bio: true,
+        createdAt: true,
+      },
+    });
+    if (!user) {
+      throw new AppException(404, 'NOT_FOUND', 'User not found');
+    }
+
+    const [stats, reviews] = await Promise.all([
+      getReviewerStats(this.prisma, userId),
+      this.prisma.review.findMany({
+        where: { userId, status: 'PUBLISHED' },
+        include: { business: { select: { name: true, slug: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: RECENT_REVIEWS_LIMIT,
+      }),
+    ]);
+
+    return {
+      id: user.id,
+      name: user.name,
+      avatarUrl: user.avatarUrl,
+      bio: user.bio,
+      memberSince: user.createdAt.toISOString(),
+      isVerifiedReviewer: isVerifiedReviewer(stats),
+      reviewCount: stats.reviewCount,
+      photoCount: stats.photoCount,
+      helpfulVotesReceived: stats.helpfulVotesReceived,
+      recentReviews: reviews.map((review) => ({
+        id: review.id,
+        businessName: review.business.name,
+        businessSlug: review.business.slug,
+        rating: review.rating,
+        title: review.title,
+        body: review.body,
+        createdAt: review.createdAt.toISOString(),
+      })),
+    };
+  }
 
   async updateProfile(
     userId: string,
@@ -63,6 +116,8 @@ export class UsersService {
         createdAt: review.createdAt.toISOString(),
         photoUrls: review.photos.map((photo) => photo.url),
         helpfulCount: review._count.helpfulVotes,
+        status: review.status,
+        moderationReason: review.moderationReason,
       })),
       meta: { page, perPage, total },
     };
@@ -94,6 +149,8 @@ export class UsersService {
         caption: photo.caption,
         createdAt: photo.createdAt.toISOString(),
         business: photo.business,
+        status: photo.status,
+        moderationReason: photo.moderationReason,
       })),
       meta: { page, perPage, total },
     };

@@ -44,7 +44,12 @@ export class AdminReportsService {
     private readonly contentService: AdminContentService,
   ) {}
 
-  /** Grouped/sorted by priority = open-report count per (targetType, targetId), most-reported first. */
+  /**
+   * Grouped by (targetType, targetId), priority-sorted. Priority is the count of *distinct reporters*, not
+   * raw report count — a single account filing the same target repeatedly (report-bombing, now also
+   * rate-limited server-side, see ReportsService) no longer inflates a target's queue priority on its own;
+   * genuinely multi-reported targets still bubble to the top. Raw count is the tiebreaker.
+   */
   async listGrouped(status: string): Promise<unknown[]> {
     const reports = await this.prisma.report.findMany({
       where: { status: status as never },
@@ -73,7 +78,12 @@ export class AdminReportsService {
 
     const groups = new Map<
       string,
-      { count: number; target: unknown; reports: unknown[] }
+      {
+        count: number;
+        reporterIds: Set<string>;
+        target: unknown;
+        reports: unknown[];
+      }
     >();
     for (const report of reports) {
       const key = targetKey(report);
@@ -83,8 +93,14 @@ export class AdminReportsService {
         report.photo ??
         report.reportedUser ??
         null;
-      const entry = groups.get(key) ?? { count: 0, target, reports: [] };
+      const entry = groups.get(key) ?? {
+        count: 0,
+        reporterIds: new Set<string>(),
+        target,
+        reports: [],
+      };
       entry.count += 1;
+      entry.reporterIds.add(report.reporterId);
       entry.reports.push({
         id: report.id,
         reason: report.reason,
@@ -99,9 +115,20 @@ export class AdminReportsService {
     return [...groups.entries()]
       .map(([key, value]) => {
         const [targetType, targetId] = key.split(':');
-        return { targetType, targetId, ...value };
+        return {
+          targetType,
+          targetId,
+          count: value.count,
+          distinctReporterCount: value.reporterIds.size,
+          target: value.target,
+          reports: value.reports,
+        };
       })
-      .sort((a, b) => b.count - a.count);
+      .sort(
+        (a, b) =>
+          b.distinctReporterCount - a.distinctReporterCount ||
+          b.count - a.count,
+      );
   }
 
   async getDetail(id: string): Promise<unknown> {
@@ -175,6 +202,28 @@ export class AdminReportsService {
         actorId,
         input.reason ?? 'Banned via report resolution',
       );
+    } else if (input.action === 'RESTORE_CONTENT') {
+      // The main path for granting an APPEAL (see ReportsService.createAppeal): reverses an automated hold
+      // or a prior admin removal.
+      if (report.targetType === 'REVIEW' && report.reviewId) {
+        await this.contentService.restoreReview(
+          report.reviewId,
+          actorId,
+          input.reason ?? 'Restored via appeal resolution',
+        );
+      } else if (report.targetType === 'PHOTO' && report.photoId) {
+        await this.contentService.restorePhoto(
+          report.photoId,
+          actorId,
+          input.reason ?? 'Restored via appeal resolution',
+        );
+      } else {
+        throw new AppException(
+          400,
+          'UNSUPPORTED_ACTION',
+          'RESTORE_CONTENT is only supported for REVIEW/PHOTO reports',
+        );
+      }
     }
 
     await this.prisma.report.update({

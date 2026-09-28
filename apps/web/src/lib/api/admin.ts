@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   adminDashboardSchema,
+  editSuggestionSchema,
   moderationLogEntrySchema,
   type AdminDashboard,
   type ApproveClaimRequest,
@@ -14,10 +15,13 @@ import {
   type CreateFeatureRequest,
   type CreateProvinceRequest,
   type DismissReportRequest,
+  type EditSuggestion,
+  type ListEditSuggestionsQuery,
   type ModerationLogEntry,
   type ModerationRemoveRequest,
   type ModerationRestoreRequest,
   type RejectClaimRequest,
+  type ResolveEditSuggestionRequest,
   type ResolveReportRequest,
   type UpdateAdminBusinessRequest,
   type UpdateAreaRequest,
@@ -418,4 +422,27 @@ export async function listModerationLog(
     { query },
   );
   return data;
+}
+
+// --- "Suggest an edit" queue (Phase 8) ---------------------------------------
+
+export async function listAdminEditSuggestions(
+  query: ListEditSuggestionsQuery = {},
+): Promise<EditSuggestion[]> {
+  const { data } = await apiRequest(
+    '/admin/edit-suggestions',
+    z.array(editSuggestionSchema),
+    { query },
+  );
+  return data;
+}
+
+export async function resolveEditSuggestion(
+  id: string,
+  body: ResolveEditSuggestionRequest,
+): Promise<void> {
+  await apiRequest(`/admin/edit-suggestions/${id}/resolve`, anyRecord, {
+    method: 'PATCH',
+    body,
+  });
 }

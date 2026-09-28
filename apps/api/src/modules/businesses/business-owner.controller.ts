@@ -7,8 +7,11 @@ import {
   Patch,
   Post,
   Put,
+  Req,
   UseGuards,
 } from '@nestjs/common';
+import type { Request } from 'express';
+import { getClientIp } from '../../common/utils/client-ip';
 import type {
   BusinessFeaturesUpdate,
   BusinessHoursUpdate,
@@ -31,9 +34,11 @@ import {
   updateBusinessInfoRequestSchema,
   updateBusinessServiceRequestSchema,
 } from '@buisnez/shared';
+import type { EditSuggestion } from '@buisnez/shared';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { BusinessOwnerGuard } from '../../common/guards/business-owner.guard';
+import { EditSuggestionsService } from '../edit-suggestions/edit-suggestions.service';
 import { BusinessOwnerService } from './business-owner.service';
 
 const confirmOwnerPhotoRequestSchema = confirmPhotoRequestSchema.omit({
@@ -47,11 +52,25 @@ const confirmOwnerPhotoRequestSchema = confirmPhotoRequestSchema.omit({
  */
 @Controller('businesses')
 export class BusinessOwnerController {
-  constructor(private readonly businessOwnerService: BusinessOwnerService) {}
+  constructor(
+    private readonly businessOwnerService: BusinessOwnerService,
+    private readonly editSuggestionsService: EditSuggestionsService,
+  ) {}
 
   @Get('owned/mine')
   listMine(@CurrentUser('id') userId: string): Promise<BusinessOwnerSummary[]> {
     return this.businessOwnerService.listMine(userId);
+  }
+
+  /** Owner-visible view of "suggest an edit" submissions on their business — read-only here; resolving one
+   * (accept/reject) goes through the moderator queue (`/admin/edit-suggestions`) for now, see
+   * docs/11-reviews-trust-safety.md. */
+  @Get(':businessId/manage/edit-suggestions')
+  @UseGuards(BusinessOwnerGuard)
+  listEditSuggestions(
+    @Param('businessId') businessId: string,
+  ): Promise<EditSuggestion[]> {
+    return this.editSuggestionsService.listForBusiness(businessId);
   }
 
   @Get(':businessId/manage')
@@ -141,8 +160,14 @@ export class BusinessOwnerController {
     @Param('businessId') businessId: string,
     @Body(new ZodValidationPipe(confirmOwnerPhotoRequestSchema))
     body: Omit<ConfirmPhotoRequest, 'businessId'>,
+    @Req() req: Request,
   ): Promise<UploadedPhoto> {
-    return this.businessOwnerService.addPhoto(userId, businessId, body);
+    return this.businessOwnerService.addPhoto(
+      userId,
+      businessId,
+      body,
+      getClientIp(req),
+    );
   }
 
   @Delete(':businessId/photos/:photoId')

@@ -15,6 +15,14 @@ export const MODERATION_ACTIONS = {
   PHOTO_APPROVED: 'PHOTO_APPROVED',
   PHOTO_REMOVED: 'PHOTO_REMOVED',
   PHOTO_RESTORED: 'PHOTO_RESTORED',
+  // Phase 8: automated scoring-pipeline outcomes — `actorId: null` (no human actor).
+  REVIEW_AUTO_HELD: 'REVIEW_AUTO_HELD',
+  REVIEW_AUTO_APPROVED: 'REVIEW_AUTO_APPROVED',
+  PHOTO_AUTO_HELD: 'PHOTO_AUTO_HELD',
+  PHOTO_AUTO_APPROVED: 'PHOTO_AUTO_APPROVED',
+  SELF_REVIEW_BLOCKED: 'SELF_REVIEW_BLOCKED',
+  EDIT_SUGGESTION_CREATED: 'EDIT_SUGGESTION_CREATED',
+  EDIT_SUGGESTION_RESOLVED: 'EDIT_SUGGESTION_RESOLVED',
   BUSINESS_STATUS_CHANGED: 'BUSINESS_STATUS_CHANGED',
   BUSINESS_VERIFIED_TOGGLED: 'BUSINESS_VERIFIED_TOGGLED',
   BUSINESS_FEATURED_TOGGLED: 'BUSINESS_FEATURED_TOGGLED',
@@ -48,7 +56,8 @@ export type ModerationAction =
   (typeof MODERATION_ACTIONS)[keyof typeof MODERATION_ACTIONS];
 
 export interface RecordModerationLogInput {
-  actorId: string;
+  /** `null` for automated/system actions (Phase 8 scoring pipeline) — no human actor to attribute to. */
+  actorId: string | null;
   action: ModerationAction | (string & {});
   targetType: ModerationTargetType;
   targetId: string;

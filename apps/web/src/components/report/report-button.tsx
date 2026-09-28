@@ -5,6 +5,9 @@ import { Flag } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReportReasonValue, ReportTargetTypeValue } from '@buisnez/shared';
 import { createReport } from '@/lib/api';
+
+// 'APPEAL' is a server-set-only reason (see docs/11-reviews-trust-safety.md) — never selectable here.
+type UserReportReason = Exclude<ReportReasonValue, 'APPEAL'>;
 import { useSession } from '@/lib/hooks/use-session';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,7 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-const REASONS: { value: ReportReasonValue; labelKey: string }[] = [
+const REASONS: { value: UserReportReason; labelKey: string }[] = [
   { value: 'SPAM', labelKey: 'reasonSpam' },
   { value: 'INAPPROPRIATE', labelKey: 'reasonInappropriate' },
   { value: 'FAKE', labelKey: 'reasonFake' },
@@ -50,7 +53,7 @@ export function ReportButton({
   const t = useTranslations('report');
   const { isAuthenticated } = useSession();
   const [open, setOpen] = React.useState(false);
-  const [reason, setReason] = React.useState<ReportReasonValue>('SPAM');
+  const [reason, setReason] = React.useState<UserReportReason>('SPAM');
   const [message, setMessage] = React.useState('');
   const [pending, setPending] = React.useState(false);
   const [done, setDone] = React.useState(false);
@@ -112,7 +115,7 @@ export function ReportButton({
               <Label>{t('reasonLabel')}</Label>
               <Select
                 value={reason}
-                onValueChange={(value) => setReason(value as ReportReasonValue)}
+                onValueChange={(value) => setReason(value as UserReportReason)}
               >
                 <SelectTrigger>
                   <SelectValue>

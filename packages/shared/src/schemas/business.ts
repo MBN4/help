@@ -137,11 +137,17 @@ export const businessReviewSchema = z.object({
   userId: z.string().uuid(),
   userName: z.string(),
   userAvatarUrl: z.string().nullable(),
+  /** Contribution-based badge — see docs/11-reviews-trust-safety.md. */
+  isVerifiedReviewer: z.boolean(),
   ownerReply: z.string().nullable(),
   ownerReplyAt: z.string().nullable(),
   createdAt: z.string(),
   photoUrls: z.array(z.string()),
   helpfulCount: z.number().int(),
+  /** Only meaningful to the review's own author (public reads never return a non-PUBLISHED review) — lets
+   * the write response and `/review/mine` show a "pending review" state right after submitting. */
+  status: z.enum(['PUBLISHED', 'PENDING', 'REMOVED']),
+  moderationReason: z.string().nullable(),
 });
 export type BusinessReview = z.infer<typeof businessReviewSchema>;
 

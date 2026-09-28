@@ -33,6 +33,7 @@ import { ReviewSection } from '@/components/review/review-section';
 import { BusinessCard } from '@/components/business/business-card';
 import { FavoriteButton } from '@/components/business/favorite-button';
 import { ReportButton } from '@/components/report/report-button';
+import { SuggestEditButton } from '@/components/business/suggest-edit-button';
 import { ClaimBusinessButton } from '@/components/business-owner/claim-business-button';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -134,6 +135,7 @@ export default async function BusinessProfilePage({
           <OpenNowBadge isOpenNow={business.isOpenNow} />
           <div className="ms-auto flex items-center gap-2">
             <FavoriteButton businessId={business.id} variant="full" />
+            <SuggestEditButton businessId={business.id} />
             <ReportButton targetType="BUSINESS" targetId={business.id} />
           </div>
         </div>

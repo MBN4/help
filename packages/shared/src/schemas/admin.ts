@@ -29,7 +29,9 @@ export type ListAdminReportsQuery = z.infer<typeof listAdminReportsQuerySchema>;
 
 export const resolveReportRequestSchema = z.object({
   reason: z.string().trim().max(2000).optional(),
-  action: z.enum(['REMOVE_CONTENT', 'BAN_USER', 'NONE']).default('NONE'),
+  action: z
+    .enum(['REMOVE_CONTENT', 'BAN_USER', 'RESTORE_CONTENT', 'NONE'])
+    .default('NONE'),
 });
 export type ResolveReportRequest = z.infer<typeof resolveReportRequestSchema>;
 
@@ -236,6 +238,67 @@ export const updateFeatureRequestSchema = createFeatureRequestSchema.partial();
 export type UpdateFeatureRequest = z.infer<typeof updateFeatureRequestSchema>;
 
 // ---------------------------------------------------------------------------
+// "Suggest an edit" (Phase 8)
+// ---------------------------------------------------------------------------
+
+export const createEditSuggestionRequestSchema = z.object({
+  field: z.string().trim().min(1).max(100),
+  currentValue: z.string().trim().max(1000).optional(),
+  suggestedValue: z.string().trim().min(1).max(1000),
+  note: z.string().trim().max(1000).optional(),
+});
+export type CreateEditSuggestionRequest = z.infer<
+  typeof createEditSuggestionRequestSchema
+>;
+
+export const editSuggestionStatusSchema = z.enum([
+  'PENDING',
+  'ACCEPTED',
+  'REJECTED',
+]);
+export type EditSuggestionStatusValue = z.infer<
+  typeof editSuggestionStatusSchema
+>;
+
+export const listEditSuggestionsQuerySchema = z.object({
+  status: editSuggestionStatusSchema.optional(),
+  businessId: z.string().uuid().optional(),
+});
+export type ListEditSuggestionsQuery = z.infer<
+  typeof listEditSuggestionsQuerySchema
+>;
+
+export const resolveEditSuggestionRequestSchema = z.object({
+  status: z.enum(['ACCEPTED', 'REJECTED']),
+  resolutionNote: z.string().trim().max(1000).optional(),
+});
+export type ResolveEditSuggestionRequest = z.infer<
+  typeof resolveEditSuggestionRequestSchema
+>;
+
+export const editSuggestionSchema = z.object({
+  id: z.string().uuid(),
+  businessId: z.string().uuid(),
+  business: z.object({
+    id: z.string().uuid(),
+    name: z.string(),
+    slug: z.string(),
+  }),
+  userId: z.string().uuid(),
+  userName: z.string(),
+  field: z.string(),
+  currentValue: z.string().nullable(),
+  suggestedValue: z.string(),
+  note: z.string().nullable(),
+  status: editSuggestionStatusSchema,
+  resolvedById: z.string().uuid().nullable(),
+  resolvedAt: z.string().nullable(),
+  resolutionNote: z.string().nullable(),
+  createdAt: z.string(),
+});
+export type EditSuggestion = z.infer<typeof editSuggestionSchema>;
+
+// ---------------------------------------------------------------------------
 // ModerationLog viewer
 // ---------------------------------------------------------------------------
 
@@ -250,6 +313,7 @@ export const moderationLogQuerySchema = paginationQuerySchema.extend({
       'CLAIM',
       'REPORT',
       'CATEGORY',
+      'EDIT_SUGGESTION',
     ])
     .optional(),
   targetId: z.string().optional(),
@@ -261,7 +325,8 @@ export type ModerationLogQuery = z.infer<typeof moderationLogQuerySchema>;
 
 export const moderationLogEntrySchema = z.object({
   id: z.string().uuid(),
-  actorId: z.string().uuid(),
+  /** Null for Phase 8's automated scoring-pipeline actions — no human actor. */
+  actorId: z.string().uuid().nullable(),
   actorName: z.string().nullable(),
   action: z.string(),
   targetType: z.string(),

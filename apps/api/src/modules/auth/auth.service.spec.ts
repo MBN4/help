@@ -124,11 +124,14 @@ describe('AuthService', () => {
       const created = buildUser();
       prisma.user.create.mockResolvedValue(created);
 
-      const result = await authService.register({
-        name: 'Zainab Khan',
-        email: 'zainab@example.com',
-        password: 'super-secret-1',
-      });
+      const result = await authService.register(
+        {
+          name: 'Zainab Khan',
+          email: 'zainab@example.com',
+          password: 'super-secret-1',
+        },
+        null,
+      );
 
       expect(mockedHash).toHaveBeenCalledWith('super-secret-1');
       expect(prisma.emailVerificationToken.create).toHaveBeenCalled();
@@ -148,11 +151,14 @@ describe('AuthService', () => {
       prisma.user.findUnique.mockResolvedValue(buildUser());
 
       const error = await captureError(() =>
-        authService.register({
-          name: 'Zainab',
-          email: 'zainab@example.com',
-          password: 'super-secret-1',
-        }),
+        authService.register(
+          {
+            name: 'Zainab',
+            email: 'zainab@example.com',
+            password: 'super-secret-1',
+          },
+          null,
+        ),
       );
 
       expect(error).toBeInstanceOf(AppException);

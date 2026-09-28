@@ -109,6 +109,16 @@
     "ratingBreakdown": "Rating breakdown",
     "mapUnavailable": "A live map isn't available right now — use the directions link below instead.",
     "notFound": "We couldn't find that business.",
+    "suggestEdit": "Suggest an edit",
+    "suggestEditTitle": "Suggest a correction",
+    "suggestEditField": "What's incorrect?",
+    "suggestEditFieldPlaceholder": "e.g. phone, hours, address",
+    "suggestEditCurrentValue": "Current value (optional)",
+    "suggestEditSuggestedValue": "Suggested correction",
+    "suggestEditNote": "Additional details (optional)",
+    "suggestEditSubmit": "Submit suggestion",
+    "suggestEditSuccess": "Thanks — we'll review your suggestion.",
+    "suggestEditCancel": "Cancel",
     "days": {
       "MONDAY": "Monday",
       "TUESDAY": "Tuesday",
@@ -190,7 +200,8 @@
       "businesses": "Businesses",
       "users": "Users",
       "taxonomy": "Taxonomy",
-      "moderationLog": "Moderation log"
+      "moderationLog": "Moderation log",
+      "editSuggestions": "Edit suggestions"
     },
     "dashboard": {
       "title": "Admin dashboard",
@@ -215,12 +226,28 @@
       "title": "Reports queue",
       "empty": "No open reports.",
       "reportCount": "{count} reports",
+      "reporterCount": "{count, plural, one {# reporter} other {# reporters}}",
       "viewDetail": "View detail",
       "removeContent": "Remove content",
+      "restoreContent": "Restore content (grant appeal)",
       "dismiss": "Dismiss",
       "resolveTitle": "Resolve report by removing content",
+      "restoreTitle": "Restore this content",
       "dismissTitle": "Dismiss this report",
-      "detailTitle": "Report detail"
+      "detailTitle": "Report detail",
+      "reasonAppeal": "Appeal"
+    },
+    "editSuggestions": {
+      "title": "Edit suggestions",
+      "empty": "No pending suggestions.",
+      "field": "Field",
+      "currentValue": "Current",
+      "suggestedValue": "Suggested",
+      "accept": "Accept",
+      "reject": "Reject",
+      "acceptTitle": "Accept this suggestion",
+      "rejectTitle": "Reject this suggestion",
+      "acceptNote": "Bookkeeping only — the actual correction still needs to be made via the business edit endpoints."
     },
     "content": {
       "title": "Content moderation",
@@ -322,7 +349,10 @@
     "subRatingAmbience": "Ambience",
     "subRatingValue": "Value",
     "helpful": "Helpful",
-    "helpfulCount": "{count, plural, =0 {Helpful} one {Helpful (#)} other {Helpful (#)}}"
+    "helpfulCount": "{count, plural, =0 {Helpful} one {Helpful (#)} other {Helpful (#)}}",
+    "verifiedReviewer": "Verified reviewer",
+    "pendingNotice": "Your review is awaiting moderation review and isn't visible to others yet.",
+    "removedNotice": "This review was removed by a moderator."
   },
   "report": {
     "reportContent": "Report",
@@ -347,6 +377,35 @@
     "save": "Save",
     "saved": "Saved",
     "loginRequired": "Log in to save favourites."
+  },
+  "moderation": {
+    "statusPending": "Pending review",
+    "statusRemoved": "Removed",
+    "reasonPrefix": "Reason",
+    "reasons": {
+      "DUPLICATE_TEXT": "Looked like duplicate/repeated text",
+      "SPAM_LINKS": "Contained a link or spam phrase",
+      "REVIEW_BOMBING": "Part of an unusual wave of extreme ratings on this business",
+      "IP_BURST": "Too many submissions from the same network in a short time",
+      "ACCOUNT_BURST": "Too many submissions from this account in a short time",
+      "LOW_TRUST_ACCOUNT": "This account has had content held or removed before",
+      "NEW_ACCOUNT_FLOOD": "New account posting several times right after signup"
+    },
+    "appealCta": "Appeal this decision",
+    "appealSent": "Your appeal has been submitted for review.",
+    "appealAlreadySent": "You've already appealed this.",
+    "appealMessageLabel": "Anything you'd like to add? (optional)",
+    "appealSubmit": "Submit appeal",
+    "cancel": "Cancel"
+  },
+  "reviewerProfile": {
+    "memberSince": "Member since {date}",
+    "reviewCount": "{count, plural, =0 {No reviews} one {# review} other {# reviews}}",
+    "photoCount": "{count, plural, =0 {No photos} one {# photo} other {# photos}}",
+    "helpfulVotesReceived": "{count, plural, =0 {No helpful votes} one {# helpful vote} other {# helpful votes}}",
+    "recentReviewsTitle": "Recent reviews",
+    "noReviews": "No published reviews yet.",
+    "notFound": "We couldn't find that reviewer."
   },
   "businessOwner": {
     "dashboardTitle": "Your businesses",

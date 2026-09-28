@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppException } from '../../common/exceptions/app.exception';
 import { RevalidateService } from '../../integrations/revalidate/revalidate.service';
+import { MailService } from '../../integrations/mail/mail.service';
 import {
   ModerationLogService,
   MODERATION_ACTIONS,
@@ -13,6 +14,7 @@ export class AdminContentService {
     private readonly prisma: PrismaService,
     private readonly moderationLog: ModerationLogService,
     private readonly revalidateService: RevalidateService,
+    private readonly mailService: MailService,
   ) {}
 
   async listReviews(
@@ -85,7 +87,7 @@ export class AdminContentService {
     const review = await this.getReviewOrThrow(id);
     await this.prisma.review.update({
       where: { id },
-      data: { status: 'PUBLISHED' },
+      data: { status: 'PUBLISHED', moderationReason: null },
     });
     await this.moderationLog.record({
       actorId,
@@ -104,7 +106,7 @@ export class AdminContentService {
     const review = await this.getReviewOrThrow(id);
     await this.prisma.review.update({
       where: { id },
-      data: { status: 'REMOVED' },
+      data: { status: 'REMOVED', moderationReason: reason },
     });
     await this.moderationLog.record({
       actorId,
@@ -113,6 +115,7 @@ export class AdminContentService {
       targetId: id,
       reason,
     });
+    await this.notifyOwner(review.userId, 'REVIEW', reason);
     await this.revalidateReviewBusiness(review.businessId);
   }
 
@@ -124,7 +127,7 @@ export class AdminContentService {
     const review = await this.getReviewOrThrow(id);
     await this.prisma.review.update({
       where: { id },
-      data: { status: 'PUBLISHED' },
+      data: { status: 'PUBLISHED', moderationReason: null },
     });
     await this.moderationLog.record({
       actorId,
@@ -140,7 +143,7 @@ export class AdminContentService {
     const photo = await this.getPhotoOrThrow(id);
     await this.prisma.photo.update({
       where: { id },
-      data: { status: 'APPROVED' },
+      data: { status: 'APPROVED', moderationReason: null },
     });
     await this.moderationLog.record({
       actorId,
@@ -159,7 +162,7 @@ export class AdminContentService {
     const photo = await this.getPhotoOrThrow(id);
     await this.prisma.photo.update({
       where: { id },
-      data: { status: 'REMOVED' },
+      data: { status: 'REMOVED', moderationReason: reason },
     });
     await this.moderationLog.record({
       actorId,
@@ -168,6 +171,7 @@ export class AdminContentService {
       targetId: id,
       reason,
     });
+    await this.notifyOwner(photo.userId, 'PHOTO', reason);
     if (photo.businessId) await this.revalidateReviewBusiness(photo.businessId);
   }
 
@@ -179,7 +183,7 @@ export class AdminContentService {
     const photo = await this.getPhotoOrThrow(id);
     await this.prisma.photo.update({
       where: { id },
-      data: { status: 'APPROVED' },
+      data: { status: 'APPROVED', moderationReason: null },
     });
     await this.moderationLog.record({
       actorId,
@@ -189,6 +193,20 @@ export class AdminContentService {
       reason: reason ?? null,
     });
     if (photo.businessId) await this.revalidateReviewBusiness(photo.businessId);
+  }
+
+  private async notifyOwner(
+    userId: string,
+    targetType: 'REVIEW' | 'PHOTO',
+    reason: string,
+  ): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true },
+    });
+    if (user) {
+      this.mailService.notifyContentRemoved(user.email, targetType, reason);
+    }
   }
 
   private async getReviewOrThrow(id: string) {

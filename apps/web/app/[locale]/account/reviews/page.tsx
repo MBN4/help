@@ -6,6 +6,7 @@ import { getMyReviews } from '@/lib/api';
 import { Link } from '@/i18n/navigation';
 import { RatingStars } from '@/components/business/rating-stars';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ModerationStatusBanner } from '@/components/moderation/moderation-status-banner';
 
 export default function AccountReviewsPage(): React.ReactElement {
   const t = useTranslations('account');
@@ -50,6 +51,12 @@ export default function AccountReviewsPage(): React.ReactElement {
             {review.body && (
               <p className="text-sm text-foreground/90">{review.body}</p>
             )}
+            <ModerationStatusBanner
+              targetType="REVIEW"
+              targetId={review.id}
+              status={review.status}
+              moderationReason={review.moderationReason}
+            />
           </article>
         ))}
       </div>

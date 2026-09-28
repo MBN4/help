@@ -28,6 +28,7 @@ import {
 } from '@buisnez/shared';
 import { Env } from '../../config/env.schema';
 import { AppException } from '../../common/exceptions/app.exception';
+import { getClientIp } from '../../common/utils/client-ip';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
@@ -52,8 +53,9 @@ export class AuthController {
   async register(
     @Body() body: RegisterRequest,
     @Res({ passthrough: true }) res: Response,
+    @Req() req: Request,
   ): Promise<AuthResponse> {
-    const result = await this.authService.register(body);
+    const result = await this.authService.register(body, getClientIp(req));
     setAuthCookies(
       res,
       this.isSecure(),

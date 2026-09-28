@@ -16,6 +16,10 @@ import {
   computeIsOpenNow,
   getBusinessAggregates,
 } from './business-profile.util';
+import {
+  getReviewerStatsBulk,
+  isVerifiedReviewer,
+} from '../users/reviewer-trust.util';
 
 @Injectable()
 export class BusinessesService {
@@ -136,6 +140,11 @@ export class BusinessesService {
       }),
     ]);
 
+    const statsByUser = await getReviewerStatsBulk(
+      this.prisma,
+      reviews.map((review) => review.user.id),
+    );
+
     return {
       data: reviews.map((review) => ({
         id: review.id,
@@ -146,6 +155,13 @@ export class BusinessesService {
         userId: review.user.id,
         userName: review.user.name,
         userAvatarUrl: review.user.avatarUrl,
+        isVerifiedReviewer: isVerifiedReviewer(
+          statsByUser.get(review.user.id) ?? {
+            reviewCount: 0,
+            photoCount: 0,
+            helpfulVotesReceived: 0,
+          },
+        ),
         ownerReply: review.ownerReply,
         ownerReplyAt: review.ownerReplyAt
           ? review.ownerReplyAt.toISOString()
@@ -153,6 +169,8 @@ export class BusinessesService {
         createdAt: review.createdAt.toISOString(),
         photoUrls: review.photos.map((photo) => photo.url),
         helpfulCount: review._count.helpfulVotes,
+        status: review.status,
+        moderationReason: review.moderationReason,
       })),
       meta: { page, perPage, total },
     };

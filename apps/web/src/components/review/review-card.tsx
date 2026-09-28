@@ -1,10 +1,12 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { BadgeCheck, ThumbsUp } from 'lucide-react';
 import type { BusinessReview } from '@buisnez/shared';
+import { Link } from '@/i18n/navigation';
 import { RatingStars } from '@/components/business/rating-stars';
 import { Button } from '@/components/ui/button';
-import { ThumbsUp } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { ReportButton } from '@/components/report/report-button';
 
 export function ReviewCard({
@@ -23,7 +25,18 @@ export function ReviewCard({
     <article className="space-y-2 border-b border-border py-4 last:border-0">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="font-medium">{review.userName}</span>
+          <Link
+            href={`/reviewers/${review.userId}`}
+            className="font-medium hover:underline"
+          >
+            {review.userName}
+          </Link>
+          {review.isVerifiedReviewer && (
+            <Badge variant="outline" className="gap-1">
+              <BadgeCheck className="h-3 w-3" aria-hidden="true" />
+              {reviewT('verifiedReviewer')}
+            </Badge>
+          )}
           <RatingStars rating={review.rating} />
         </div>
         <time

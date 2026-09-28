@@ -9,6 +9,11 @@ import { AppException } from '../../common/exceptions/app.exception';
 import { DiscoveryService } from '../discovery/discovery.service';
 import { RevalidateService } from '../../integrations/revalidate/revalidate.service';
 import { ModerationService } from '../../integrations/moderation/moderation.service';
+import { MailService } from '../../integrations/mail/mail.service';
+import {
+  getReviewerStats,
+  isVerifiedReviewer,
+} from '../users/reviewer-trust.util';
 
 @Injectable()
 export class ReviewsService {
@@ -17,12 +22,14 @@ export class ReviewsService {
     private readonly discoveryService: DiscoveryService,
     private readonly revalidateService: RevalidateService,
     private readonly moderationService: ModerationService,
+    private readonly mailService: MailService,
   ) {}
 
   async createOrUpdate(
     userId: string,
     businessId: string,
     input: CreateReviewRequest,
+    ipAddress: string | null,
   ): Promise<BusinessReview> {
     const business = await this.prisma.business.findFirst({
       where: { id: businessId, status: 'PUBLISHED', deletedAt: null },
@@ -35,12 +42,26 @@ export class ReviewsService {
       throw new AppException(404, 'NOT_FOUND', 'Business not found');
     }
 
-    // Publishes immediately (see docs/11-reviews-trust-safety.md's Phase 5 moderation decision).
+    // Self-review is the one hard block (not scored, never held-for-appeal) — see
+    // docs/11-reviews-trust-safety.md. `Business.ownerId` is the sole authorization source of truth
+    // (docs/10-auth-roles.md), so this is the same check `BusinessOwnerGuard` uses.
+    if (business.ownerId === userId) {
+      await this.moderationService.logSelfReviewBlocked(userId, businessId);
+      throw new AppException(
+        403,
+        'SELF_REVIEW_NOT_ALLOWED',
+        'You cannot review a business you own',
+      );
+    }
+
+    // Publishes immediately, pending the moderation-scoring pass below (see
+    // docs/11-reviews-trust-safety.md's Phase 5 moderation decision, superseded by Phase 8's real scoring).
     const data = {
       rating: input.rating,
       subRatings: input.subRatings ?? undefined,
       title: input.title ?? null,
       body: input.body ?? null,
+      ipAddress,
     };
 
     const review = await this.prisma.review.upsert({
@@ -49,8 +70,40 @@ export class ReviewsService {
       update: data,
     });
 
-    // No-op-approve seam for Phase 8's real automated flagging/scoring pass — see ModerationService.
-    await this.moderationService.enqueue('REVIEW', review.id);
+    // Real automated flagging/scoring pass (Phase 8) — see ModerationService/ModerationScoringService.
+    const moderation = await this.moderationService.enqueue({
+      targetType: 'REVIEW',
+      targetId: review.id,
+      userId,
+      businessId,
+      ipAddress,
+      text: [input.title, input.body].filter(Boolean).join(' ') || null,
+      rating: input.rating,
+    });
+
+    const reasonSummary = moderation.reasons.join(', ') || null;
+    await this.prisma.review.update({
+      where: { id: review.id },
+      data: {
+        status: moderation.status === 'PENDING' ? 'PENDING' : 'PUBLISHED',
+        moderationReason:
+          moderation.status === 'PENDING' ? reasonSummary : null,
+      },
+    });
+
+    if (moderation.status === 'PENDING') {
+      const author = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true },
+      });
+      if (author) {
+        this.mailService.notifyContentHeld(
+          author.email,
+          'REVIEW',
+          moderation.reasons,
+        );
+      }
+    }
 
     if (input.photoIds?.length) {
       // Photos are uploaded (and scoped to this business) before the review form is submitted; this just
@@ -186,6 +239,7 @@ export class ReviewsService {
         _count: { select: { helpfulVotes: true } },
       },
     });
+    const stats = await getReviewerStats(this.prisma, review.user.id);
 
     return {
       id: review.id,
@@ -196,6 +250,7 @@ export class ReviewsService {
       userId: review.user.id,
       userName: review.user.name,
       userAvatarUrl: review.user.avatarUrl,
+      isVerifiedReviewer: isVerifiedReviewer(stats),
       ownerReply: review.ownerReply,
       ownerReplyAt: review.ownerReplyAt
         ? review.ownerReplyAt.toISOString()
@@ -203,6 +258,8 @@ export class ReviewsService {
       createdAt: review.createdAt.toISOString(),
       photoUrls: review.photos.map((photo) => photo.url),
       helpfulCount: review._count.helpfulVotes,
+      status: review.status,
+      moderationReason: review.moderationReason,
     };
   }
 }

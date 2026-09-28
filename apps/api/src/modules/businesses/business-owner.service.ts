@@ -264,11 +264,13 @@ export class BusinessOwnerService {
     userId: string,
     businessId: string,
     input: Omit<ConfirmPhotoRequest, 'businessId'>,
+    ipAddress: string | null,
   ): Promise<UploadedPhoto> {
     const photo = await this.photosService.confirmForBusiness(
       userId,
       businessId,
       { ...input, businessId },
+      ipAddress,
     );
     await this.revalidateAfterWrite(businessId);
     return photo;

@@ -44,12 +44,25 @@ export default function AdminReportsPage(): React.ReactElement {
   const [resolvingReportId, setResolvingReportId] = React.useState<
     string | null
   >(null);
+  const [restoringReportId, setRestoringReportId] = React.useState<
+    string | null
+  >(null);
 
   const resolveMutation = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       resolveReport(id, {
         reason: reason || undefined,
         action: 'REMOVE_CONTENT',
+      }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['admin', 'reports'] }),
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      resolveReport(id, {
+        reason: reason || undefined,
+        action: 'RESTORE_CONTENT',
       }),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ['admin', 'reports'] }),
@@ -113,6 +126,17 @@ export default function AdminReportsPage(): React.ReactElement {
                       {t('reports.removeContent')}
                     </Button>
                   ) : null}
+                  {(group.targetType === 'REVIEW' ||
+                    group.targetType === 'PHOTO') &&
+                  firstReportId ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setRestoringReportId(firstReportId)}
+                    >
+                      {t('reports.restoreContent')}
+                    </Button>
+                  ) : null}
                   {firstReportId ? (
                     <Button
                       size="sm"
@@ -138,6 +162,22 @@ export default function AdminReportsPage(): React.ReactElement {
           if (resolvingReportId) {
             await resolveMutation.mutateAsync({
               id: resolvingReportId,
+              reason,
+            });
+          }
+        }}
+      />
+      <ReasonDialog
+        open={restoringReportId !== null}
+        onOpenChange={(open) => !open && setRestoringReportId(null)}
+        title={t('reports.restoreTitle')}
+        reasonRequired={false}
+        destructive={false}
+        confirmLabel={t('reports.restoreContent')}
+        onConfirm={async (reason) => {
+          if (restoringReportId) {
+            await restoreMutation.mutateAsync({
+              id: restoringReportId,
               reason,
             });
           }

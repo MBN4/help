@@ -24,7 +24,10 @@ export class AuthService {
     private readonly mailService: MailService,
   ) {}
 
-  async register(input: RegisterRequest): Promise<AuthResult> {
+  async register(
+    input: RegisterRequest,
+    signupIp: string | null,
+  ): Promise<AuthResult> {
     const existing = await this.prisma.user.findUnique({
       where: { email: input.email },
     });
@@ -43,6 +46,7 @@ export class AuthService {
         email: input.email,
         phone: input.phone,
         passwordHash,
+        signupIp,
       },
     });
 

@@ -1,5 +1,6 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import type { Request } from 'express';
 import type {
   ConfirmPhotoRequest,
   PresignPhotoRequest,
@@ -13,6 +14,7 @@ import {
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { VerifiedEmailGuard } from '../../common/guards/verified-email.guard';
+import { getClientIp } from '../../common/utils/client-ip';
 import { PhotosService } from './photos.service';
 
 @Controller('photos')
@@ -35,7 +37,8 @@ export class PhotosController {
     @CurrentUser('id') userId: string,
     @Body(new ZodValidationPipe(confirmPhotoRequestSchema))
     body: ConfirmPhotoRequest,
+    @Req() req: Request,
   ): Promise<UploadedPhoto> {
-    return this.photosService.confirm(userId, body);
+    return this.photosService.confirm(userId, body, getClientIp(req));
   }
 }

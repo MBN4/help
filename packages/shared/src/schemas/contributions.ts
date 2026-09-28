@@ -48,16 +48,26 @@ export const reportReasonSchema = z.enum([
   'CLOSED',
   'DUPLICATE',
   'OTHER',
+  /** Phase 8: content-owner appeal of a hold/removal — never client-selectable via `createReportRequestSchema`
+   * below, only set server-side by the dedicated appeal endpoint. See docs/11-reviews-trust-safety.md. */
+  'APPEAL',
 ]);
 export type ReportReasonValue = z.infer<typeof reportReasonSchema>;
 
 export const createReportRequestSchema = z.object({
   targetType: reportTargetTypeSchema,
   targetId: z.string().uuid(),
-  reason: reportReasonSchema,
+  reason: reportReasonSchema.exclude(['APPEAL']),
   message: z.string().trim().max(1000).optional(),
 });
 export type CreateReportRequest = z.infer<typeof createReportRequestSchema>;
+
+export const createAppealRequestSchema = z.object({
+  targetType: z.enum(['REVIEW', 'PHOTO']),
+  targetId: z.string().uuid(),
+  message: z.string().trim().max(1000).optional(),
+});
+export type CreateAppealRequest = z.infer<typeof createAppealRequestSchema>;
 
 export const presignPhotoRequestSchema = z.object({
   contentType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
@@ -104,6 +114,8 @@ export const myReviewSchema = z.object({
   createdAt: z.string(),
   photoUrls: z.array(z.string()),
   helpfulCount: z.number().int(),
+  status: z.enum(['PUBLISHED', 'PENDING', 'REMOVED']),
+  moderationReason: z.string().nullable(),
 });
 export type MyReview = z.infer<typeof myReviewSchema>;
 
@@ -115,5 +127,7 @@ export const myPhotoSchema = z.object({
   caption: z.string().nullable(),
   createdAt: z.string(),
   business: businessRefSchema.nullable(),
+  status: z.enum(['PENDING', 'APPROVED', 'REMOVED']),
+  moderationReason: z.string().nullable(),
 });
 export type MyPhoto = z.infer<typeof myPhotoSchema>;

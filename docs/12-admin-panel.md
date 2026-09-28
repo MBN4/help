@@ -57,19 +57,36 @@ then the existing `PATCH /claims/:id/approve|reject` for actions.
 
 ## Reports queue (`/admin/reports`, MODERATOR+ADMIN)
 
-- `GET /admin/reports?status=PENDING` — reports grouped by `(targetType, targetId)`, sorted by open-report
-  count descending (most-reported target first — there is no severity field on `Report`, so count is the
-  priority signal). Each group includes the target's current summary (business name/slug, review
-  snippet+author, photo url+uploader, reported user) and the list of individual reports.
+- `GET /admin/reports?status=PENDING` — reports grouped by `(targetType, targetId)`, sorted by **distinct
+  reporter count** descending, raw report count as the tiebreaker (Phase 8 — previously raw count only; see
+  [`11-reviews-trust-safety.md`](11-reviews-trust-safety.md#report-handling-upgrades-phase-8), changed so one
+  account repeatedly reporting the same target can't inflate its own priority). Each group includes the
+  target's current summary (business name/slug, review snippet+author, photo url+uploader, reported user) and
+  the list of individual reports — including Phase 8's appeal reports (`reason: 'APPEAL'`), which use this
+  same queue rather than a separate surface.
 - `GET /admin/reports/:id` — single report detail with full target content (drill-in).
-- `PATCH /admin/reports/:id/resolve` — body `{ reason?: string, action?: 'REMOVE_CONTENT'|'BAN_USER'|'NONE' }`
-  (default `NONE`). Sets `status: RESOLVED`. When `action` is `REMOVE_CONTENT`, actually removes the
-  underlying review/photo (via `AdminContentService`); when `BAN_USER`, actually bans the user tied to the
-  report (`reportedUserId`, or the review's author for a REVIEW report). Logs `REPORT_RESOLVED` (metadata
-  records which `action` ran) **and** the underlying action's own log entry (e.g. `REVIEW_REMOVED` or
-  `USER_BANNED`) — two `ModerationLog` rows per resolve-with-action.
+- `PATCH /admin/reports/:id/resolve` — body `{ reason?: string, action?: 'REMOVE_CONTENT'|'BAN_USER'|
+'RESTORE_CONTENT'|'NONE' }` (default `NONE`). Sets `status: RESOLVED`. `REMOVE_CONTENT` removes the
+  underlying review/photo (via `AdminContentService`); `BAN_USER` bans the user tied to the report
+  (`reportedUserId`, or the review's author for a REVIEW report); `RESTORE_CONTENT` (Phase 8 — the "grant an
+  appeal" action) restores it to `PUBLISHED`/`APPROVED` and clears `moderationReason`. Logs `REPORT_RESOLVED`
+  (metadata records which `action` ran) **and** the underlying action's own log entry (e.g. `REVIEW_REMOVED`,
+  `USER_BANNED`, or `REVIEW_RESTORED`) — two `ModerationLog` rows per resolve-with-action.
 - `PATCH /admin/reports/:id/dismiss` — body `{ reason?: string }`. Sets `status: DISMISSED`, logs
   `REPORT_DISMISSED`.
+
+## "Suggest an edit" queue (`/admin/edit-suggestions`, MODERATOR+ADMIN, Phase 8)
+
+- `GET /admin/edit-suggestions?status=&businessId=` — list `BusinessEditSuggestion` rows (structured
+  field/suggested-value corrections submitted from a business profile, tracked separately from abuse
+  `Report`s). Defaults to no filter; the frontend page requests `status=PENDING`.
+- `PATCH /admin/edit-suggestions/:id/resolve` — body `{ status: 'ACCEPTED'|'REJECTED', resolutionNote? }`.
+  Bookkeeping only — does **not** auto-apply `suggestedValue` to the `Business` row (see
+  [`11-reviews-trust-safety.md`](11-reviews-trust-safety.md#suggest-an-edit-phase-8) for why). Logs
+  `EDIT_SUGGESTION_RESOLVED`.
+- The business owner also has a read-only `GET /businesses/:businessId/manage/edit-suggestions`
+  (`BusinessOwnerGuard`) — owner-side resolve isn't built this phase, same "leaner than full spec, noted
+  rather than silently dropped" precedent as Phase 7's business/user detail pages below.
 
 ## Content moderation (`/admin/content`, MODERATOR+ADMIN)
 
@@ -128,8 +145,13 @@ city, area, feature) — `ModerationLog.metadata.kind` disambiguates (`'category
 
 `apps/api/src/integrations/moderation/moderation-log.service.ts` — `ModerationLogService.record({ actorId,
 action, targetType, targetId, reason?, notes?, metadata? })`, a sibling service in the existing
-`ModerationModule` (alongside the pre-existing, still-stubbed `ModerationService.enqueue()` — the two are
-unrelated; see [`11-reviews-trust-safety.md`](11-reviews-trust-safety.md)).
+`ModerationModule` alongside `ModerationService.enqueue()` (Phase 8's real automated scoring pass, not a stub
+anymore — see [`11-reviews-trust-safety.md`](11-reviews-trust-safety.md)) and `ModerationScoringService`.
+
+**`actorId` is nullable as of Phase 8** (`ModerationLog.actorId String?`, migration
+`20260928060715_phase8_trust_safety`) — automated scoring-pipeline actions record `actorId: null` rather than
+being misattributed to a real admin/moderator. The moderation-log viewer (below) shows these as an actor-less
+row; `apps/web`'s table renders "System" when `actorName` is `null`.
 
 `action` is a free-form string, not a Prisma enum (`MODERATION_ACTIONS` const object in the same file) so new
 actions never need a migration. Current vocabulary: `CLAIM_APPROVED`, `CLAIM_REJECTED`, `REVIEW_APPROVED`,
@@ -138,10 +160,13 @@ actions never need a migration. Current vocabulary: `CLAIM_APPROVED`, `CLAIM_REJ
 `BUSINESS_UPDATED`, `BUSINESS_SOFT_DELETED`, `BUSINESS_RESTORED`, `USER_BANNED`, `USER_UNBANNED`,
 `USER_ROLE_CHANGED`, `REPORT_RESOLVED`, `REPORT_DISMISSED`, `CATEGORY_CREATED/UPDATED/DELETED`,
 `PROVINCE_CREATED/UPDATED/DELETED`, `CITY_CREATED/UPDATED/DELETED`, `AREA_CREATED/UPDATED/DELETED`,
-`FEATURE_CREATED/UPDATED/DELETED`.
+`FEATURE_CREATED/UPDATED/DELETED`, plus Phase 8's `REVIEW_AUTO_HELD`, `REVIEW_AUTO_APPROVED`,
+`PHOTO_AUTO_HELD`, `PHOTO_AUTO_APPROVED`, `SELF_REVIEW_BLOCKED`, `EDIT_SUGGESTION_CREATED`,
+`EDIT_SUGGESTION_RESOLVED` (all `actorId: null` except the last).
 
 `GET /admin/moderation-log?actorId=&targetType=&targetId=&action=&from=&to=` (MODERATOR+ADMIN) — paginated,
-read-only, newest-first, joins `actor.name` for display.
+read-only, newest-first, joins `actor.name` for display (`null` for automated rows).
+`ModerationTargetType` also gained `EDIT_SUGGESTION` this phase.
 
 ## Confirmation-required actions
 

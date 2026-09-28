@@ -7,8 +7,10 @@ import {
   Post,
   Put,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { z } from 'zod';
 import type {
   BusinessReview,
@@ -23,6 +25,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { VerifiedEmailGuard } from '../../common/guards/verified-email.guard';
 import { BusinessOwnerGuard } from '../../common/guards/business-owner.guard';
+import { getClientIp } from '../../common/utils/client-ip';
 import { ReviewsService } from './reviews.service';
 
 const myHelpfulVotesQuerySchema = z.object({ businessId: z.string().uuid() });
@@ -38,8 +41,14 @@ export class ReviewsController {
     @Param('businessId') businessId: string,
     @Body(new ZodValidationPipe(createReviewRequestSchema))
     body: CreateReviewRequest,
+    @Req() req: Request,
   ): Promise<BusinessReview> {
-    return this.reviewsService.createOrUpdate(userId, businessId, body);
+    return this.reviewsService.createOrUpdate(
+      userId,
+      businessId,
+      body,
+      getClientIp(req),
+    );
   }
 
   @Get('businesses/:businessId/review/mine')

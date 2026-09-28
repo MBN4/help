@@ -46,7 +46,9 @@ export class AdminModerationLogController {
       data: entries.map((entry) => ({
         id: entry.id,
         actorId: entry.actorId,
-        actorName: entry.actor.name,
+        // `actor` is null for Phase 8's automated scoring-pipeline actions (`actorId: null`) — shown as
+        // "System" by the admin frontend rather than crashing on a missing relation.
+        actorName: entry.actor?.name ?? null,
         action: entry.action,
         targetType: entry.targetType,
         targetId: entry.targetId,

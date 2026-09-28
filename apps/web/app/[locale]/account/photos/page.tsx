@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { getMyPhotos } from '@/lib/api';
 import { Link } from '@/i18n/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ModerationStatusBanner } from '@/components/moderation/moderation-status-banner';
 
 export default function AccountPhotosPage(): React.ReactElement {
   const t = useTranslations('account');
@@ -21,7 +22,7 @@ export default function AccountPhotosPage(): React.ReactElement {
       {!isLoading && data?.length === 0 && (
         <p className="text-muted-foreground">{t('photosEmpty')}</p>
       )}
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {data?.map((photo) => {
           const image = (
             <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
@@ -34,12 +35,20 @@ export default function AccountPhotosPage(): React.ReactElement {
               />
             </div>
           );
-          return photo.business ? (
-            <Link key={photo.id} href={`/business/${photo.business.slug}`}>
-              {image}
-            </Link>
-          ) : (
-            <div key={photo.id}>{image}</div>
+          return (
+            <div key={photo.id} className="space-y-1.5">
+              {photo.business ? (
+                <Link href={`/business/${photo.business.slug}`}>{image}</Link>
+              ) : (
+                image
+              )}
+              <ModerationStatusBanner
+                targetType="PHOTO"
+                targetId={photo.id}
+                status={photo.status}
+                moderationReason={photo.moderationReason}
+              />
+            </div>
           );
         })}
       </div>

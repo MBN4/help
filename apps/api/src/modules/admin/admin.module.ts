@@ -3,6 +3,7 @@ import { GeoModule } from '../geo/geo.module';
 import { DiscoveryModule } from '../discovery/discovery.module';
 import { ModerationModule } from '../../integrations/moderation/moderation.module';
 import { RevalidateModule } from '../../integrations/revalidate/revalidate.module';
+import { MailModule } from '../../integrations/mail/mail.module';
 import { AuthModule } from '../auth/auth.module';
 import { AdminController } from './admin.controller';
 import { AdminDashboardController } from './admin-dashboard.controller';
@@ -18,6 +19,8 @@ import { AdminUsersService } from './admin-users.service';
 import { AdminTaxonomyController } from './admin-taxonomy.controller';
 import { AdminTaxonomyService } from './admin-taxonomy.service';
 import { AdminModerationLogController } from './admin-moderation-log.controller';
+import { AdminEditSuggestionsController } from './admin-edit-suggestions.controller';
+import { EditSuggestionsModule } from '../edit-suggestions/edit-suggestions.module';
 
 @Module({
   imports: [
@@ -25,7 +28,9 @@ import { AdminModerationLogController } from './admin-moderation-log.controller'
     DiscoveryModule,
     ModerationModule,
     RevalidateModule,
+    MailModule,
     AuthModule,
+    EditSuggestionsModule,
   ],
   controllers: [
     AdminController,
@@ -36,6 +41,7 @@ import { AdminModerationLogController } from './admin-moderation-log.controller'
     AdminUsersController,
     AdminTaxonomyController,
     AdminModerationLogController,
+    AdminEditSuggestionsController,
   ],
   providers: [
     AdminDashboardService,

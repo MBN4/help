@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 import { StorageModule } from '../../integrations/storage/storage.module';
 import { ModerationModule } from '../../integrations/moderation/moderation.module';
+import { MailModule } from '../../integrations/mail/mail.module';
 import { PhotosController } from './photos.controller';
 import { PhotosService } from './photos.service';
 
 @Module({
-  imports: [StorageModule, ModerationModule],
+  imports: [StorageModule, ModerationModule, MailModule],
   controllers: [PhotosController],
   providers: [PhotosService],
   exports: [PhotosService],
