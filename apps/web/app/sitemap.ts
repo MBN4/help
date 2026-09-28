@@ -13,8 +13,12 @@ function flattenCategorySlugs(nodes: CategoryNode[]): string[] {
 
 /**
  * Search results are capped at MAX_PER_PAGE (50) per request server-side (docs/09-search-discovery.md),
- * so every published business is paginated through here. A single sitemap file supports up to 50,000 URLs;
- * split into `generateSitemaps()`-backed multiple files if the catalog ever approaches that.
+ * so every published business is paginated through here. A single sitemap file supports up to 50,000 URLs
+ * (the hard limit `generateSitemaps()` exists to split around). At current scale this sitemap totals
+ * roughly 986 URLs (16 cities × ~60 categories = ~960, plus 2 static entries and the current business
+ * count), under 2% of the limit. Revisit `generateSitemaps()` once the published business count exceeds
+ * ~30,000 (city/category URLs alone would need 800+ cities to threaten the limit on their own, so
+ * businesses are the realistic growth driver here).
  */
 async function allBusinessSlugs(): Promise<string[]> {
   const slugs: string[] = [];

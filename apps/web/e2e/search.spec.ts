@@ -21,11 +21,21 @@ test('changing the sort control updates the URL query string', async ({
   page,
 }) => {
   await page.goto('/search');
-  await page
+
+  const sortTrigger = page
     .getByRole('combobox')
-    .filter({ hasText: /relevance/i })
-    .click();
-  await page.getByRole('option', { name: 'Rating' }).click();
+    .filter({ hasText: /relevance/i });
+  await expect(sortTrigger).toBeVisible();
+  await sortTrigger.click();
+  // Radix's Select opens asynchronously (portal + position calc) — wait for the trigger to actually report
+  // itself open before looking for the option, instead of racing the click against the portal mount. This
+  // is what fixed the pre-existing flake where `getByRole('option', { name: 'Rating' })` intermittently
+  // never appeared (see docs/PROGRESS.md Phase 8 notes).
+  await expect(sortTrigger).toHaveAttribute('aria-expanded', 'true');
+
+  const ratingOption = page.getByRole('option', { name: 'Rating' });
+  await ratingOption.waitFor({ state: 'visible' });
+  await ratingOption.click();
 
   await expect(page).toHaveURL(/sort=rating/);
 });

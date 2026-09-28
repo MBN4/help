@@ -39,6 +39,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { LazyMapView } from '@/components/map/lazy-map-view';
+import { TrackEvent } from '@/components/analytics/track-event';
 
 export const revalidate = 600;
 
@@ -124,6 +125,10 @@ export default async function BusinessProfilePage({
 
   return (
     <div className="container space-y-8 py-6">
+      <TrackEvent
+        event="business viewed"
+        properties={{ businessId: business.id, slug: business.slug }}
+      />
       <Breadcrumb items={breadcrumbItems} />
       <JsonLd data={breadcrumbListJsonLd(breadcrumbLinks)} />
       <JsonLd data={localBusinessJsonLd(business, photos[0]?.url)} />

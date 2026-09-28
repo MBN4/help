@@ -2,7 +2,9 @@ import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { getCategoryTree, getCities, getHomeDiscovery } from '@/lib/api';
 import { DEFAULT_CITY_SLUG } from '@/lib/constants';
-import { buildMetadata } from '@/lib/seo/metadata';
+import { buildMetadata, SITE_URL } from '@/lib/seo/metadata';
+import { itemListJsonLd } from '@/lib/seo/json-ld';
+import { JsonLd } from '@/components/seo/json-ld';
 import { Link } from '@/i18n/navigation';
 import { SearchBar } from '@/components/search/search-bar';
 import { BusinessCard } from '@/components/business/business-card';
@@ -69,8 +71,29 @@ export default async function HomePage({
     return 0;
   });
 
+  const featuredForJsonLd = [
+    ...discovery.featured,
+    ...discovery.trending,
+  ].slice(0, 10);
+
   return (
     <div className="container space-y-10 py-8">
+      <JsonLd
+        data={{
+          '@context': 'https://schema.org',
+          '@type': 'WebSite',
+          name: t('metaTitle'),
+          url: SITE_URL,
+          potentialAction: {
+            '@type': 'SearchAction',
+            target: `${SITE_URL}/search?q={search_term_string}`,
+            'query-input': 'required name=search_term_string',
+          },
+        }}
+      />
+      {featuredForJsonLd.length > 0 && (
+        <JsonLd data={itemListJsonLd(featuredForJsonLd)} />
+      )}
       <section className="space-y-4 text-center">
         <h1 className="text-3xl font-bold sm:text-4xl">{t('heroTitle')}</h1>
         <p className="text-muted-foreground">{t('heroSubtitle')}</p>
