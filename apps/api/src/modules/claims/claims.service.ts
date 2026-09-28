@@ -4,6 +4,7 @@ import type { Claim, CreateClaimRequest } from '@buisnez/shared';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppException } from '../../common/exceptions/app.exception';
 import { MailService } from '../../integrations/mail/mail.service';
+import { AnalyticsService } from '../../integrations/analytics/analytics.service';
 import {
   ModerationLogService,
   MODERATION_ACTIONS,
@@ -15,6 +16,7 @@ export class ClaimsService {
     private readonly prisma: PrismaService,
     private readonly moderationLog: ModerationLogService,
     private readonly mail: MailService,
+    private readonly analytics: AnalyticsService,
   ) {}
 
   async create(userId: string, input: CreateClaimRequest): Promise<Claim> {
@@ -51,6 +53,10 @@ export class ClaimsService {
         message: input.message ?? null,
         documentUrl: input.documentUrl ?? null,
       },
+    });
+    this.analytics.capture('claim_submitted', userId, {
+      claimId: claim.id,
+      businessId: input.businessId,
     });
     return this.toClaim(claim);
   }
@@ -157,6 +163,11 @@ export class ClaimsService {
       updated.businessName,
       'approved',
     );
+    this.analytics.capture('claim_approved', actorId, {
+      claimId,
+      businessId: claim.businessId,
+      claimantUserId: claim.userId,
+    });
 
     return this.toClaim(updated.approved);
   }

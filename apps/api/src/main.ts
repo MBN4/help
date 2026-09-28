@@ -1,7 +1,17 @@
 import cookieParser from 'cookie-parser';
 import { NestFactory } from '@nestjs/core';
 import helmet from 'helmet';
+import * as Sentry from '@sentry/node';
 import { AppModule } from './app.module';
+
+// Error tracking is opt-in: no `SENTRY_DSN` means no Sentry init at all, same "stub until credentialed"
+// pattern as OAuth/mail (see AllExceptionsFilter's SentryService for where captured exceptions go).
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV ?? 'development',
+  });
+}
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
