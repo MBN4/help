@@ -4,18 +4,22 @@ import * as React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import {
+  createArea,
   createCategory,
   createCity,
   createFeature,
   createProvince,
+  deleteArea,
   deleteCategory,
   deleteCity,
   deleteFeature,
   deleteProvince,
+  getAreas,
   getCategoryTree,
   getCities,
   getFeatures,
   getProvinces,
+  updateArea,
   updateCategory,
 } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -100,7 +104,7 @@ function CategoriesSection(): React.ReactElement {
               key={node.id}
               className="flex items-center justify-between text-sm"
             >
-              <span className={node.isChild ? 'pl-4' : ''}>{node.name}</span>
+              <span className={node.isChild ? 'ps-4' : ''}>{node.name}</span>
               <div className="flex gap-1">
                 <Button
                   size="sm"
@@ -315,6 +319,169 @@ function CitiesSection(): React.ReactElement {
   );
 }
 
+function AreasSection(): React.ReactElement {
+  const t = useTranslations('admin');
+  const queryClient = useQueryClient();
+  const { data: citiesData } = useQuery({
+    queryKey: ['cities'],
+    queryFn: () => getCities(),
+  });
+  const [cityId, setCityId] = React.useState('');
+  const selectedCity = (citiesData?.data ?? []).find((c) => c.id === cityId);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['areas', selectedCity?.slug],
+    queryFn: () => getAreas(selectedCity?.slug ?? ''),
+    enabled: !!selectedCity,
+  });
+
+  const [name, setName] = React.useState('');
+  const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [editingName, setEditingName] = React.useState('');
+
+  const invalidate = (): Promise<void> =>
+    queryClient
+      .invalidateQueries({ queryKey: ['areas', selectedCity?.slug] })
+      .then(() => undefined);
+
+  const createMutation = useMutation({
+    mutationFn: () => createArea({ name, slug: slugify(name), cityId }),
+    onSuccess: () => {
+      setName('');
+      return invalidate();
+    },
+  });
+  const updateMutation = useMutation({
+    mutationFn: ({ id, name: newName }: { id: string; name: string }) =>
+      updateArea(id, { name: newName, slug: slugify(newName) }),
+    onSuccess: () => {
+      setEditingId(null);
+      return invalidate();
+    },
+  });
+  const deleteMutation = useMutation({
+    mutationFn: deleteArea,
+    onSuccess: invalidate,
+  });
+
+  return (
+    <Card data-testid="taxonomy-areas">
+      <CardHeader>
+        <CardTitle>{t('taxonomy.areas')}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <select
+          className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+          value={cityId}
+          onChange={(e) => {
+            setCityId(e.target.value);
+            setEditingId(null);
+          }}
+          data-testid="taxonomy-areas-city-select"
+        >
+          <option value="">{t('taxonomy.selectCity')}</option>
+          {(citiesData?.data ?? []).map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+
+        {!selectedCity ? (
+          <p className="text-sm text-muted-foreground">
+            {t('taxonomy.selectCityPrompt')}
+          </p>
+        ) : isLoading ? (
+          <Skeleton className="h-24 w-full" />
+        ) : (
+          <>
+            <div className="flex gap-2">
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={t('taxonomy.name')}
+                data-testid="taxonomy-areas-name"
+              />
+              <Button
+                size="sm"
+                onClick={() => createMutation.mutate()}
+                disabled={!name}
+                data-testid="taxonomy-areas-add"
+              >
+                {t('taxonomy.add')}
+              </Button>
+            </div>
+            <ul className="space-y-1">
+              {(data?.data ?? []).map((a) => (
+                <li
+                  key={a.id}
+                  className="flex items-center justify-between gap-2 text-sm"
+                >
+                  {editingId === a.id ? (
+                    <>
+                      <Input
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        className="h-8"
+                        data-testid="taxonomy-areas-edit-input"
+                      />
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          onClick={() =>
+                            updateMutation.mutate({
+                              id: a.id,
+                              name: editingName,
+                            })
+                          }
+                          disabled={!editingName}
+                          data-testid="taxonomy-areas-edit-save"
+                        >
+                          {t('taxonomy.save')}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setEditingId(null)}
+                        >
+                          {t('taxonomy.cancel')}
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <span>{a.name}</span>
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setEditingId(a.id);
+                            setEditingName(a.name);
+                          }}
+                        >
+                          {t('taxonomy.edit')}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => deleteMutation.mutate(a.id)}
+                        >
+                          {t('taxonomy.delete')}
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function FeaturesSection(): React.ReactElement {
   const t = useTranslations('admin');
   const queryClient = useQueryClient();
@@ -394,6 +561,7 @@ export default function AdminTaxonomyPage(): React.ReactElement {
         <CategoriesSection />
         <ProvincesSection />
         <CitiesSection />
+        <AreasSection />
         <FeaturesSection />
       </div>
     </div>
