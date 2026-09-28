@@ -1,5 +1,7 @@
 import createNextIntlPlugin from 'next-intl/plugin';
-import { withSentryConfig } from '@sentry/nextjs';
+// @sentry/nextjs@11 moved the build-time config wrapper to the `/config` subpath — it isn't part of the
+// top-level package export (that's the runtime SDK only).
+import { withSentryConfig } from '@sentry/nextjs/config';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 

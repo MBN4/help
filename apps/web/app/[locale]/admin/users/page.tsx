@@ -105,7 +105,10 @@ export default function AdminUsersPage(): React.ReactElement {
                       roleMutation.mutate({ id: user.id, role })
                     }
                   >
-                    <SelectTrigger className="w-40">
+                    <SelectTrigger
+                      className="w-40"
+                      aria-label={t('users.roleLabel')}
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

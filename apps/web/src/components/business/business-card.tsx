@@ -23,7 +23,11 @@ export function BusinessCard({
 
   return (
     <Card className="group overflow-hidden transition-shadow hover:shadow-md">
-      <Link href={`/business/${business.slug}`} className="block">
+      <Link
+        href={`/business/${business.slug}`}
+        className="block"
+        aria-label={business.name}
+      >
         <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
           {business.thumbnailUrl ? (
             <Image

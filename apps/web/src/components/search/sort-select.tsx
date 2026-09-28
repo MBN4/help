@@ -43,7 +43,7 @@ export function SortSelect({
         )
       }
     >
-      <SelectTrigger className="w-44">
+      <SelectTrigger className="w-44" aria-label={t('sortBy')}>
         <SelectValue placeholder={t('sortBy')}>
           {currentLabel ? t(currentLabel) : undefined}
         </SelectValue>

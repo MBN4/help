@@ -107,7 +107,7 @@ export function CoreInfoForm({
       <div className="space-y-1.5">
         <Label>{t('info.categoryLabel')}</Label>
         <Select value={categoryId} onValueChange={setCategoryId}>
-          <SelectTrigger>
+          <SelectTrigger aria-label={t('info.categoryLabel')}>
             <SelectValue>
               {flatCategories.find((c) => c.id === categoryId)?.name}
             </SelectValue>

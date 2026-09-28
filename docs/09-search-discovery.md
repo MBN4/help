@@ -131,3 +131,24 @@ Cached in Redis (`discovery:home`, TTL 10 minutes) via `DiscoveryService`. Phase
 write endpoints, so time-based expiry is the only invalidation path for now;
 `DiscoveryService.invalidateHomeCache()` exists for Phase 3+ write endpoints (new business published, review
 posted, etc.) to call directly.
+
+## Search result caching and indexes (Phase 9)
+
+`SearchService.search()` and its helper listings (`listTrending`/`listHighlyRated`/`listFeatured`/
+`listRecent`/`listSimilar`) are now cached in Redis with a 60-second TTL (was fully uncached — the highest-
+traffic query in the API had zero caching until this phase). Cache key is derived from the normalized,
+stably-sorted query params (so `?priceLevel=2,1` and `?priceLevel=1,2` share a cache entry). TTL is
+deliberately short: there's no write-side invalidation hook for arbitrary search result sets (unlike the
+homepage's `invalidateHomeCache()`), so freshness is bounded purely by time. `listSimilar` benefits from this
+too even though it's only reused (not itself cached before) — every business profile page load calls it.
+
+Two composite indexes were added (migration `20260928101744_phase9_search_perf_indexes`) targeting the two
+raw-SQL hot paths in `SearchService`'s main query: `Review(businessId, status)` (the correlated review
+aggregate) and `Photo(businessId, status, createdAt)` (the LATERAL "first approved photo" subquery). Measured
+via `EXPLAIN ANALYZE` against a bulk-loaded copy of the seeded DB (the real seed is too small to show a
+planner difference): the `Photo` index is a real, immediate win (turns a bitmap scan + explicit sort into a
+single index scan, removing a `Sort` node per business row). The `Review` index is _not_ picked up by the
+planner for this specific query shape at this data distribution — Postgres correctly prefers a sequential
+scan over the whole table when ~90% of rows match the filter. Still correctly added (schema consistency,
+useful at more selective access patterns), just don't assume it's measurably helping _this_ query without
+re-measuring at real production data volume.

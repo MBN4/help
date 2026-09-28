@@ -70,7 +70,7 @@ export default function AdminUserDetailPage(): React.ReactElement {
             defaultValue={currentRole}
             onValueChange={(role) => roleMutation.mutate(role)}
           >
-            <SelectTrigger className="w-56">
+            <SelectTrigger className="w-56" aria-label={t('users.roleLabel')}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

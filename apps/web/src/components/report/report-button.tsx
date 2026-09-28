@@ -117,7 +117,7 @@ export function ReportButton({
                 value={reason}
                 onValueChange={(value) => setReason(value as UserReportReason)}
               >
-                <SelectTrigger>
+                <SelectTrigger aria-label={t('reasonLabel')}>
                   <SelectValue>
                     {t(
                       REASONS.find((r) => r.value === reason)?.labelKey ??

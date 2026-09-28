@@ -90,7 +90,7 @@ export function FilterPanel(): React.ReactElement {
           value={category}
           onValueChange={(value) => apply({ category: value })}
         >
-          <SelectTrigger>
+          <SelectTrigger aria-label={t('category')}>
             <SelectValue placeholder={t('allCategories')}>
               {categories?.find((node) => node.slug === category)?.name}
             </SelectValue>
@@ -111,7 +111,7 @@ export function FilterPanel(): React.ReactElement {
           value={city}
           onValueChange={(value) => apply({ city: value, area: undefined })}
         >
-          <SelectTrigger>
+          <SelectTrigger aria-label={t('city')}>
             <SelectValue placeholder={t('allCities')}>
               {cities?.find((c) => c.slug === city)?.name}
             </SelectValue>
@@ -133,7 +133,7 @@ export function FilterPanel(): React.ReactElement {
             value={area}
             onValueChange={(value) => apply({ area: value })}
           >
-            <SelectTrigger>
+            <SelectTrigger aria-label={t('area')}>
               <SelectValue placeholder={t('allAreas')}>
                 {areas?.find((a) => a.slug === area)?.name}
               </SelectValue>
@@ -155,7 +155,7 @@ export function FilterPanel(): React.ReactElement {
           value={minRating}
           onValueChange={(value) => apply({ minRating: value })}
         >
-          <SelectTrigger>
+          <SelectTrigger aria-label={t('minRating')}>
             <SelectValue placeholder={t('anyRating')}>
               {minRating ? t('ratingAndUp', { rating: minRating }) : undefined}
             </SelectValue>

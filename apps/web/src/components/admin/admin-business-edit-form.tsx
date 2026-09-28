@@ -157,7 +157,7 @@ export function AdminBusinessEditForm({
       <div className="space-y-1.5">
         <Label>{t('businesses.categoryLabel')}</Label>
         <Select value={categoryId} onValueChange={setCategoryId}>
-          <SelectTrigger>
+          <SelectTrigger aria-label={t('businesses.categoryLabel')}>
             <SelectValue>
               {flatCategories.find((c) => c.id === categoryId)?.name}
             </SelectValue>
@@ -177,7 +177,7 @@ export function AdminBusinessEditForm({
         <div className="space-y-1.5">
           <Label>{t('businesses.provinceLabel')}</Label>
           <Select value={provinceId} onValueChange={setProvinceId}>
-            <SelectTrigger>
+            <SelectTrigger aria-label={t('businesses.provinceLabel')}>
               <SelectValue>
                 {
                   (provincesData?.data ?? []).find((p) => p.id === provinceId)
@@ -205,7 +205,7 @@ export function AdminBusinessEditForm({
               setAreaId('');
             }}
           >
-            <SelectTrigger>
+            <SelectTrigger aria-label={t('businesses.cityLabel')}>
               <SelectValue>
                 {(citiesData?.data ?? []).find((c) => c.id === cityId)?.name}
               </SelectValue>
@@ -227,7 +227,7 @@ export function AdminBusinessEditForm({
               setAreaId(value === '__none__' ? '' : value)
             }
           >
-            <SelectTrigger>
+            <SelectTrigger aria-label={t('businesses.areaLabel')}>
               <SelectValue>
                 {areaId
                   ? (areasData?.data ?? []).find((a) => a.id === areaId)?.name

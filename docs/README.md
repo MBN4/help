@@ -59,6 +59,8 @@ Copy `.env.example` files to local environment files as needed. Secrets must nev
 - [`09-search-discovery.md`](09-search-discovery.md): search query params, relevance/rating scoring, homepage discovery blocks.
 - [`10-auth-roles.md`](10-auth-roles.md): roles, JWT/refresh-token design, auth endpoints, guards.
 - [`11-reviews-trust-safety.md`](11-reviews-trust-safety.md): reviews, photo uploads, favourites, helpful votes, reports, OAuth.
+- [`12-admin-panel.md`](12-admin-panel.md): admin/moderation roles, claims/reports/content/business/user/taxonomy endpoints.
+- [`13-devops-deployment.md`](13-devops-deployment.md): local stack, env vars, Google Maps/storage provisioning, observability, test isolation.
 - [`15-conventions.md`](15-conventions.md): coding and architecture conventions.
 - [`16-ai-prompts.md`](16-ai-prompts.md): phase-by-phase build prompts for AI-assisted development.
 - [`PROGRESS.md`](PROGRESS.md): current phase status and verified versions.

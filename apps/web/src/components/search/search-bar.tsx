@@ -51,7 +51,10 @@ export function SearchBar(): React.ReactElement {
       </div>
 
       <Select value={category} onValueChange={setCategory}>
-        <SelectTrigger className="sm:w-44">
+        <SelectTrigger
+          className="sm:w-44"
+          aria-label={t('search.allCategories')}
+        >
           <SelectValue placeholder={t('search.allCategories')} />
         </SelectTrigger>
         <SelectContent>
@@ -64,7 +67,7 @@ export function SearchBar(): React.ReactElement {
       </Select>
 
       <Select value={city} onValueChange={setCity}>
-        <SelectTrigger className="sm:w-40">
+        <SelectTrigger className="sm:w-40" aria-label={t('search.allCities')}>
           <SelectValue placeholder={t('search.allCities')} />
         </SelectTrigger>
         <SelectContent>

@@ -85,8 +85,8 @@ then the existing `PATCH /claims/:id/approve|reject` for actions.
   [`11-reviews-trust-safety.md`](11-reviews-trust-safety.md#suggest-an-edit-phase-8) for why). Logs
   `EDIT_SUGGESTION_RESOLVED`.
 - The business owner also has a read-only `GET /businesses/:businessId/manage/edit-suggestions`
-  (`BusinessOwnerGuard`) — owner-side resolve isn't built this phase, same "leaner than full spec, noted
-  rather than silently dropped" precedent as Phase 7's business/user detail pages below.
+  (`BusinessOwnerGuard`) — owner-side resolve isn't built, a deliberately leaner-than-full-spec scope call
+  (see `docs/PROGRESS.md`'s Phase 8 entry).
 
 ## Content moderation (`/admin/content`, MODERATOR+ADMIN)
 
@@ -113,6 +113,12 @@ creation path, per the Phase 6 brief), `PATCH :id` (generic edit incl. `ownerId`
 and `isVerified` stay on their dedicated endpoints for clear audit-log action names), `DELETE :id`
 (soft-delete: `deletedAt = now()`, never a real row delete), `POST :id/restore`.
 
+**Frontend, Phase 9**: `admin/businesses/[businessId]` was a read-only JSON viewer through Phase 7/8 (this
+generic `PATCH :id` endpoint existed and was tested at the API layer, but no form called it). It now has a
+real edit form (`AdminBusinessEditForm`) covering name/description/category/province/city/area/address/
+contact fields. Similarly, `admin/users/[userId]` gained a role-change control wired to `PATCH :id/role`
+(ban/unban were already on the users list page, not duplicated here).
+
 **Public read paths updated to exclude soft-deleted businesses** (`deletedAt: null`):
 `BusinessesService` (profile/reviews/photos/similar), `SearchService` (search + all discovery-block
 queries), `DiscoveryService`'s featured block additionally now respects the `featuredFrom`/`featuredUntil`
@@ -130,7 +136,11 @@ access to the endpoint itself).
 
 ## Taxonomy admin (`/admin/taxonomy`, ADMIN-only)
 
-Categories/provinces/cities/areas/features, each with `POST`/`PATCH`/`DELETE`. Deletes are blocked (409) if
+Categories/provinces/cities/areas/**features**/**areas** (Phase 9: the frontend `AreasSection` — city
+selector + list + create/rename/delete — was added; the backend areas endpoints already existed since
+Phase 7 but had no UI and, despite an earlier progress-log claim, no real test coverage either. Both gaps
+are closed: UI is live, and `apps/api/test/admin-taxonomy.e2e-spec.ts` covers create/update/delete/RBAC
+against a self-seeded fixture city). Each section has `POST`/`PATCH`/`DELETE`. Deletes are blocked (409) if
 the row is referenced by a child row or a business (categories: child categories or businesses; provinces:
 cities; cities: businesses or areas; areas: businesses) — never cascade-deletes real business data.
 `Category.order` (pre-existing field, not new) is the sort/reorder key — no new `sortOrder` column was

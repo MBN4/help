@@ -115,13 +115,19 @@ draft was removed — there's no token for the web client to hold, by design.
 - `src/lib/seo/json-ld.ts` — `localBusinessJsonLd` (with nested `AggregateRating`), `breadcrumbListJsonLd`,
   `itemListJsonLd`, `reviewsJsonLd`. Rendered via the `<JsonLd>` component (`src/components/seo/json-ld.tsx`).
 - `app/sitemap.ts` — one sitemap covering the homepage, `/search`, every city, every city×category
-  combination, and every `PUBLISHED` business (paginated internally through the API's 50-per-page cap). Split
-  into `generateSitemaps()`-backed multiple files if the catalog ever approaches the 50,000-URL single-file
-  limit — not needed at current/foreseeable scale.
+  combination, and every `PUBLISHED` business (paginated internally through the API's 50-per-page cap).
+  ~986 URLs at current seed scale (16 cities × ~60 categories + statics + businesses), well under the
+  50,000-URL single-file limit. Revisit `generateSitemaps()`-backed multiple files once published business
+  count approaches ~30,000 (Phase 9).
 - `app/robots.ts` — allows `/`, disallows `/api/`, points at `/sitemap.xml`.
 - `app/api/revalidate/route.ts` — `POST`, header or query param `secret` checked against `REVALIDATE_SECRET`;
-  revalidates `/`, `/business/:slug`, `/:city`, `/:city/:category` as given in the body. No caller exists yet
-  (Phase 2 has no business-mutation endpoints) — this is the seam for one.
+  revalidates `/`, `/business/:slug`, `/:city`, `/:city/:category` as given in the body. **Has real callers**
+  (Phase 9 correction — this was stale): `RevalidateService.revalidate()`
+  (`apps/api/src/integrations/revalidate/revalidate.service.ts`) is called from every business-owner mutation
+  (info/hours/features/location/services/photos/replies, via a shared `revalidateAfterWrite()` helper in
+  `business-owner.service.ts`) and from `reviews.service.ts`'s create/update path.
+- Homepage (`app/[locale]/page.tsx`) emits `WebSite` (with a `SearchAction`) + `ItemList` JSON-LD of its
+  featured/trending businesses (Phase 9) — it previously emitted none, unlike every other major page.
 
 ## Maps
 
@@ -132,6 +138,38 @@ and business profile both work fully either way. It's always wrapped through `La
 (`next/dynamic(..., { ssr: false })`) since Next.js forbids `ssr: false` dynamic imports directly inside a
 Server Component; `LazyMapView` is the `'use client'` boundary that makes that legal. "Get directions" always
 links to Google Maps (coordinates if known, else an address-text search) regardless of map availability.
+
+## Hardening (Phase 9)
+
+- **Loading/error/not-found boundaries**: `search`, `business/[slug]`, `[city]`, `[city]/[category]`, and
+  `account` each have an `error.tsx` (client component, friendly translated copy via the `errors` i18n
+  namespace) and a `not-found.tsx` where the segment calls `notFound()`. **`business/[slug]`, `[city]`, and
+  `[city]/[category]` deliberately have no `loading.tsx`**: Next.js auto-wraps a route with `loading.tsx` in
+  a Suspense boundary, which sends the loading shell with HTTP `200` before an inner `notFound()` resolves —
+  the response status is already committed by the time the real 404 renders, so a genuinely-missing business/
+  city/category would incorrectly report `200` to crawlers. Confirmed via a real production build, not just
+  dev mode. `search` and `account` don't call `notFound()`, so they keep their `loading.tsx`.
+- **Accessibility — Radix `Select`/`role="combobox"` requires `aria-label`, not just visible text.** Per the
+  ARIA spec, `combobox` is "Name from: author" — an element's own rendered text does not contribute to its
+  accessible name the way it does for most roles. Every `SelectTrigger` in this codebase (SearchBar,
+  FilterPanel, SortSelect, admin forms, report reason picker, user role-change) now sets an explicit
+  `aria-label`; add one on every new `SelectTrigger` going forward, even though the trigger visibly shows its
+  selected value/placeholder. Caught by `@axe-core/playwright`'s `button-name` rule (critical), not by
+  manual review. `apps/web/e2e/a11y.spec.ts` runs axe against homepage/search/business profile/account/admin
+  pre-auth — CI-relevant: keep serious/critical violations at zero.
+- **Lazy loading**: `PinDropMap` (business-owner editor) is now `next/dynamic(..., { ssr: false })` via
+  `LazyPinDropMap`, same pattern as `LazyMapView`.
+- **Images**: `next.config.mjs` enables `formats: ['image/avif', 'image/webp']` and sets `deviceSizes`/
+  `imageSizes` matched to this app's actual rendered widths (`BusinessCard`'s grid `sizes`, `PhotoGallery`'s
+  thumbnails). `images.remotePatterns`' MinIO/R2 entry is now built from one env var,
+  `NEXT_PUBLIC_S3_PUBLIC_HOST` (`host:port`), instead of a hardcoded port — see
+  [`13-devops-deployment.md`](13-devops-deployment.md).
+- **Web observability**: `@sentry/nextjs` (`sentry.{client,server,edge}.config.ts`, `instrumentation.ts`)
+  and `posthog-js` (`src/lib/analytics/posthog.ts`, `PostHogProvider` in the root `[locale]` layout), both
+  fully inert without `NEXT_PUBLIC_SENTRY_DSN`/`NEXT_PUBLIC_POSTHOG_KEY` — same "stub until credentialed" bar
+  as OAuth/Maps. `next.config.mjs` is wrapped with `withSentryConfig` from `@sentry/nextjs/config` (the
+  top-level `@sentry/nextjs` package export is the runtime SDK only, not the build-time config wrapper — an
+  easy mistake, note it here).
 
 ## Core presentational components
 

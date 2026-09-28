@@ -11,6 +11,8 @@
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "test": "turbo test",
+    "test:e2e:reset": "bash scripts/reset-test-env.sh",
+    "test:e2e:all": "pnpm --filter @buisnez/api test:e2e && pnpm --filter @buisnez/web test",
     "prepare": "husky"
   },
   "devDependencies": {

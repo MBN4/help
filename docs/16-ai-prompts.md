@@ -237,13 +237,54 @@ a clear block message instead of the review form; `pnpm lint && pnpm typecheck &
 
 - e2e green (46 tests across auth + contributions).
 
-## Phase 6+ (placeholders — write in full before starting each one)
+## Phase 6 — Business owner experience
 
-- **Business write endpoints**: authenticated business creation (unclaimed by default) and owner-scoped
-  editing, wired to `GeoService.geocodeAddress` on write.
-- **Claims, reports & admin moderation**: claim workflow (submit/approve/reject), the automated content-flag
-  pass noted as a Phase 5 `TODO`, admin review of reports filed in Phase 5, admin endpoints gated by
-  `RolesGuard`/`ADMIN` including setting `Business.featured`.
+Ownership model: `Business.ownerId` is the sole authorization source (never `Role`). Claims module
+(submit/approve/reject), business-owner write endpoints (info/hours/features/location/services/photos/
+review replies), `GeoService.setBusinessLocation`, pin-drop map editor with a manual lat/lng fallback. Full
+detail: `docs/PROGRESS.md`'s Phase 6 entry.
 
-Each of these gets its own fully-specified prompt section, written just before that phase starts, following
-the same structure as Phase 1/2 (goal, numbered steps, acceptance criteria) — not invented in advance.
+## Phase 7 — Admin & moderation
+
+`MODERATOR` role, ban/unban with immediate token revocation, full `/admin/*` surface (dashboard, claims,
+reports, content moderation, businesses, users, taxonomy, moderation log), soft-delete. See
+[`12-admin-panel.md`](12-admin-panel.md) and `docs/PROGRESS.md`'s Phase 7 entry.
+
+## Phase 8 — Trust, safety & anti-spam
+
+Rule-based content moderation scoring (replaces the Phase 5/7 no-op auto-approve), verified-reviewer badges,
+report priority/rate-limiting, "suggest an edit," appeal path (reuses the `Report` model). See
+[`11-reviews-trust-safety.md`](11-reviews-trust-safety.md) and `docs/PROGRESS.md`'s Phase 8 entry.
+
+## Phase 9 — Hardening, performance, SEO, a11y, observability
+
+Read every doc a prior phase named, plus [`13-devops-deployment.md`](13-devops-deployment.md) (new this
+phase). Last phase before launch prep — **no new product features**; this phase hardens and finishes what's
+already built. Full detail, real numbers, and every deviation: `docs/PROGRESS.md`'s Phase 9 entry.
+
+**Goal:** launch-quality — fast, indexable, accessible, monitored, deferred backlog resolved, test suites
+self-isolating.
+
+1. **Deferred backlog** (5 items carried from Phases 4–8): Google Maps real-path verification (re-defer with
+   written risk if no key), admin edit forms (wire the existing read-only viewers to the already-working
+   APIs), areas taxonomy UI, test-suite shared-DB isolation, storage/MinIO config centralization. Resolve or
+   consciously re-defer each — never silently drop one.
+2. **Performance**: Core Web Vitals pass (real Lighthouse numbers, not estimates) on a mobile profile; lazy-
+   load heavy client components; verify/add caching on hot public queries; add DB indexes from real
+   `EXPLAIN ANALYZE` output, not guesses.
+3. **SEO**: paginated (or justified single-file) sitemaps, structured-data verification, canonical/metadata
+   confirmation.
+4. **Accessibility & resilience**: automated a11y testing (not just manual review — this phase found real
+   bugs manual review missed), loading/empty/error states on every list/detail view, friendly error copy,
+   i18n coverage.
+5. **Observability**: error tracking + product analytics (env-gated, inert without credentials — same
+   pattern as every other optional integration in this codebase), real health checks, uptime-check and
+   billing-alert setup documented.
+
+**Constraints:** no new product features; strict TypeScript; follow [`15-conventions.md`](15-conventions.md);
+every suite must run back-to-back green with zero manual DB cleanup; anything that can't be completed gets
+re-logged in `PROGRESS.md` with its real launch urgency, not dropped.
+
+**Acceptance:** `pnpm lint && pnpm typecheck && pnpm build` clean; deferred backlog items each resolved or
+consciously re-deferred in writing; CWV/a11y/SEO verified with real tool output; backend suite green and
+self-resetting; docs updated and listed.
