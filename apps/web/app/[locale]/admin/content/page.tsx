@@ -167,7 +167,16 @@ export default function AdminContentPage(): React.ReactElement {
                   <div className="relative h-40 w-full overflow-hidden rounded-md bg-secondary">
                     <Image
                       src={photo.url}
-                      alt=""
+                      alt={
+                        photo.business?.name
+                          ? t('content.photoAlt', {
+                              user: photo.user.name,
+                              business: photo.business.name,
+                            })
+                          : t('content.photoAltNoBusiness', {
+                              user: photo.user.name,
+                            })
+                      }
                       fill
                       className="object-cover"
                       unoptimized

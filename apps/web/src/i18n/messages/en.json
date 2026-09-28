@@ -257,7 +257,9 @@
       "approve": "Approve",
       "remove": "Remove",
       "removeReviewTitle": "Remove this review",
-      "removePhotoTitle": "Remove this photo"
+      "removePhotoTitle": "Remove this photo",
+      "photoAlt": "Photo submitted by {user} for {business}",
+      "photoAltNoBusiness": "Photo submitted by {user}"
     },
     "businesses": {
       "title": "Businesses",
@@ -276,7 +278,23 @@
       "unfeature": "Unfeature",
       "restore": "Restore",
       "softDelete": "Delete",
-      "detailTitle": "Business detail"
+      "detailTitle": "Business detail",
+      "editTitle": "Edit business",
+      "nameLabel": "Name",
+      "descriptionLabel": "Description",
+      "categoryLabel": "Category",
+      "provinceLabel": "Province",
+      "cityLabel": "City",
+      "areaLabel": "Area",
+      "noAreaOption": "No area",
+      "addressLabel": "Address",
+      "phoneLabel": "Phone",
+      "whatsappLabel": "WhatsApp",
+      "emailLabel": "Email",
+      "websiteLabel": "Website",
+      "saveChanges": "Save changes",
+      "savedSuccess": "Saved.",
+      "errorGeneric": "Something went wrong. Please try again."
     },
     "users": {
       "title": "Users",
@@ -286,7 +304,11 @@
       "ban": "Ban",
       "unban": "Unban",
       "banTitle": "Ban this user",
-      "detailTitle": "User detail"
+      "detailTitle": "User detail",
+      "roleLabel": "Role",
+      "changeRole": "Change role",
+      "savedSuccess": "Saved.",
+      "errorGeneric": "Something went wrong. Please try again."
     },
     "taxonomy": {
       "title": "Taxonomy",
@@ -294,10 +316,16 @@
       "provinces": "Provinces",
       "cities": "Cities",
       "features": "Features",
+      "areas": "Areas",
       "name": "Name",
       "add": "Add",
       "delete": "Delete",
-      "selectProvince": "Select province"
+      "edit": "Edit",
+      "save": "Save",
+      "cancel": "Cancel",
+      "selectProvince": "Select province",
+      "selectCity": "Select city",
+      "selectCityPrompt": "Select a city to manage its areas."
     },
     "moderationLog": {
       "title": "Moderation log",
