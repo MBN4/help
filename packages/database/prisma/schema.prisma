@@ -351,6 +351,8 @@ model Photo {
 
   @@index([businessId])
   @@index([reviewId])
+  /// Speeds the LATERAL "first approved photo" lookup in SearchService (ORDER BY createdAt ASC LIMIT 1).
+  @@index([businessId, status, createdAt])
 }
 
 model Review {
@@ -382,6 +384,8 @@ model Review {
 
   @@unique([businessId, userId])
   @@index([businessId])
+  /// Speeds the PUBLISHED-review aggregate (COUNT/AVG GROUP BY businessId) in SearchService.
+  @@index([businessId, status])
 }
 
 model ReviewHelpfulVote {

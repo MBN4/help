@@ -8,8 +8,13 @@ interface RevalidateBody {
 }
 
 /**
- * Called by the API after a business/review write to refresh the affected ISR pages.
- * No writer exists yet (Phase 2 has no business-mutation endpoints) — this is the seam for one.
+ * Called by the API after a business/review write to refresh the affected ISR pages. The caller is
+ * `RevalidateService.revalidate()` (apps/api/src/integrations/revalidate/revalidate.service.ts), invoked from:
+ * - `BusinessOwnerService` (apps/api/src/modules/businesses/business-owner.service.ts) — via its private
+ *   `revalidateAfterWrite()` helper, itself called from 9 business-owner mutation methods (create/update/
+ *   delete/publish and related writes).
+ * - `ReviewsService` (apps/api/src/modules/reviews/reviews.service.ts) — 2 direct call sites
+ *   (review create/update).
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const secret =

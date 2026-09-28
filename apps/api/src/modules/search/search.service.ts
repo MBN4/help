@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { createHash } from 'node:crypto';
+import { Inject, Injectable } from '@nestjs/common';
 import { Prisma, PriceTier } from '@buisnez/database';
 import type {
   BusinessSearchQuery,
@@ -6,11 +7,22 @@ import type {
   PaginationMeta,
 } from '@buisnez/shared';
 import { DEFAULT_SEARCH_RADIUS_METERS } from '@buisnez/shared';
+import type { Redis } from 'ioredis';
+import { REDIS_CLIENT } from '../../integrations/redis/redis.constants';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CategoriesService } from '../categories/categories.service';
 import { GeoService } from '../geo/geo.service';
 import { getKarachiNow } from './karachi-time.util';
 import { weightedRatingSql } from './rating-sql.util';
+
+/**
+ * Short-TTL result cache for the hot read paths below. There is no write-side invalidation hook for
+ * arbitrary search result sets (unlike `DiscoveryService`'s single `discovery:home` key), so the TTL is
+ * kept short enough that staleness (including `isOpenNow` drifting near a business's open/close boundary)
+ * is an acceptable tradeoff rather than something that needs active invalidation.
+ */
+const SEARCH_CACHE_TTL_SECONDS = 60;
+const SEARCH_CACHE_PREFIX = 'search:';
 
 interface BusinessRow {
   id: string;
@@ -81,9 +93,18 @@ export class SearchService {
     private readonly prisma: PrismaService,
     private readonly geoService: GeoService,
     private readonly categoriesService: CategoriesService,
+    @Inject(REDIS_CLIENT) private readonly redis: Redis,
   ) {}
 
   async search(
+    query: BusinessSearchQuery,
+  ): Promise<{ data: BusinessSummary[]; meta: PaginationMeta }> {
+    return this.withCache('results', this.normalizeSearchQuery(query), () =>
+      this.searchUncached(query),
+    );
+  }
+
+  private async searchUncached(
     query: BusinessSearchQuery,
   ): Promise<{ data: BusinessSummary[]; meta: PaginationMeta }> {
     const empty = {
@@ -197,51 +218,59 @@ export class SearchService {
   }
 
   async listTrending(limit: number): Promise<BusinessSummary[]> {
-    const rows = await this.prisma.$queryRaw<BusinessRow[]>(Prisma.sql`
-      SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters", ${this.openNowExpr()} AS "isOpenNow"
-      ${BASE_FROM}
-      WHERE b."status" = 'PUBLISHED' AND b."deletedAt" IS NULL
-      ORDER BY b."viewCount" DESC
-      LIMIT ${limit}
-    `);
-    return rows.map((row) => this.mapRow(row));
+    return this.withCache('trending', { limit }, async () => {
+      const rows = await this.prisma.$queryRaw<BusinessRow[]>(Prisma.sql`
+        SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters", ${this.openNowExpr()} AS "isOpenNow"
+        ${BASE_FROM}
+        WHERE b."status" = 'PUBLISHED' AND b."deletedAt" IS NULL
+        ORDER BY b."viewCount" DESC
+        LIMIT ${limit}
+      `);
+      return rows.map((row) => this.mapRow(row));
+    });
   }
 
   async listHighlyRated(
     limit: number,
     minReviews = 3,
   ): Promise<BusinessSummary[]> {
-    const weighted = weightedRatingSql(REVIEW_COUNT_EXPR, AVG_RATING_EXPR);
-    const rows = await this.prisma.$queryRaw<BusinessRow[]>(Prisma.sql`
-      SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters", ${this.openNowExpr()} AS "isOpenNow"
-      ${BASE_FROM}
-      WHERE b."status" = 'PUBLISHED' AND b."deletedAt" IS NULL AND ${REVIEW_COUNT_EXPR} >= ${minReviews}
-      ORDER BY ${weighted} DESC
-      LIMIT ${limit}
-    `);
-    return rows.map((row) => this.mapRow(row));
+    return this.withCache('highlyRated', { limit, minReviews }, async () => {
+      const weighted = weightedRatingSql(REVIEW_COUNT_EXPR, AVG_RATING_EXPR);
+      const rows = await this.prisma.$queryRaw<BusinessRow[]>(Prisma.sql`
+        SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters", ${this.openNowExpr()} AS "isOpenNow"
+        ${BASE_FROM}
+        WHERE b."status" = 'PUBLISHED' AND b."deletedAt" IS NULL AND ${REVIEW_COUNT_EXPR} >= ${minReviews}
+        ORDER BY ${weighted} DESC
+        LIMIT ${limit}
+      `);
+      return rows.map((row) => this.mapRow(row));
+    });
   }
 
   async listFeatured(limit: number): Promise<BusinessSummary[]> {
-    const rows = await this.prisma.$queryRaw<BusinessRow[]>(Prisma.sql`
-      SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters", ${this.openNowExpr()} AS "isOpenNow"
-      ${BASE_FROM}
-      WHERE b."status" = 'PUBLISHED' AND b."deletedAt" IS NULL AND b."featured" = true AND (b."featuredFrom" IS NULL OR b."featuredFrom" <= now()) AND (b."featuredUntil" IS NULL OR b."featuredUntil" >= now())
-      ORDER BY b."createdAt" DESC
-      LIMIT ${limit}
-    `);
-    return rows.map((row) => this.mapRow(row));
+    return this.withCache('featured', { limit }, async () => {
+      const rows = await this.prisma.$queryRaw<BusinessRow[]>(Prisma.sql`
+        SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters", ${this.openNowExpr()} AS "isOpenNow"
+        ${BASE_FROM}
+        WHERE b."status" = 'PUBLISHED' AND b."deletedAt" IS NULL AND b."featured" = true AND (b."featuredFrom" IS NULL OR b."featuredFrom" <= now()) AND (b."featuredUntil" IS NULL OR b."featuredUntil" >= now())
+        ORDER BY b."createdAt" DESC
+        LIMIT ${limit}
+      `);
+      return rows.map((row) => this.mapRow(row));
+    });
   }
 
   async listRecent(limit: number): Promise<BusinessSummary[]> {
-    const rows = await this.prisma.$queryRaw<BusinessRow[]>(Prisma.sql`
-      SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters", ${this.openNowExpr()} AS "isOpenNow"
-      ${BASE_FROM}
-      WHERE b."status" = 'PUBLISHED' AND b."deletedAt" IS NULL
-      ORDER BY b."createdAt" DESC
-      LIMIT ${limit}
-    `);
-    return rows.map((row) => this.mapRow(row));
+    return this.withCache('recent', { limit }, async () => {
+      const rows = await this.prisma.$queryRaw<BusinessRow[]>(Prisma.sql`
+        SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters", ${this.openNowExpr()} AS "isOpenNow"
+        ${BASE_FROM}
+        WHERE b."status" = 'PUBLISHED' AND b."deletedAt" IS NULL
+        ORDER BY b."createdAt" DESC
+        LIMIT ${limit}
+      `);
+      return rows.map((row) => this.mapRow(row));
+    });
   }
 
   /**
@@ -258,37 +287,44 @@ export class SearchService {
     },
     limit: number,
   ): Promise<BusinessSummary[]> {
-    const weighted = weightedRatingSql(REVIEW_COUNT_EXPR, AVG_RATING_EXPR);
+    return this.withCache('similar', { ...input, limit }, async () => {
+      const weighted = weightedRatingSql(REVIEW_COUNT_EXPR, AVG_RATING_EXPR);
 
-    const sameCategory = await this.prisma.$queryRaw<BusinessRow[]>(Prisma.sql`
-      SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters", ${this.openNowExpr()} AS "isOpenNow"
-      ${BASE_FROM}
-      WHERE b."status" = 'PUBLISHED' AND b."deletedAt" IS NULL
-        AND b."id" != ${input.businessId}
-        AND b."categoryId" = ${input.categoryId}
-        AND b."cityId" = ${input.cityId}
-      ORDER BY ${weighted} DESC
-      LIMIT ${limit}
-    `);
+      const sameCategory = await this.prisma.$queryRaw<
+        BusinessRow[]
+      >(Prisma.sql`
+        SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters", ${this.openNowExpr()} AS "isOpenNow"
+        ${BASE_FROM}
+        WHERE b."status" = 'PUBLISHED' AND b."deletedAt" IS NULL
+          AND b."id" != ${input.businessId}
+          AND b."categoryId" = ${input.categoryId}
+          AND b."cityId" = ${input.cityId}
+        ORDER BY ${weighted} DESC
+        LIMIT ${limit}
+      `);
 
-    const remaining = limit - sameCategory.length;
-    if (remaining <= 0 || !input.parentCategoryId) {
-      return sameCategory.map((row) => this.mapRow(row));
-    }
+      const remaining = limit - sameCategory.length;
+      if (remaining <= 0 || !input.parentCategoryId) {
+        return sameCategory.map((row) => this.mapRow(row));
+      }
 
-    const excludeIds = [input.businessId, ...sameCategory.map((row) => row.id)];
-    const siblings = await this.prisma.$queryRaw<BusinessRow[]>(Prisma.sql`
-      SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters", ${this.openNowExpr()} AS "isOpenNow"
-      ${BASE_FROM}
-      WHERE b."status" = 'PUBLISHED' AND b."deletedAt" IS NULL
-        AND b."id" != ALL(${excludeIds}::text[])
-        AND category."parentId" = ${input.parentCategoryId}
-        AND b."cityId" = ${input.cityId}
-      ORDER BY ${weighted} DESC
-      LIMIT ${remaining}
-    `);
+      const excludeIds = [
+        input.businessId,
+        ...sameCategory.map((row) => row.id),
+      ];
+      const siblings = await this.prisma.$queryRaw<BusinessRow[]>(Prisma.sql`
+        SELECT ${BASE_SELECT_COLUMNS}, NULL::float AS "distanceMeters", ${this.openNowExpr()} AS "isOpenNow"
+        ${BASE_FROM}
+        WHERE b."status" = 'PUBLISHED' AND b."deletedAt" IS NULL
+          AND b."id" != ALL(${excludeIds}::text[])
+          AND category."parentId" = ${input.parentCategoryId}
+          AND b."cityId" = ${input.cityId}
+        ORDER BY ${weighted} DESC
+        LIMIT ${remaining}
+      `);
 
-    return [...sameCategory, ...siblings].map((row) => this.mapRow(row));
+      return [...sameCategory, ...siblings].map((row) => this.mapRow(row));
+    });
   }
 
   /** Reused both as a WHERE filter (openNow=true) and as a SELECT column ("isOpenNow"). */
@@ -306,6 +342,78 @@ export class SearchService {
     return businessIds
       .map((id) => byId.get(id))
       .filter((business): business is BusinessSummary => Boolean(business));
+  }
+
+  /**
+   * Wraps a search read in a short-TTL Redis cache keyed on `kind` + a stable hash of `payload`
+   * (e.g. the normalized query params, or a { limit, ... } tuple for the fixed discovery lists).
+   */
+  private async withCache<T>(
+    kind: string,
+    payload: unknown,
+    compute: () => Promise<T>,
+  ): Promise<T> {
+    const key = this.buildCacheKey(kind, payload);
+    const cached = await this.redis.get(key);
+    if (cached !== null) {
+      return JSON.parse(cached) as T;
+    }
+    const result = await compute();
+    await this.redis.set(
+      key,
+      JSON.stringify(result),
+      'EX',
+      SEARCH_CACHE_TTL_SECONDS,
+    );
+    return result;
+  }
+
+  private buildCacheKey(kind: string, payload: unknown): string {
+    const hash = createHash('sha1')
+      .update(this.stableStringify(payload))
+      .digest('hex');
+    return `${SEARCH_CACHE_PREFIX}${kind}:${hash}`;
+  }
+
+  /** Deterministic JSON stringify (object keys sorted) so equivalent query params always hash the same. */
+  private stableStringify(value: unknown): string {
+    if (Array.isArray(value)) {
+      return `[${value.map((entry) => this.stableStringify(entry)).join(',')}]`;
+    }
+    if (value !== null && typeof value === 'object') {
+      const entries = Object.entries(value as Record<string, unknown>).sort(
+        ([a], [b]) => a.localeCompare(b),
+      );
+      return `{${entries
+        .map(
+          ([key, val]) => `${JSON.stringify(key)}:${this.stableStringify(val)}`,
+        )
+        .join(',')}}`;
+    }
+    return JSON.stringify(value) ?? 'null';
+  }
+
+  /** Normalizes/sorts query params (array order, string case) so equivalent searches share a cache entry. */
+  private normalizeSearchQuery(
+    query: BusinessSearchQuery,
+  ): Record<string, unknown> {
+    return {
+      q: query.q?.trim().toLowerCase(),
+      category: query.category,
+      province: query.province,
+      city: query.city,
+      area: query.area,
+      minRating: query.minRating,
+      priceLevel: query.priceLevel ? [...query.priceLevel].sort() : undefined,
+      features: query.features ? [...query.features].sort() : undefined,
+      openNow: query.openNow,
+      lat: query.lat,
+      lng: query.lng,
+      radius: query.radius,
+      sort: query.sort,
+      page: query.page,
+      perPage: query.perPage,
+    };
   }
 
   private openNowExpr(): Prisma.Sql {

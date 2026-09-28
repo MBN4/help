@@ -41,9 +41,35 @@ export class StorageService implements OnModuleInit {
 
   /** Best-effort local-dev convenience: MinIO starts with no buckets and no public-read policy. No-op-safe against R2. */
   async onModuleInit(): Promise<void> {
+    await this.verifyStorageConnectivity();
+  }
+
+  /**
+   * Startup check: pings the configured S3 endpoint via `HeadBucket` so a stale-port / unreachable-host
+   * misconfiguration is surfaced loudly at boot instead of silently on first upload. This repo has hit this
+   * exact bug twice before (MinIO remapped to host port 9102 but a consumer still pointed at the default
+   * 9000 — see docs/PROGRESS.md Phase 4/8 notes), and the previous version of this check swallowed *any*
+   * failure — including a plain connection refusal — as "bucket doesn't exist yet" and tried to auto-create
+   * it, which just produced a second, equally silent failure.
+   */
+  private async verifyStorageConnectivity(): Promise<void> {
     try {
       await this.client.send(new HeadBucketCommand({ Bucket: this.bucket }));
-    } catch {
+      return;
+    } catch (error) {
+      if (this.isConnectivityError(error)) {
+        const endpoint = this.config.get('S3_ENDPOINT', { infer: true });
+        this.logger.error(
+          `STORAGE UNREACHABLE at startup: cannot reach S3 endpoint "${endpoint}" for bucket "${this.bucket}". ` +
+            'This is almost always a stale/misconfigured port (e.g. MinIO remapped to a non-default host port ' +
+            'but S3_ENDPOINT still points at the default) — check docker-compose.yml and S3_ENDPOINT/.env. ' +
+            `All uploads will fail until this is fixed. Cause: ${String(error)}`,
+        );
+        return;
+      }
+
+      // Endpoint is reachable but the bucket call itself failed — most likely a fresh local MinIO with no
+      // bucket yet. Best-effort auto-create; a failure here is logged but non-fatal (matches prior behavior).
       try {
         await this.client.send(
           new CreateBucketCommand({ Bucket: this.bucket }),
@@ -64,12 +90,26 @@ export class StorageService implements OnModuleInit {
             }),
           }),
         );
-      } catch (error) {
+      } catch (createError) {
         this.logger.warn(
-          `Could not auto-create/configure bucket "${this.bucket}" — create it manually if uploads fail: ${String(error)}`,
+          `Could not auto-create/configure bucket "${this.bucket}" — create it manually if uploads fail: ${String(createError)}`,
         );
       }
     }
+  }
+
+  /** Distinguishes "endpoint unreachable" (wrong host/port) from an ordinary S3-level error like a missing bucket. */
+  private isConnectivityError(error: unknown): boolean {
+    const CONNECTIVITY_CODES = new Set([
+      'ECONNREFUSED',
+      'ENOTFOUND',
+      'EHOSTUNREACH',
+      'ETIMEDOUT',
+      'EAI_AGAIN',
+    ]);
+    const err = error as { code?: unknown; cause?: { code?: unknown } };
+    const code = err?.code ?? err?.cause?.code;
+    return typeof code === 'string' && CONNECTIVITY_CODES.has(code);
   }
 
   generateUploadKey(contentType: string): string {
