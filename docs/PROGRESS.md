@@ -963,9 +963,85 @@ real a11y bugs — all found and fixed via actual test runs against a live stack
 [`12-admin-panel.md`](12-admin-panel.md), new [`13-devops-deployment.md`](13-devops-deployment.md),
 [`16-ai-prompts.md`](16-ai-prompts.md) (Phase 9 prompt section added).
 
-## Next Phase
+## Phase 10: Lahore Launch (Deployment & Go-Live)
 
-Phase 9 is now built and verified per the results above. This was the last phase before launch prep per the
-original phase plan — remaining work is launch-prep itself (real credentials for Maps/OAuth/Sentry/PostHog/
-uptime monitoring, a production deploy target, and the two documented residual test-environment constraints
-above), not a numbered product phase.
+**Status: in progress — blocked on external accounts/credentials/data this environment cannot create.**
+Ops phase, no new product features. [`14-build-roadmap.md`](14-build-roadmap.md) (new doc, drafted this
+phase per the missing-numbered-doc convention) records the infra decisions; this entry tracks the actual
+task-by-task status.
+
+### Decisions made at kickoff
+
+- Hosting: Vercel (`apps/web`) + Railway (`apps/api` + managed Postgres + managed Redis). Storage/CDN:
+  Cloudflare R2. Edge/DNS: Cloudflare in front of both. Confirmed with the user before proceeding (an AI
+  agent has no ability to create these accounts or pick a paid vendor unilaterally).
+- Real Lahore business-listing data does not exist yet (confirmed with the user) — flagged as a genuine
+  launch blocker, not fabricated. Import tooling is ready the moment a real CSV/source exists.
+
+### What's done this phase (code/docs, no external accounts needed)
+
+- [x] `apps/api/Dockerfile` — multi-stage production build for Railway (pnpm workspace-aware, builds
+      `@buisnez/database`/`@buisnez/shared` then `@buisnez/api`). **Actually built and run, not just
+      written**: `docker build` + `docker run` against the real local Postgres/Redis/MinIO stack, confirmed
+      `GET /health` returns `200` with all three dependencies `up`. Two real bugs found and fixed via this
+      test, not just typecheck: (1) `prisma generate --schema packages/database/prisma/schema.prisma` was
+      run from `@buisnez/api`'s cwd, wrong relative path — fixed to run scoped to `@buisnez/database`
+      instead; (2) the runtime stage's original plan (fresh `pnpm install --prod`) would have silently
+      wiped Prisma's generated client, since it lives inside pnpm's `node_modules/.pnpm` virtual store, not
+      as a plain package — fixed by carrying the whole build-stage `/app` into the runtime image instead of
+      reinstalling (bigger image, correct behavior; a future optimization, not done here). Also added an
+      explicit `openssl` install in the base image — without it Prisma silently guessed
+      `openssl-1.1.x` and warned at every boot; confirmed the warning is gone post-fix.
+- [x] `.github/workflows/deploy.yml` — CI gate + Railway deploy trigger on push to `main` (needs the
+      `RAILWAY_TOKEN` repo secret set once a Railway project exists). Vercel deploys `apps/web`
+      automatically once the project is connected there (root directory `apps/web`) — no GitHub Action
+      needed for that half.
+- [x] `scripts/import-businesses.ts` + `pnpm --filter @buisnez/database run db:import-businesses` — CSV
+      importer for real launch-city listings (upsert by name+city, `PENDING`/unverified so admin moderation
+      still gates publish, geocodes via direct lat/lng columns since no Maps key exists yet to geocode
+      addresses). Typechecks clean; not yet run against real data (none exists yet).
+- [x] Production deploy setup instructions + full operational runbook (deploy, rollback, DB restore, secret
+      rotation, outage response) written into [`13-devops-deployment.md`](13-devops-deployment.md)'s new
+      "Production deploy"/"Operational runbook" sections.
+- [x] Production config sanity reviewed in code (task 6): rate limits (`100/min/IP` global,
+      `5/min/IP` auth, `10/min/IP`+`8/min/user` reports, `30/min/IP` photos), caching (60s search, 10min
+      discovery/ISR) — all judged reasonable for real traffic as shipped, not test-tuned artifacts (documented
+      with reasoning in `13-devops-deployment.md`). **Not yet confirmed against actual production traffic**
+      (no production deployment exists yet to test against) — re-verify post-launch, not just in theory.
+- [x] Lahore areas confirmed present: Gulberg, DHA Lahore, Johar Town, Model Town (seeded since Phase 1);
+      more addable via the Phase 9 areas taxonomy UI if the real data needs them.
+
+### Blocked — requires the user to create accounts/provide data (cannot be done by this agent)
+
+1. **Google Maps verification (task 1)**: no Maps key exists. `apps/web/e2e/maps-real.spec.ts` is written
+   and ready — the moment `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`/`GOOGLE_MAPS_API_KEY` are set, it (and a manual
+   browser click-through of display markers/search map/owner pin-drop) can run for real. **Formally
+   escalated as a launch blocker per the task brief's instruction**: either (a) the user provisions a
+   browser-restricted key (steps already in `13-devops-deployment.md`'s Google Maps section) before
+   launch, or (b) launch ships with the existing, tested no-key fallback UX (manual lat/lng entry, static
+   "get directions" links) and Maps is added post-launch. Needs an explicit decision, not a default.
+2. **Real credentials (task 2)**: Sentry DSN (web+API), PostHog keys, Google/Facebook OAuth client
+   credentials, an email provider (none chosen yet — no code changes needed to wire one in, `MailService`
+   already has the seam; recommend Resend when one is picked), Cloudflare R2 keys. None can be created by an
+   agent without dashboard/account access. Every one is currently confirmed inert (no crash, no network
+   call) per the existing "empty means fully inert" bar — none has been confirmed _live_ yet since none has
+   a real value.
+3. **Real Lahore business listings (task 3)**: no data source exists yet. This is a business/data-sourcing
+   decision (manual entry, a licensed data provider, or authorized outreach), not something to fabricate.
+   Import tooling is ready (see above).
+4. **Staging full regression + load test (task 4)**: no staging environment exists yet (staging = a Railway/
+   Vercel preview deploy once accounts exist). The existing full test suite (34 unit + 107 e2e backend,
+   Playwright frontend) is green locally per Phase 9; running it against real staging infra, and load-testing
+   search/profile, is pending that environment.
+5. **Production infrastructure (task 5)**: domain not yet registered/chosen, Cloudflare/Railway/Vercel/R2
+   accounts not yet created, DB backup+restore not yet tested against a real instance (procedure documented
+   in the runbook, execution pending real infra), billing/quota alerts not yet configured (nothing to alert
+   on without live Maps/storage accounts).
+6. **Soft launch (task 8)**: not started — depends on everything above.
+
+### Next steps (for whoever picks this back up)
+
+Work through the "Blocked" list above in order: infra accounts first (unblocks staging + real credential
+wiring), then Maps key decision, then real business data, then staging regression/load test, then soft
+launch. Update this section (don't create a new one) as each item resolves, following the same
+done/deviation-log pattern as every prior phase.

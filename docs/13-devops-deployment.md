@@ -103,6 +103,123 @@ already enforced in `PhotosService`).
   green while the frontend is broken). No account was available to configure this from the development
   environment; this is the setup instruction for whoever deploys.
 
+## Production deploy (Phase 10)
+
+**Stack**: Vercel (`apps/web`) + Railway (`apps/api`, managed Postgres, managed Redis) + Cloudflare R2
+(storage/CDN) + Cloudflare (DNS/SSL/CDN in front of both) + GitHub Actions (CI gate + Railway deploy trigger).
+Chosen over a single self-managed VPS for lower ops burden (managed backups/TLS/scaling) at this stage — see
+[`14-build-roadmap.md`](14-build-roadmap.md) for the decision record.
+
+### One-time setup
+
+1. **Domain + Cloudflare**: register/point a domain at Cloudflare (orange-cloud proxy on). Add a CNAME for the
+   apex/`www` to Vercel's target and a CNAME (or Railway's provided domain) for `api.<domain>` to Railway's
+   service. Enable "Always Use HTTPS" and "Automatic HTTPS Rewrites".
+2. **Vercel**: import this repo, set the project's **Root Directory to `apps/web`**, framework preset
+   Next.js. Connect the custom domain. Vercel auto-deploys on every push to `main` once connected — no GitHub
+   Action needed for the frontend.
+3. **Railway**: create a project with three services — the API (deployed from `apps/api/Dockerfile`, build
+   context = repo root), a managed Postgres (PostGIS: use Railway's Postgres template or point
+   `DATABASE_URL` at any Postgres 16 instance with the `postgis`/`pg_trgm` extensions enabled), and a managed
+   Redis. Generate a Railway API token (`railway_token`) and store it as the `RAILWAY_TOKEN` GitHub Actions
+   secret — `.github/workflows/deploy.yml` uses it to trigger a deploy on every push to `main` (after the
+   same lint/typecheck/build gate as CI).
+4. **Cloudflare R2**: create a bucket, an R2 API token (S3-compatible), enable public access (or a custom
+   domain) for the bucket. Set `S3_ENDPOINT`/`S3_ACCESS_KEY_ID`/`S3_SECRET_ACCESS_KEY`/`S3_BUCKET`/
+   `S3_PUBLIC_URL_BASE`/`NEXT_PUBLIC_S3_PUBLIC_HOST` accordingly (`S3_FORCE_PATH_STYLE=false` for R2).
+5. **Run migrations against the real database once, before first deploy**:
+   `DATABASE_URL=<railway-postgres-url> pnpm --filter @buisnez/database exec prisma migrate deploy --schema packages/database/prisma/schema.prisma`,
+   then seed taxonomy/demo data or skip straight to the real-data import below.
+6. **Set every secret** (Railway service variables + Vercel project env vars — never committed, never in
+   `.env` files in the repo) per the table in [Environment variables](#environment-variables) above, using
+   real values once each provider account exists (Maps, Sentry, PostHog, OAuth, email, R2). See
+   `PROGRESS.md`'s Phase 10 entry for exactly which of these are live in this deployment.
+
+### Importing real launch-city listings
+
+`scripts/import-businesses.ts` (`pnpm --filter @buisnez/database run db:import-businesses -- <path-to-csv>`)
+upserts businesses from a CSV (see the script's header comment for the exact column list) — creates them as
+`PENDING`/unverified, same as any other new listing, so an admin still reviews and publishes each one through
+the existing `/admin/businesses` moderation surface rather than this script silently going live. Idempotent
+per `(name, city)` slug — safe to re-run against a corrected file. Requires the target city's areas to
+already exist in `/admin/taxonomy` (Lahore ships with 4 seeded areas — Gulberg, DHA Lahore, Johar Town, Model
+Town — add more there first if the real data references areas not yet in the system).
+
+### Production config sanity (confirmed at code-review time, re-verify against real traffic post-launch)
+
+- **Rate limits**: global default `100 req/min/IP` (`app.module.ts`), auth
+  `register`/`login`/`forgot-password` `5/min/IP`, `refresh` `20/min/IP`, reports `10/min/IP` (+`8/min/user`),
+  photos `30/min/IP`. These are deliberate Phase 1/8 security decisions, not values relaxed for local testing
+  — reviewed at Phase 10 kickoff and judged reasonable for real human traffic as-is (5 login attempts/min is
+  generous for a real user, tight enough to slow credential stuffing). Only the `/auth` throttle's _test-suite_
+  interaction (documented in [Test isolation](#test-isolation)) is testing-specific, not the limit itself.
+- **Caching**: `SearchService` 60s Redis cache on search/discovery reads, `DiscoveryService` 10min cache on
+  homepage blocks, ISR `revalidate = 600` (10min) on city/city+category/business/reviewer pages. Reasonable
+  defaults for a launch-scale catalog; the values are cheap to retune (single constants) if real traffic
+  patterns post-launch suggest otherwise. On-demand revalidation via `POST /api/revalidate` already fires from
+  every owner/admin write path (see the Phase 9 correction above), so 600s is a ceiling, not the typical
+  staleness window for content that just changed.
+- **Storage startup check**: `StorageService.verifyStorageConnectivity()` will do its real job for the first
+  time against a live R2 endpoint at first prod boot — loudly logs and names the likely cause if `S3_ENDPOINT`
+  is unreachable, exactly the failure mode this check exists for (see the note above about the two prior
+  MinIO-port incidents). Confirm the boot log shows a successful connectivity check on first deploy.
+
+## Operational runbook
+
+### Deploy
+
+Push to `main` after CI (`.github/workflows/ci.yml`, gates PRs) and the deploy workflow
+(`.github/workflows/deploy.yml`, gates pushes to `main`) both pass. Vercel deploys `apps/web` automatically;
+`deploy-api` triggers Railway to rebuild `apps/api/Dockerfile` and roll out the new container. If a migration
+is part of the change, run `prisma migrate deploy` against the production `DATABASE_URL` **before** merging
+the code that depends on it (never let the API boot against a schema it doesn't expect).
+
+### Roll back a bad deploy
+
+- **Vercel**: Project → Deployments → find the last known-good deployment → "Promote to Production". Instant,
+  no rebuild.
+- **Railway**: Service → Deployments → select the previous successful deployment → "Redeploy". If the bad
+  deploy included a migration that's incompatible with the previous code, do not roll back the code alone —
+  restore the database first (below), then roll back the code.
+
+### Restore the database
+
+1. Railway's managed Postgres takes automated daily backups (confirm retention window in the Railway
+   dashboard's Backups tab for the actual plan in use).
+2. To restore: Railway dashboard → Postgres service → Backups → select a snapshot → Restore (creates a new
+   instance or restores in place, per Railway's current UI — confirm which before relying on it in an
+   incident, since destructive-vs-new-instance matters for whether the API can keep serving during restore).
+3. **Test the restore path before relying on it in an emergency**: restore a backup into a throwaway Railway
+   Postgres instance, point a local `DATABASE_URL` at it, and confirm `prisma migrate status` reports the
+   expected migration state and the app can query it. Record the actual restore time observed — that's the
+   real RTO, not an assumption.
+
+### Rotate a secret
+
+1. Generate the new value at the provider (Maps/Sentry/PostHog/OAuth/email/R2/JWT secrets).
+2. Set the new value in Railway (API) and/or Vercel (web) env vars — both support zero-downtime env var
+   updates that take effect on the _next_ deploy/restart, not instantly, so trigger a redeploy after setting
+   it (Railway: "Redeploy" on the current deployment; Vercel: env var changes need a new deployment to take
+   effect for server-rendered/edge code).
+3. For `JWT_SECRET`/`JWT_REFRESH_SECRET` specifically: rotating invalidates every existing session (all users
+   logged out) — only do this for a real compromise, not routine hygiene, and warn users beforehand if
+   possible.
+4. Revoke the old value at the provider once the new one is confirmed live (test the affected integration —
+   trigger a Sentry test error, a PostHog test event, a test email — before revoking the old key).
+
+### Respond to an outage
+
+1. Check `GET /api/v1/health` (backend liveness/readiness — Postgres/Redis/storage) and `GET /` (homepage —
+   catches a frontend-only outage that `/health` alone would miss).
+2. Check Sentry for a spike in captured exceptions around the outage start time — `AllExceptionsFilter`
+   captures every unmapped API error, `@sentry/nextjs` captures unhandled client/server exceptions.
+3. Check Railway's service logs/metrics (CPU/memory/restart count) and Postgres/Redis connection counts —
+   a connection-pool exhaustion or OOM restart loop shows here before it shows in Sentry.
+4. If the deploy that shipped around the outage's start time is the suspect, roll it back first (see above)
+   and investigate after service is restored — don't debug in production while users are affected.
+5. Once resolved, write down what happened and the fix in this doc's "known issues" list in
+   [`PROGRESS.md`](PROGRESS.md)'s Phase 10 entry, so the next on-call has it.
+
 ## Test isolation
 
 Backend Jest e2e (`apps/api/test`) and frontend Playwright (`apps/web/e2e`) run against the same live

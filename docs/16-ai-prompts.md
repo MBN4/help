@@ -288,3 +288,42 @@ re-logged in `PROGRESS.md` with its real launch urgency, not dropped.
 **Acceptance:** `pnpm lint && pnpm typecheck && pnpm build` clean; deferred backlog items each resolved or
 consciously re-deferred in writing; CWV/a11y/SEO verified with real tool output; backend suite green and
 self-resetting; docs updated and listed.
+
+## Phase 10 — Lahore launch (deployment & go-live)
+
+Read [`13-devops-deployment.md`](13-devops-deployment.md) and [`14-build-roadmap.md`](14-build-roadmap.md)
+(both current), plus `PROGRESS.md`'s remaining deferred/known items. Ops phase, not feature work — **no new
+product features**. Full detail and real status: `docs/PROGRESS.md`'s Phase 10 entry.
+
+**Goal:** Buisnez live in Lahore — deployed, monitored, backed up, with real content, and the last
+unverified surface (Google Maps SDK) exercised for real, or formally escalated as a launch blocker if a key
+still can't be obtained.
+
+1. **Maps verification**: provision a restricted key, run `apps/web/e2e/maps-real.spec.ts` for real, manually
+   click through display markers/search map/owner pin-drop. Escalate as a blocker with options if no key is
+   obtainable — never silently ship unverified and call it done.
+2. **Real credentials**: Maps, Sentry (web+API), PostHog, OAuth (Google/Facebook), email, storage/CDN — each
+   confirmed _live_ (a real test error/event/email observed), not just present as an env var.
+3. **Real launch-city data**: real business listings across core categories with correct areas/coordinates/
+   hours, imported via `scripts/import-businesses.ts`, published through existing admin moderation (never a
+   bypass of it).
+4. **Staging regression + load test**: full suite against staging; smoke-test search → profile → review →
+   claim → owner edit → moderation → appeal end-to-end; load-test search/profile.
+5. **Production infrastructure**: CDN/DNS/SSL, secrets in the host's secret manager (never committed),
+   automated DB backups with a _tested_ restore, billing/quota alerts on Maps and storage.
+6. **Production config sanity**: rate limits/caching/ISR tuned for real traffic (not test-tuned), storage
+   startup check passes in prod.
+7. **Runbook**: deploy, rollback, DB restore, secret rotation, outage response — written into
+   `13-devops-deployment.md`, not left as tribal knowledge.
+8. **Soft launch**: go live for Lahore only, monitor closely, rollback ready, confirm stability before
+   expanding cities/categories.
+
+**Constraints:** an AI agent cannot create third-party accounts, provide payment methods, or fabricate real
+business data — every one of those is a real launch blocker to escalate, not something to work around
+silently. Everything achievable without external account access (deploy tooling, runbook, config review,
+import scripts) should still be done in full.
+
+**Acceptance:** Maps paths verified in a real browser (or the missing-key blocker formally escalated); every
+real credential confirmed live; production live behind Cloudflare with SSL, monitored, backed up (restore
+tested), with real listings; critical journeys pass in production; runbook written; `PROGRESS.md` updated
+with launch date/city, credential status, Maps result, load-test numbers, and known issues at launch.
