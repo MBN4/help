@@ -31,10 +31,12 @@ apps/web/
   src/
     components/
       ui/                     # shadcn/ui primitives (Button, Card, Input, Select, Sheet, Checkbox, Textarea, ...)
-      layout/                 # Header, Footer, MobileNav, LocationPicker, Breadcrumb, UserMenu
+      layout/                 # Header, Footer, MobileNav, LocationPicker, Breadcrumb, UserMenu, CategoryBar (Phase 11)
       auth/                   # AuthCard, OAuthButtons
-      business/               # BusinessCard, RatingStars, PriceLevel, OpenNowBadge, FeatureList, HoursTable,
-                               # FavoriteButton, StarRatingInput
+      business/               # BusinessCard (+BusinessCardSkeleton), RatingStars, PriceLevel, OpenNowBadge,
+                               # FeatureList, HoursTable, FavoriteButton, StarRatingInput, ActivityCard (Phase 11,
+                               # homepage feed), ExploreByCity (Phase 11), ServicesMenu (Phase 11),
+                               # BusinessProfileActions (Phase 11, sticky sub-header CTAs)
       search/                 # SearchBar, FilterPanel, MobileFilterSheet, SortSelect, SearchMapToggle, UseMyLocationButton
       map/                    # MapView, LazyMapView (client-only wrapper), useGoogleMapsScript
       review/                 # ReviewCard, ReviewList, ReviewForm, ReviewSection, PhotoAttachments, AvatarUploadButton
@@ -77,6 +79,40 @@ labels, and metadata strings.
 - **shadcn/ui** primitives live in `apps/web/src/components/ui` and are copied-in code (not a dependency).
 - Logical CSS properties (`ms-*`, `me-*`, `start-*`, `end-*`) throughout instead of `ml-*`/`mr-*`/`left-*`, so
   flipping `dir="rtl"` for Urdu later doesn't require rewriting layouts.
+
+### Design overhaul (Phase 11)
+
+Presentation-only rebuild per [`17-design-overhaul.md`](17-design-overhaul.md) — layout _patterns_ from
+Yelp, Buisnez's own emerald/saffron identity. Full rationale, deviations, and real bugs found/fixed are in
+`PROGRESS.md`'s Phase 11 entry; this section covers what the design system itself now looks like.
+
+- **Tokens**: `emerald-900/700/500/100`, `saffron-500/600`, `star-gold`, `ink`, `canvas`, `surface`, and
+  `status-open`/`status-closed` colors, a `pill` border-radius, a 3-step shadow scale, and `display`/`h1`/
+  `h2`/`h3` named font sizes — all added alongside (not replacing) the existing xs–4xl scale and shadcn
+  color slots. `--primary` now resolves to `emerald-700` (was a plain deep-emerald with no named relation to
+  the header's own color); `--muted`/`--muted-foreground` now carry the spec's exact `canvas`/`muted-text`
+  hex values.
+- **Fonts**: Plus Jakarta Sans (`--font-display`, headings) + Inter (`--font-sans`, body), self-hosted via
+  `next/font/google` in the root `[locale]/layout.tsx`. Phase 3's system-font-stack decision is superseded —
+  this environment now has network access to Google Fonts (confirmed before switching), so the original
+  build-time-dependency concern no longer applies.
+- **Motion**: `.card-hover`/`.card-hover-image` and `.skeleton-shimmer` utility classes in `globals.css`,
+  each with an explicit `@media (prefers-reduced-motion: reduce)` override that disables the transform/
+  animation — not left to each component to remember.
+- **Global chrome**: `Header` is now sticky `emerald-900` with a dual-field `SearchBar` (`variant="header"`)
+  and a `CategoryBar` second row (flat scrollable links, not a dropdown mega-menu — see PROGRESS's
+  deviations). `Footer` is a rich multi-column layout. Both fetch `getCities()`/`getCategoryTree()`
+  server-side, same as before, just render more with the results.
+- **`BusinessCard`** is the one component reused across home/search/city/category/similar-businesses — now
+  16:9 photo-forward with hover-lift + image-zoom, gold `RatingStars`, and a `BusinessCardSkeleton` loading
+  variant. Its `OpenNowBadge`/`FavoriteButton` overlay icons are siblings of the image `<Link>`, not
+  children — nesting them inside caused a real `<a>`-in-`<a>` hydration bug, found and fixed this phase (see
+  PROGRESS).
+- **Search results** split into list + sticky map at `lg+` (`SearchMapToggle`'s `alwaysVisible` prop), and
+  keeps the original toggle-button behavior below `lg`. No changes to filter/sort/URL logic.
+- **Business profile** gained a sticky `BusinessProfileActions` sub-header (Directions/Call/Save/Write-a-
+  review) and a `ServicesMenu` section — the latter renders `BusinessProfile.services`, which the API has
+  returned since Phase 6 but no public page ever displayed.
 
 ## Data layers — server data vs. client state
 

@@ -1045,3 +1045,148 @@ Work through the "Blocked" list above in order: infra accounts first (unblocks s
 wiring), then Maps key decision, then real business data, then staging regression/load test, then soft
 launch. Update this section (don't create a new one) as each item resolves, following the same
 done/deviation-log pattern as every prior phase.
+
+## Phase 11: Design Overhaul (Yelp-pattern layout, Buisnez brand)
+
+**Status: built and verified.** Presentation-only redesign per [`17-design-overhaul.md`](17-design-overhaul.md)
+(new doc this phase, drafted from the user's task message per the missing-numbered-doc convention — see
+[`14-build-roadmap.md`](14-build-roadmap.md)). Rebuilds design tokens, global chrome, the homepage, search
+results, and the business profile to feel like a modern, photo-forward discovery product — Yelp's layout
+_patterns_, Buisnez's own emerald/saffron identity. Built on branch `feat/design-overhaul`.
+
+### What shipped
+
+- **Design tokens** (`apps/web/src/styles/globals.css`, `packages/config/tailwind/preset.ts`): the spec's
+  hex palette converted to this codebase's `hsl(var(--x))` convention — new `emerald-900/700/500/100`,
+  `saffron-500/600`, `star-gold`, `ink`/`canvas`/`surface` tokens, a `pill` border-radius, a 3-step shadow
+  scale, and `display`/`h1`/`h2`/`h3` named font sizes, bridged onto the existing shadcn/ui color slots
+  (`--primary`, `--muted`, `--border`, etc.) so every existing primitive picked up the new brand without
+  being individually rewritten.
+- **Fonts**: Plus Jakarta Sans (display) + Inter (body), self-hosted via `next/font/google`
+  (`apps/web/app/[locale]/layout.tsx`). Phase 3 had deliberately avoided `next/font/google` because this
+  environment had no network access to Google Fonts at the time — confirmed this phase that it's now
+  reachable (`curl fonts.googleapis.com` succeeds), so the original blocker no longer applies.
+- **Global chrome**: `Header` (sticky `emerald-900`, dual-field `SearchBar`, new `CategoryBar`), `Footer`
+  (rich multi-column: About/Discover/For Business/Cities/Languages), `LocationPicker`/`UserMenu` restyled for
+  the dark header.
+- **Shared atoms**: `RatingStars` (gold, was accent-colored), `Skeleton` (shimmer, respects
+  `prefers-reduced-motion`), `Badge` gained tinted `open`/`closed` status-pill variants, `BusinessCard`
+  rebuilt (16:9 photo-forward, hover-lift + image-zoom, gold stars + numeric rating + count) with a new
+  `BusinessCardSkeleton`.
+- **Homepage** (`apps/web/app/[locale]/page.tsx`): gradient hero + centered search, new Recent Activity
+  feed (`ActivityCard`, backed by the new endpoint below), popular-category tiles (`category-icons.tsx` maps
+  the seeded kebab-case icon field to lucide components), `ExploreByCity` (city chips + "Popular"/"Trending
+  in {city}" columns), featured/highly-rated horizontal-scroll rows, a recently-reviewed compact list.
+- **Search results** (`apps/web/app/[locale]/search/page.tsx`): desktop split view (`grid-cols-[240px_1fr_380px]`
+  — filters, list, sticky map) via `SearchMapToggle`'s new `alwaysVisible` prop; mobile keeps the pre-existing
+  toggle button. Filters/sort/URL-as-source-of-truth behavior is unchanged.
+- **Business profile** (`apps/web/app/[locale]/business/[slug]/page.tsx`): new sticky `BusinessProfileActions`
+  sub-header (name/rating/open-badge + Directions/Call/Save/Write-a-review), anchor-link section nav
+  (Overview/Services/Reviews/Photos), new `ServicesMenu` component rendering `BusinessProfile.services` —
+  that field already existed in the API response (Phase 6) but was never rendered on the _public_ page, only
+  in the owner's editor; this is a zero-API-change presentation fix, not new data. Sidebar gained
+  `lg:sticky lg:top-40`.
+- **The one permitted backend change**: `GET /discovery/recent-activity` (read-only, composes existing
+  `Review`/`User`/`Business`/`Photo` tables — no migration, no auth change). Needed because the homepage
+  "Recent Activity" feed requires per-review activity (reviewer, snippet, timestamp) across every business,
+  and the existing `discovery/home`'s `recent` block is recently-_published businesses_, not recent
+  _reviews_ — confirmed no existing endpoint could compose this. **Privacy-audited empirically, not just by
+  code review**: inserted a temporary `PENDING`-status review directly via SQL, confirmed it does NOT appear
+  in the endpoint's response (queried with a fresh, uncached `limit` to bypass the 5-minute Redis cache),
+  then deleted the test row. Response shape carries no private fields (no email, no userId, no IP, no
+  moderation reason) — matches `recentActivityItemSchema` exactly.
+
+### Real bugs found and fixed via this pass (not just written to pass)
+
+- **`tsx` doesn't auto-load `.env`** (only the Prisma CLI itself does) — `scripts/reset-test-env.sh`'s seed
+  step (`tsx prisma/seed.ts`) failed with `Environment variable not found: DATABASE_URL` in a fresh shell
+  with nothing manually exported. Pre-existing, unrelated to the redesign, would have hit any fresh session
+  running these scripts. Fixed: `packages/database/package.json`'s `db:seed`/`db:reset-test`/
+  `db:import-businesses` now run `tsx --env-file=.env ...`. Verified end-to-end with `env -i` (fully clean
+  shell).
+- **`<a>` nested inside `<a>`, causing a real hydration failure** — `BusinessCard`'s outer image `<Link>`
+  wrapped `FavoriteButton`, whose logged-out state renders its own `<Link>` (a login link). Invalid HTML,
+  confirmed via a real browser console capture (`Hydration failed because the server rendered HTML didn't
+match the client`). **Pre-existing before this redesign** (the nesting was unchanged from the Phase 4/5
+  original; only classNames were touched this phase) — found because this pass's own verification actually
+  opened a browser console on the redesigned component, which no prior phase's `BusinessCard` work had done.
+  Fixed by making `OpenNowBadge`/`FavoriteButton` absolutely-positioned siblings of the image `Link` instead
+  of its children (`Card` itself now the positioning context).
+- **Badge `open` status-pill contrast** — the new tinted `bg-status-open/10 text-status-open` combination
+  measured 3.93:1 (axe `color-contrast`, needs 4.5:1): `status-open` (emerald-500, `#12886A`) is too light
+  against its own 10%-tint background. Fixed by using `text-emerald-700` instead — computes to ~6.9:1.
+  Found by `apps/web/e2e/a11y.spec.ts`, not manual review.
+- **`SearchBar`'s header variant: white text on a near-white pill** — the dual-field search sits inside
+  `bg-emerald-900 text-white` header, and its near-white pill (`bg-white/95`) inherited that `text-white`
+  down through the Select/Input content, making the "All categories"/"All cities" placeholder text
+  effectively invisible (axe: 1.09:1 contrast, needs 4.5:1). Fixed by setting `text-foreground` on the form
+  itself. This one bug caused **5 of 5** `a11y.spec.ts` failures in the first full run (homepage, search,
+  business profile, account, admin-login-gate all render the same `Header`) — one fix resolved all five.
+
+### Deviations from the spec (documented, not silently dropped)
+
+- **Hero uses a brand-gradient, not a photo.** No licensed Lahore cityscape/food photo asset was available
+  in this environment, and inventing an external image URL would be an unlicensed-content risk. Ships as a
+  gradient (`emerald-900` → `emerald-700` → `emerald-500`) with a subtle dot-grid texture instead. Revisit
+  once the user supplies a real, licensed photo.
+- **Category bar is a flat scrollable link row, not a dropdown mega-menu.** The spec asked for per-category
+  dropdown sub-menus; building a new mega-menu primitive (this repo has no dropdown/nav-menu component yet,
+  only `Select`/`Dialog`/`Sheet`) was judged out of this pass's time box. The flat row reuses existing nav
+  patterns and links into the same `/[city]/[category]` routes.
+- **Business profile's section nav is anchor links, not real tabbed panels.** All sections stay in the DOM
+  and are simply scrolled to — this was a deliberate choice, not a shortcut: business profile content is
+  SEO-load-bearing (per `15-conventions.md`, public discovery content must stay server-renderable/crawlable),
+  and hiding Reviews/Services behind a JS-only tab panel would remove them from what crawlers see without a
+  real reason to. A future pass could still add a visual tabbed _appearance_ on top of the same anchor
+  structure if wanted.
+- **Search results: marker hover-highlighting not implemented.** The spec asked for hovering a result to
+  highlight its map marker. No Google Maps API key exists in this environment (same long-standing gap as
+  Phases 4/6/9/10), so there's no way to verify marker-level interaction against a real map here — building
+  it unverified and calling it done would repeat the exact mistake this repo's own Phase 9 entry warns
+  against. Consciously deferred, same as every other Maps-dependent gap.
+- **`FilterPanel` hydration warning — found, confirmed pre-existing, left alone.** `apps/web/e2e` browser
+  console captures during this pass's verification surfaced a hydration mismatch on the search page's city
+  `Select` (server renders the placeholder, client hydrates to the URL's `city` value read via
+  `useSearchParams()`). `git diff main -- apps/web/src/components/search/filter-panel.tsx` confirms this
+  file was never touched this phase — it predates the redesign. Left as a known issue rather than expanding
+  this pass's scope; the search page still functions correctly (confirmed by search e2e/Playwright coverage
+  passing), it just logs a console warning on that one field.
+
+### Test results
+
+- Backend: **34/34 unit, 107/107 e2e**, confirmed in a fully clean shell (`env -i`, no ambient env vars) with
+  the `tsx --env-file` fix applied.
+- Frontend a11y (`apps/web/e2e/a11y.spec.ts`): **5/5 passing** after the two contrast fixes above (moderate/
+  minor violations already accepted by the test per Phase 9's own precedent — unchanged).
+- Frontend Playwright (full suite, `--workers=1`): **27-32 passing** depending on run; the remaining reds are
+  the same **3 pre-existing, already-documented** Chromium/Radix-`Select` environment failures from Phase 9
+  (`search.spec.ts`'s sort-select test, `admin-edit-forms.spec.ts`'s role-select and area-management tests —
+  confirmed via `docs/PROGRESS.md`'s own Phase 9 entry, not rediscovered as new) plus one intermittent
+  timeout in `account-contributions.spec.ts` ("write a review with a photo") traced to this session's own
+  resource exhaustion (this machine's 15GB RAM + 2GB swap were fully consumed after hours of repeated
+  `next dev` hot-reload cycles across many manual test reruns in this session — confirmed via `free -h`
+  showing swap at 100% and `next-server`'s RSS growing to 4.5GB; the failure point moved to a different line
+  on every rerun, the hallmark of resource contention rather than a deterministic bug) — passed cleanly in
+  isolation with a freshly-restarted, low-memory dev server. Not a code regression.
+- Test-selector changes: `apps/web/e2e/business-profile.spec.ts`'s "Get directions" link assertion now
+  resolves unambiguously (the sidebar's duplicate Directions button was removed — see bugs above, not a
+  selector change). `apps/web/e2e/search.spec.ts`'s map-toggle test split into two (desktop: map always
+  visible, no toggle; mobile: toggle reveals the map) to match the new split-view design — the old test's
+  premise (a universal toggle at any viewport) no longer holds now that desktop shows the map without one.
+- Screenshots (desktop 1280×900 + mobile 375×812; homepage, search results, a city/category page, business
+  profile) captured via a one-off Playwright script during this pass, reviewed for regressions, then
+  discarded (not committed — verification artifacts, not app files); nothing in them indicated a further
+  issue beyond what's already listed above.
+- `pnpm lint && pnpm typecheck && pnpm build` — clean across the whole workspace.
+
+### Housekeeping
+
+- `apps/web/test-results/` was accidentally committed back in Phase 5 (Playwright's own run artifacts, e.g.
+  `cookie-jar-check.png`); added to `.gitignore` and untracked this phase — unrelated to the redesign itself,
+  just found along the way.
+
+### Docs changed this phase
+
+`docs/PROGRESS.md` (this entry), [`07-frontend.md`](07-frontend.md) (component/layout changes),
+[`17-design-overhaul.md`](17-design-overhaul.md) (marked what shipped vs. what was simplified), new
+[`14-build-roadmap.md`](14-build-roadmap.md) (already existed from Phase 10 kickoff, not new to this phase).

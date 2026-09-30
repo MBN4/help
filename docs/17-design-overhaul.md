@@ -2,6 +2,15 @@
 
 A **presentation-only** redesign. It rebuilds the visual layer and key page layouts to feel like a modern, photo-forward discovery site (the patterns that make Yelp work) while keeping Buisnez's own brand, and **without changing any feature, API, route, schema, or business logic.**
 
+> **Status: shipped, Phase 11** — see `PROGRESS.md`'s Phase 11 entry for the full build/test/deviation
+> record. Three deliberate simplifications from this spec, each documented with its reasoning there:
+> the category bar ships as a flat scrollable link row instead of per-category dropdown menus; the
+> business profile's Overview/Services/Reviews/Photos sections use anchor-link navigation instead of
+> real tabbed panels (to keep all content server-rendered and crawlable); and search results' "hovering
+> a result highlights its map marker" was not implemented, since no Google Maps key exists in this
+> environment to verify it against a real map. The hero ships as a brand-gradient rather than a photo, no
+> licensed image asset having been available — swap in a real photo when one exists.
+
 ## Brand boundary (non-negotiable)
 
 - **Adopt (patterns — fine to use):** dual-field search, sticky header, category bar, photo hero, activity-card feed, category tiles, city→searches block, list+map results, tabbed profile, hover/loading motion.
