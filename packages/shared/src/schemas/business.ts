@@ -169,3 +169,29 @@ export const homeDiscoverySchema = z.object({
   recent: z.array(businessSummarySchema),
 });
 export type HomeDiscovery = z.infer<typeof homeDiscoverySchema>;
+
+/**
+ * Phase 11 design overhaul: the homepage "Recent Activity" feed needs individual review activity
+ * (reviewer, snippet, timestamp) across every business, which no existing endpoint exposes — `recent`
+ * above is recently-published *businesses*, not recent *reviews*. Read-only, no new tables; composes
+ * `Review` + `User` + `Business` + `Photo`, the same joins `BusinessesService.getReviews` already makes
+ * per-business. See docs/13-devops-deployment.md's guardrail note and docs/PROGRESS.md's Phase 11 entry.
+ */
+export const recentActivityItemSchema = z.object({
+  id: z.string().uuid(),
+  rating: z.number().int(),
+  title: z.string().nullable(),
+  body: z.string().nullable(),
+  createdAt: z.string(),
+  helpfulCount: z.number().int(),
+  userName: z.string(),
+  userAvatarUrl: z.string().nullable(),
+  business: z.object({
+    slug: z.string(),
+    name: z.string(),
+    city: locationRefSchema,
+    area: locationRefSchema.nullable(),
+    thumbnailUrl: z.string().nullable(),
+  }),
+});
+export type RecentActivityItem = z.infer<typeof recentActivityItemSchema>;
