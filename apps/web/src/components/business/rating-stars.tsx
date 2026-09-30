@@ -26,18 +26,15 @@ export function RatingStars({
         const fillRatio = Math.max(0, Math.min(1, value - index));
         return (
           <span key={index} className={cn('relative inline-block', dimension)}>
-            <Star
-              className={cn(
-                dimension,
-                'absolute inset-0 text-muted-foreground/40',
-              )}
-            />
+            <Star className={cn(dimension, 'absolute inset-0 text-border')} />
             {fillRatio > 0 && (
               <span
                 className="absolute inset-0 overflow-hidden"
                 style={{ width: `${fillRatio * 100}%` }}
               >
-                <Star className={cn(dimension, 'fill-accent text-accent')} />
+                <Star
+                  className={cn(dimension, 'fill-star-gold text-star-gold')}
+                />
               </span>
             )}
           </span>

@@ -12,11 +12,15 @@ import { LazyMapView } from '@/components/map/lazy-map-view';
 export interface SearchMapToggleProps {
   businesses: BusinessSummary[];
   center: { lat: number; lng: number };
+  /** Desktop split-view usage (search/page.tsx's sticky right column) — map always mounted, no toggle
+   * button, height fills its sticky container instead of the mobile toggle's fixed min-height. */
+  alwaysVisible?: boolean;
 }
 
 export function SearchMapToggle({
   businesses,
   center,
+  alwaysVisible = false,
 }: SearchMapToggleProps): React.ReactElement {
   const t = useTranslations('search');
   const [showMap, setShowMap] = React.useState(false);
@@ -40,6 +44,17 @@ export function SearchMapToggle({
       },
     ];
   });
+
+  if (alwaysVisible) {
+    return (
+      <LazyMapView
+        center={viewport}
+        zoom={viewport.zoom}
+        markers={markers}
+        className="h-[calc(100vh-8rem)] min-h-[420px]"
+      />
+    );
+  }
 
   return (
     <div className="space-y-3">

@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { MapPin } from 'lucide-react';
 import type { CitySummary } from '@buisnez/shared';
 import { usePathname, useRouter } from '@/i18n/navigation';
+import { cn } from '@/lib/utils/cn';
 import {
   Select,
   SelectContent,
@@ -25,10 +26,13 @@ function currentCitySlugFromPathname(pathname: string): string | null {
 
 export interface LocationPickerProps {
   cities: CitySummary[];
+  /** Dark-header variant — bg-emerald-900 needs light text/icon instead of the default dark-on-light. */
+  onDark?: boolean;
 }
 
 export function LocationPicker({
   cities,
+  onDark = false,
 }: LocationPickerProps): React.ReactElement {
   const t = useTranslations('locationPicker');
   const pathname = usePathname();
@@ -46,9 +50,20 @@ export function LocationPicker({
     >
       <SelectTrigger
         aria-label={t('label')}
-        className="h-9 w-auto min-w-[9rem] gap-1.5 border-none bg-transparent px-2 text-sm font-medium"
+        className={cn(
+          'h-9 w-auto min-w-[9rem] gap-1.5 border-none bg-transparent px-2 text-sm font-medium',
+          onDark
+            ? 'text-white/90 hover:text-white [&>svg]:text-white/70'
+            : 'text-foreground',
+        )}
       >
-        <MapPin className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+        <MapPin
+          className={cn(
+            'h-4 w-4 shrink-0',
+            onDark ? 'text-white/70' : 'text-primary',
+          )}
+          aria-hidden="true"
+        />
         <SelectValue placeholder={t('placeholder')}>
           {currentCity?.name ?? t('placeholder')}
         </SelectValue>

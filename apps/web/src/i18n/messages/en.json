@@ -26,7 +26,10 @@
     "signup": "Sign up",
     "account": "Account",
     "logout": "Log out",
-    "myAccount": "My account"
+    "myAccount": "My account",
+    "forBusiness": "For Business",
+    "writeReview": "Write a Review",
+    "moreCategories": "More"
   },
   "locationPicker": {
     "label": "Choose your city",
@@ -45,7 +48,14 @@
     "trending": "Trending now",
     "highlyRated": "Highly rated",
     "featured": "Featured",
-    "recentlyAdded": "Recently added"
+    "recentlyAdded": "Recently added",
+    "recentActivity": "Recent activity",
+    "readMore": "Read more",
+    "helpfulCount": "{count, plural, =0 {Helpful} one {# found helpful} other {# found helpful}}",
+    "exploreByCity": "Explore by city",
+    "popularIn": "Popular in {city}",
+    "trendingIn": "Trending in {city}",
+    "recentlyReviewed": "Recently reviewed"
   },
   "search": {
     "metaTitle": "Search Businesses — Buisnez",
@@ -105,6 +115,10 @@
     "reviewsHeading": "Reviews",
     "similar": "You might also like",
     "aboutTitle": "About",
+    "overview": "Overview",
+    "servicesMenu": "Services & menu",
+    "priceOnRequest": "Price on request",
+    "jumpToSection": "Jump to section",
     "noDescription": "No description yet.",
     "noReviews": "No reviews yet.",
     "ownerReply": "Response from the owner",
@@ -137,8 +151,22 @@
   },
   "footer": {
     "about": "About Buisnez",
+    "howItWorks": "How Buisnez works",
+    "trustSafety": "Trust & safety",
     "forBusinesses": "For businesses",
+    "claimBusiness": "Claim your business",
+    "advertise": "Advertise with us",
     "help": "Help",
+    "discover": "Discover",
+    "writeReview": "Write a review",
+    "addPhoto": "Add a photo",
+    "topCategories": "Top categories",
+    "cities": "Cities",
+    "languages": "Languages",
+    "languageEnglish": "English",
+    "languageUrduSoon": "Urdu (coming soon)",
+    "languageRomanUrduSoon": "Roman Urdu (coming soon)",
+    "madeInPakistan": "Made in Pakistan",
     "copyright": "© {year} Buisnez. All rights reserved."
   },
   "priceTier": {

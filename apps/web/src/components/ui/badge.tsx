@@ -13,6 +13,10 @@ const badgeVariants = cva(
         success: 'border-transparent bg-success text-success-foreground',
         warning: 'border-transparent bg-warning text-warning-foreground',
         accent: 'border-transparent bg-accent text-accent-foreground',
+        /* Tasteful tinted-pill status badges (Phase 11 design overhaul) — used for open/closed instead of
+           a solid fill, per docs/17-design-overhaul.md's "Closed — sparingly" guidance. */
+        open: 'border-transparent bg-status-open/10 text-status-open',
+        closed: 'border-transparent bg-status-closed/10 text-status-closed',
       },
     },
     defaultVariants: { variant: 'default' },

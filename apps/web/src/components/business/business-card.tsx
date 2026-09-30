@@ -7,6 +7,7 @@ import type { BusinessSummary } from '@buisnez/shared';
 import { Link } from '@/i18n/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { RatingStars } from './rating-stars';
 import { PriceLevel } from './price-level';
 import { OpenNowBadge } from './open-now-badge';
@@ -22,20 +23,20 @@ export function BusinessCard({
   const t = useTranslations('common');
 
   return (
-    <Card className="group overflow-hidden transition-shadow hover:shadow-md">
+    <Card className="card-hover group overflow-hidden">
       <Link
         href={`/business/${business.slug}`}
         className="block"
         aria-label={business.name}
       >
-        <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
+        <div className="relative aspect-video w-full overflow-hidden bg-muted">
           {business.thumbnailUrl ? (
             <Image
               src={business.thumbnailUrl}
               alt={business.name}
               fill
               sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 100vw"
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              className="card-hover-image object-cover"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-muted-foreground">
@@ -53,7 +54,7 @@ export function BusinessCard({
       <CardContent className="flex flex-col gap-1.5 p-3">
         <div className="flex items-start justify-between gap-2">
           <Link href={`/business/${business.slug}`} className="min-w-0">
-            <h3 className="truncate font-semibold leading-tight hover:underline">
+            <h3 className="truncate font-display text-base font-bold leading-tight hover:underline">
               {business.name}
             </h3>
           </Link>
@@ -71,6 +72,11 @@ export function BusinessCard({
 
         <div className="flex items-center gap-2 text-sm">
           <RatingStars rating={business.averageRating} />
+          {business.averageRating !== null && (
+            <span className="font-medium text-ink">
+              {business.averageRating.toFixed(1)}
+            </span>
+          )}
           <span className="text-muted-foreground">
             {t('reviewsCount', { count: business.reviewCount })}
           </span>
@@ -82,6 +88,20 @@ export function BusinessCard({
             {(business.distanceMeters / 1000).toFixed(1)} km
           </p>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Loading placeholder matching BusinessCard's layout — docs/17-design-overhaul.md "skeleton variant". */
+export function BusinessCardSkeleton(): React.ReactElement {
+  return (
+    <Card className="overflow-hidden">
+      <Skeleton className="aspect-video w-full rounded-none" />
+      <CardContent className="flex flex-col gap-2 p-3">
+        <Skeleton className="h-5 w-3/4" />
+        <Skeleton className="h-4 w-1/2" />
+        <Skeleton className="h-4 w-2/3" />
       </CardContent>
     </Card>
   );

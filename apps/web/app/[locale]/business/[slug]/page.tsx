@@ -31,10 +31,11 @@ import { PhotoGallery } from '@/components/photo/photo-gallery';
 import { ReviewList } from '@/components/review/review-list';
 import { ReviewSection } from '@/components/review/review-section';
 import { BusinessCard } from '@/components/business/business-card';
-import { FavoriteButton } from '@/components/business/favorite-button';
 import { ReportButton } from '@/components/report/report-button';
 import { SuggestEditButton } from '@/components/business/suggest-edit-button';
 import { ClaimBusinessButton } from '@/components/business-owner/claim-business-button';
+import { BusinessProfileActions } from '@/components/business/business-profile-actions';
+import { ServicesMenu } from '@/components/business/services-menu';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -136,10 +137,9 @@ export default async function BusinessProfilePage({
 
       <header className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-3xl font-bold">{business.name}</h1>
+          <h1 className="font-display text-h1">{business.name}</h1>
           <OpenNowBadge isOpenNow={business.isOpenNow} />
           <div className="ms-auto flex items-center gap-2">
-            <FavoriteButton businessId={business.id} variant="full" />
             <SuggestEditButton businessId={business.id} />
             <ReportButton targetType="BUSINESS" targetId={business.id} />
           </div>
@@ -165,12 +165,45 @@ export default async function BusinessProfilePage({
         )}
       </header>
 
-      <PhotoGallery photos={photos} businessName={business.name} />
+      {/* Photo gallery hero + sticky sub-header CTAs — docs/17-design-overhaul.md "business profile page". */}
+      <div id="photos" className="scroll-mt-40">
+        <PhotoGallery photos={photos} businessName={business.name} />
+      </div>
+
+      <BusinessProfileActions
+        businessId={business.id}
+        name={business.name}
+        averageRating={business.aggregates.averageRating}
+        reviewCount={business.aggregates.reviewCount}
+        isOpenNow={business.isOpenNow}
+        phone={business.phone}
+        directionsHref={directionsHref}
+      />
+
+      <nav
+        aria-label={t('jumpToSection')}
+        className="flex flex-wrap gap-x-5 gap-y-1 border-b border-border pb-3 text-sm font-medium text-muted-foreground"
+      >
+        <a href="#overview" className="hover:text-emerald-700">
+          {t('overview')}
+        </a>
+        {business.services.some((s) => s.isAvailable) && (
+          <a href="#services" className="hover:text-emerald-700">
+            {t('servicesMenu')}
+          </a>
+        )}
+        <a href="#reviews" className="hover:text-emerald-700">
+          {t('reviewsHeading')}
+        </a>
+        <a href="#photos" className="hover:text-emerald-700">
+          {t('photos')}
+        </a>
+      </nav>
 
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="space-y-8 lg:col-span-2">
-          <section className="space-y-2">
-            <h2 className="text-xl font-semibold">{t('aboutTitle')}</h2>
+          <section id="overview" className="scroll-mt-40 space-y-2">
+            <h2 className="font-display text-h2">{t('aboutTitle')}</h2>
             <p className="text-foreground/90">
               {business.description ?? t('noDescription')}
             </p>
@@ -178,13 +211,15 @@ export default async function BusinessProfilePage({
 
           {business.features.length > 0 && (
             <section className="space-y-2">
-              <h2 className="text-xl font-semibold">{t('features')}</h2>
+              <h2 className="font-display text-h2">{t('features')}</h2>
               <FeatureList features={business.features} />
             </section>
           )}
 
-          <section className="space-y-4">
-            <h2 className="text-xl font-semibold">{t('reviewsHeading')}</h2>
+          <ServicesMenu services={business.services} />
+
+          <section id="reviews" className="scroll-mt-40 space-y-4">
+            <h2 className="font-display text-h2">{t('reviewsHeading')}</h2>
             <ReviewSection business={business} />
             {reviews.length === 0 ? (
               <p className="text-muted-foreground">{t('noReviews')}</p>
@@ -195,7 +230,7 @@ export default async function BusinessProfilePage({
 
           {similar.length > 0 && (
             <section className="space-y-3">
-              <h2 className="text-xl font-semibold">{t('similar')}</h2>
+              <h2 className="font-display text-h2">{t('similar')}</h2>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                 {similar.map((item) => (
                   <BusinessCard key={item.id} business={item} />
@@ -205,7 +240,7 @@ export default async function BusinessProfilePage({
           )}
         </div>
 
-        <aside className="space-y-4">
+        <aside className="space-y-4 lg:sticky lg:top-40 lg:h-fit">
           <Card>
             <CardContent className="space-y-3 p-4">
               {business.location && (

@@ -110,7 +110,12 @@ export default async function SearchPage({
       />
       <SearchBar />
 
-      <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
+      {/* Yelp's signature split view — docs/17-design-overhaul.md section "Search results page": filters
+          (left rail / mobile sheet, unchanged component) | results list | a sticky map column at lg+.
+          Same `SearchMapToggle` component and data as before this pass; below `lg` it still behaves as a
+          toggle (see that component's own comment for why marker hover-highlighting wasn't added — no
+          Maps key exists in this environment to verify it against a real map). */}
+      <div className="grid gap-6 lg:grid-cols-[240px_1fr_380px]">
         <aside className="hidden lg:block">
           <FilterPanel />
         </aside>
@@ -118,7 +123,7 @@ export default async function SearchPage({
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h1 className="text-xl font-semibold">{t('title')}</h1>
+              <h1 className="font-display text-h2">{t('title')}</h1>
               <p className="text-sm text-muted-foreground">
                 {t('resultsCount', { count: meta?.total ?? businesses.length })}
               </p>
@@ -133,14 +138,16 @@ export default async function SearchPage({
             <MobileFilterSheet />
           </div>
 
-          <SearchMapToggle businesses={businesses} center={mapCenter} />
+          <div className="lg:hidden">
+            <SearchMapToggle businesses={businesses} center={mapCenter} />
+          </div>
 
           {businesses.length === 0 ? (
             <p className="py-8 text-center text-muted-foreground">
               {t('noResults')}
             </p>
           ) : (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {businesses.map((business) => (
                 <BusinessCard key={business.id} business={business} />
               ))}
@@ -176,6 +183,16 @@ export default async function SearchPage({
             </nav>
           )}
         </div>
+
+        <aside className="hidden lg:block">
+          <div className="sticky top-24">
+            <SearchMapToggle
+              businesses={businesses}
+              center={mapCenter}
+              alwaysVisible
+            />
+          </div>
+        </aside>
       </div>
     </div>
   );

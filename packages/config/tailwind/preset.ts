@@ -62,12 +62,39 @@ const preset: Partial<Config> = {
           DEFAULT: 'hsl(var(--warning))',
           foreground: 'hsl(var(--warning-foreground))',
         },
+        /* Buisnez brand tokens (Phase 11 design overhaul) — direct names per docs/17-design-overhaul.md,
+           for callers that want the exact brand color rather than a semantic slot (e.g. the header is
+           always emerald-900, never `bg-primary`, so a future primary-color change doesn't repaint it). */
+        emerald: {
+          900: 'hsl(var(--emerald-900))',
+          700: 'hsl(var(--emerald-700))',
+          500: 'hsl(var(--emerald-500))',
+          100: 'hsl(var(--emerald-100))',
+        },
+        saffron: {
+          500: 'hsl(var(--saffron-500))',
+          600: 'hsl(var(--saffron-600))',
+        },
+        'star-gold': 'hsl(var(--star-gold))',
+        ink: 'hsl(var(--ink))',
+        canvas: 'hsl(var(--canvas))',
+        surface: 'hsl(var(--surface))',
+        status: {
+          open: 'hsl(var(--status-open))',
+          closed: 'hsl(var(--status-closed))',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
         xl: 'calc(var(--radius) + 4px)',
+        pill: 'var(--radius-pill)',
+      },
+      boxShadow: {
+        sm: '0 1px 2px 0 rgb(22 32 28 / 0.06), 0 1px 1px 0 rgb(22 32 28 / 0.04)',
+        md: '0 4px 12px -2px rgb(22 32 28 / 0.12), 0 2px 6px -2px rgb(22 32 28 / 0.06)',
+        lg: '0 12px 32px -6px rgb(22 32 28 / 0.18), 0 4px 12px -4px rgb(22 32 28 / 0.08)',
       },
       fontFamily: {
         sans: [
@@ -77,6 +104,13 @@ const preset: Partial<Config> = {
           '-apple-system',
           'Segoe UI',
           'Roboto',
+          'sans-serif',
+        ],
+        display: [
+          'var(--font-display)',
+          'var(--font-sans)',
+          'ui-sans-serif',
+          'system-ui',
           'sans-serif',
         ],
       },
@@ -89,6 +123,11 @@ const preset: Partial<Config> = {
         '2xl': ['1.5rem', { lineHeight: '2rem' }],
         '3xl': ['1.875rem', { lineHeight: '2.25rem' }],
         '4xl': ['2.5rem', { lineHeight: '2.75rem' }],
+        /* docs/17-design-overhaul.md's named display scale, alongside the existing xs..4xl utility scale. */
+        display: ['2.75rem', { lineHeight: '1.2', fontWeight: '800' }],
+        h1: ['2rem', { lineHeight: '1.2', fontWeight: '700' }],
+        h2: ['1.5rem', { lineHeight: '1.2', fontWeight: '700' }],
+        h3: ['1.25rem', { lineHeight: '1.2', fontWeight: '700' }],
       },
       spacing: {
         18: '4.5rem',

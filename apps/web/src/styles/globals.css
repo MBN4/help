@@ -6,55 +6,163 @@
   :root {
     color-scheme: light;
 
-    /* Buisnez brand: deep emerald (trust, local roots) + warm saffron accent (energy, discovery). */
-    --primary-50: 160 45% 96%;
-    --primary-100: 160 42% 90%;
-    --primary-200: 160 40% 78%;
-    --primary-300: 160 38% 62%;
-    --primary-400: 160 42% 46%;
-    --primary-500: 160 58% 28%;
-    --primary-600: 160 62% 22%;
-    --primary-700: 161 65% 17%;
-    --primary-800: 161 68% 13%;
-    --primary-900: 162 70% 9%;
-    --primary: var(--primary-500);
+    /* Buisnez brand (Phase 11 design overhaul) — deep emerald + warm saffron.
+       Hex values are docs/17-design-overhaul.md's spec, converted to the H/S/L triplets
+       this file's `hsl(var(--x))` convention expects everywhere else in the app. */
+    --emerald-900: 164 81% 12%; /* #06392B — header bg, deepest */
+    --emerald-700: 162 79% 20%; /* #0B5D45 — primary */
+    --emerald-500: 165 77% 30%; /* #12886A — primary hover / accents */
+    --emerald-100: 156 37% 92%; /* #E3F2EC — tint / selected chips */
+    --saffron-500: 38 82% 53%; /* #E9A227 — secondary accent (CTAs, highlights) */
+    --saffron-600: 37 90% 41%; /* #C77D0A — saffron text on light */
+    --star-gold: 37 91% 55%; /* #F5A623 — gold stars, never red */
+
+    --ink: 156 19% 11%; /* #16201C — headings */
+    --body-text: 150 7% 22%; /* #333B37 — body text */
+    --muted-text: 220 9% 46%; /* #6B7280 — secondary text */
+    --hairline: 220 13% 91%; /* #E5E7EB */
+    --surface: 0 0% 100%; /* #FFFFFF — cards */
+    --canvas: 120 0% 97%; /* #F7F8F7 — page bg / section bands */
+
+    --status-open: 165 77% 30%; /* same as emerald-500 */
+    --status-closed: 4 76% 40%; /* #B42318 — sparingly */
+
+    /* Interpolated ramp (spec only gives 900/700/500/100; the rest keep the same hue/sat family). */
+    --primary-50: 163 45% 97%;
+    --primary-100: var(--emerald-100);
+    --primary-200: 160 40% 82%;
+    --primary-300: 162 45% 68%;
+    --primary-400: 163 55% 48%;
+    --primary-500: var(--emerald-500);
+    --primary-600: 163 78% 24%;
+    --primary-700: var(--emerald-700);
+    --primary-800: 163 80% 16%;
+    --primary-900: var(--emerald-900);
+    --primary: var(--emerald-700);
     --primary-foreground: 0 0% 100%;
 
-    --accent: 38 92% 55%;
-    --accent-foreground: 24 45% 14%;
+    --accent: var(--saffron-500);
+    --accent-foreground: var(--ink);
 
-    --secondary: 160 20% 95%;
-    --secondary-foreground: 161 40% 14%;
+    --secondary: var(--emerald-100);
+    --secondary-foreground: var(--emerald-900);
 
-    --background: 0 0% 100%;
-    --foreground: 220 14% 12%;
+    --background: var(--surface);
+    --foreground: var(--ink);
 
-    --card: 0 0% 100%;
-    --card-foreground: 220 14% 12%;
+    --card: var(--surface);
+    --card-foreground: var(--ink);
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 14% 12%;
+    --popover: var(--surface);
+    --popover-foreground: var(--ink);
 
-    --muted: 210 16% 96%;
-    --muted-foreground: 215 14% 42%;
+    --muted: var(--canvas);
+    --muted-foreground: var(--muted-text);
 
-    --border: 214 18% 89%;
-    --input: 214 18% 89%;
-    --ring: 160 58% 28%;
+    --border: var(--hairline);
+    --input: var(--hairline);
+    --ring: var(--emerald-700);
 
-    --destructive: 0 72% 51%;
+    --destructive: var(--status-closed);
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 65% 32%;
+    --success: var(--status-open);
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 24 45% 14%;
+    --warning: var(--saffron-600);
+    --warning-foreground: 0 0% 100%;
 
     --radius: 0.75rem;
+    --radius-pill: 9999px;
+
+    /* Motion (design-overhaul spec: 160ms ease-out default, disabled under reduced-motion). */
+    --motion-duration: 160ms;
+    --motion-duration-dropdown: 120ms;
+    --motion-ease: ease-out;
   }
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    color: hsl(var(--body-text));
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-display;
+    color: hsl(var(--ink));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Card hover: translateY(-2px) + shadow-md, image inside zooms 1.03 — docs/17-design-overhaul.md. */
+  .card-hover {
+    transition:
+      transform var(--motion-duration) var(--motion-ease),
+      box-shadow var(--motion-duration) var(--motion-ease);
+  }
+  .card-hover:hover,
+  .card-hover:focus-within {
+    transform: translateY(-2px);
+    @apply shadow-md;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card-hover:hover,
+    .card-hover:focus-within {
+      transform: none;
+    }
+  }
+
+  .card-hover-image {
+    transition: transform 240ms var(--motion-ease);
+  }
+  .card-hover:hover .card-hover-image,
+  .card-hover:focus-within .card-hover-image {
+    transform: scale(1.03);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card-hover:hover .card-hover-image,
+    .card-hover:focus-within .card-hover-image {
+      transform: none;
+    }
+  }
+
+  .skeleton-shimmer {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 25%,
+      hsl(var(--hairline)) 37%,
+      hsl(var(--muted)) 63%
+    );
+    background-size: 400% 100%;
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton-shimmer {
+      animation: none;
+    }
+  }
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
   }
 }

@@ -11,7 +11,7 @@ export function OpenNowBadge({
 }: OpenNowBadgeProps): React.ReactElement {
   const t = useTranslations('common');
   return (
-    <Badge variant={isOpenNow ? 'success' : 'secondary'}>
+    <Badge variant={isOpenNow ? 'open' : 'closed'}>
       {isOpenNow ? t('openNow') : t('closedNow')}
     </Badge>
   );

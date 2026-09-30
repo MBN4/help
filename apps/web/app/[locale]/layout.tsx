@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 import {
   getMessages,
@@ -8,6 +9,20 @@ import {
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import '../../src/styles/globals.css';
+
+// Self-hosted (next/font downloads + serves these at build time, no runtime Google Fonts request) —
+// docs/17-design-overhaul.md: "Inter" for body, "Plus Jakarta Sans" for display/headings.
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-sans',
+  display: 'swap',
+});
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  variable: '--font-display',
+  weight: ['600', '700', '800'],
+  display: 'swap',
+});
 import { routing } from '@/i18n/routing';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { PostHogProvider } from '@/components/providers/posthog-provider';
@@ -54,7 +69,11 @@ export default async function LocaleLayout({
   ]);
 
   return (
-    <html lang={locale} dir="ltr">
+    <html
+      lang={locale}
+      dir="ltr"
+      className={`${inter.variable} ${plusJakartaSans.variable}`}
+    >
       <body>
         <NextIntlClientProvider messages={messages}>
           <Suspense fallback={null}>
