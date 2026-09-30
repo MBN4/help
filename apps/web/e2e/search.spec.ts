@@ -42,9 +42,23 @@ test('changing the sort control updates the URL query string', async ({
   await expect(page).toHaveURL(/sort=rating/);
 });
 
-test('the map toggle reveals a map area (or its graceful fallback)', async ({
+test('desktop shows the map in a sticky split-view column, no toggle needed', async ({
   page,
 }) => {
+  // Design-overhaul split view (docs/17-design-overhaul.md): at lg+ the map is always visible in a
+  // sticky right column; the toggle button below is `lg:hidden` and no longer part of this flow.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/search');
+  // `.last()`, not `.first()`: an intentionally lg:hidden mobile toggle button (text "Show map") also
+  // matches this pattern and sits earlier in the DOM — the sticky desktop map column renders after it.
+  await expect(page.getByText(/map|directions/i).last()).toBeVisible();
+  await expect(page.getByRole('button', { name: /show map/i })).toBeHidden();
+});
+
+test('mobile map toggle reveals a map area (or its graceful fallback)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 812 });
   await page.goto('/search');
   await page.getByRole('button', { name: /show map/i }).click();
   await expect(page.getByText(/map|directions/i).first()).toBeVisible();

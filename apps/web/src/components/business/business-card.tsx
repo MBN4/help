@@ -23,7 +23,11 @@ export function BusinessCard({
   const t = useTranslations('common');
 
   return (
-    <Card className="card-hover group overflow-hidden">
+    <Card className="card-hover group relative overflow-hidden">
+      {/* FavoriteButton's logged-out state renders its own <a> (a login link) — nesting it inside this
+          image link would put an <a> inside an <a>, which is invalid HTML and caused a real hydration
+          failure (found via browser console during this pass, pre-existing before this redesign). Kept
+          as a sibling, absolutely positioned over the same image area, instead. */}
       <Link
         href={`/business/${business.slug}`}
         className="block"
@@ -43,14 +47,14 @@ export function BusinessCard({
               <MapPin className="h-8 w-8" aria-hidden="true" />
             </div>
           )}
-          <div className="absolute start-2 top-2">
-            <OpenNowBadge isOpenNow={business.isOpenNow} />
-          </div>
-          <div className="absolute end-2 top-2">
-            <FavoriteButton businessId={business.id} />
-          </div>
         </div>
       </Link>
+      <div className="pointer-events-none absolute start-2 top-2">
+        <OpenNowBadge isOpenNow={business.isOpenNow} />
+      </div>
+      <div className="absolute end-2 top-2">
+        <FavoriteButton businessId={business.id} />
+      </div>
       <CardContent className="flex flex-col gap-1.5 p-3">
         <div className="flex items-start justify-between gap-2">
           <Link href={`/business/${business.slug}`} className="min-w-0">

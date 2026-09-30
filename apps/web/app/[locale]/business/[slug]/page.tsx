@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { Phone, Globe, MessageCircle, Navigation } from 'lucide-react';
+import { Phone, Globe, MessageCircle } from 'lucide-react';
 import { formatPhonePK, toTelHref } from '@buisnez/shared';
 import {
   ApiError,
@@ -36,7 +36,6 @@ import { SuggestEditButton } from '@/components/business/suggest-edit-button';
 import { ClaimBusinessButton } from '@/components/business-owner/claim-business-button';
 import { BusinessProfileActions } from '@/components/business/business-profile-actions';
 import { ServicesMenu } from '@/components/business/services-menu';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { LazyMapView } from '@/components/map/lazy-map-view';
@@ -83,9 +82,8 @@ export default async function BusinessProfilePage({
   const { locale, slug } = await params;
   setRequestLocale(locale);
 
-  const [t, commonT, breadcrumbT, { data: business }] = await Promise.all([
+  const [t, breadcrumbT, { data: business }] = await Promise.all([
     getTranslations('business'),
-    getTranslations('common'),
     getTranslations('breadcrumb'),
     loadBusiness(slug),
   ]);
@@ -258,16 +256,6 @@ export default async function BusinessProfilePage({
                 />
               )}
               <p className="text-sm">{business.addressLine}</p>
-              <Button asChild variant="outline" size="sm" className="w-full">
-                <a
-                  href={directionsHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Navigation className="h-4 w-4" aria-hidden="true" />
-                  {commonT('getDirections')}
-                </a>
-              </Button>
 
               <Separator />
 

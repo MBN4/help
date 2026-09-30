@@ -57,7 +57,10 @@ export function SearchBar({
       className={cn(
         'flex w-full flex-col gap-2 sm:flex-row sm:items-center',
         isHeader
-          ? 'rounded-pill bg-white/95 p-1 shadow-sm sm:gap-0 sm:divide-x sm:divide-border'
+          ? // Sits inside the emerald-900 header, which sets text-white for its own content — this
+            // pill is near-white, so it must reset back to a dark foreground itself (a11y: axe's
+            // color-contrast rule caught white-on-white here before this fix).
+            'rounded-pill bg-white/95 p-1 text-foreground shadow-sm sm:gap-0 sm:divide-x sm:divide-border'
           : 'rounded-2xl border border-border bg-card p-3 shadow-lg sm:gap-0 sm:divide-x sm:divide-border',
         className,
       )}
