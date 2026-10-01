@@ -12,7 +12,7 @@ import { breadcrumbListJsonLd } from '@/lib/seo/json-ld';
 import { JsonLd } from '@/components/seo/json-ld';
 import { Link } from '@/i18n/navigation';
 import { Breadcrumb } from '@/components/layout/breadcrumb';
-import { BusinessCard } from '@/components/business/business-card';
+import { BusinessListItem } from '@/components/business/business-list-item';
 
 export const revalidate = 600;
 
@@ -100,7 +100,7 @@ export default async function CityHubPage({
             <Link
               key={category.id}
               href={`/${citySlug}/${category.slug}`}
-              className="rounded-lg border border-border bg-card p-4 text-center font-medium transition-colors hover:border-primary hover:text-saffron-700"
+              className="rounded-lg border border-border bg-card p-4 text-center font-medium transition-[background-color,box-shadow] duration-[var(--motion-duration)] hover:bg-saffron-100 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {category.name}
             </Link>
@@ -112,9 +112,13 @@ export default async function CityHubPage({
         <h2 className="text-xl font-semibold">
           {t('topBusinesses', { city: city.name })}
         </h2>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {topBusinesses.map((business) => (
-            <BusinessCard key={business.id} business={business} />
+        <div className="space-y-3">
+          {topBusinesses.map((business, index) => (
+            <BusinessListItem
+              key={business.id}
+              business={business}
+              rank={index + 1}
+            />
           ))}
         </div>
       </section>

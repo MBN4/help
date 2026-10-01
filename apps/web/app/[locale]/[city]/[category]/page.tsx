@@ -5,10 +5,9 @@ import { ApiError, getCategory, getCity, searchBusinesses } from '@/lib/api';
 import { buildMetadata } from '@/lib/seo/metadata';
 import { breadcrumbListJsonLd, itemListJsonLd } from '@/lib/seo/json-ld';
 import { JsonLd } from '@/components/seo/json-ld';
-import { Link } from '@/i18n/navigation';
 import { Breadcrumb } from '@/components/layout/breadcrumb';
-import { BusinessCard } from '@/components/business/business-card';
-import { Button } from '@/components/ui/button';
+import { BusinessListItem } from '@/components/business/business-list-item';
+import { Pagination } from '@/components/search/pagination';
 
 export const revalidate = 600;
 
@@ -109,36 +108,21 @@ export default async function CityCategoryPage({
         </p>
       </section>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {businesses.map((business) => (
-          <BusinessCard key={business.id} business={business} />
+      <div className="space-y-3">
+        {businesses.map((business, index) => (
+          <BusinessListItem
+            key={business.id}
+            business={business}
+            rank={(page - 1) * PER_PAGE + index + 1}
+          />
         ))}
       </div>
 
-      {totalPages > 1 && (
-        <nav
-          className="flex items-center justify-center gap-2 pt-4"
-          aria-label={t('paginationLabel')}
-        >
-          {page > 1 && (
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/${citySlug}/${categorySlug}?page=${page - 1}`}>
-                ←
-              </Link>
-            </Button>
-          )}
-          <span className="text-sm text-muted-foreground">
-            {page} / {totalPages}
-          </span>
-          {page < totalPages && (
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/${citySlug}/${categorySlug}?page=${page + 1}`}>
-                →
-              </Link>
-            </Button>
-          )}
-        </nav>
-      )}
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        hrefFor={(n) => `/${citySlug}/${categorySlug}?page=${n}`}
+      />
     </div>
   );
 }

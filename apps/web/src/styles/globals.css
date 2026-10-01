@@ -82,6 +82,10 @@
     --motion-ease: ease-out;
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
     color: hsl(var(--body-text));
@@ -110,22 +114,13 @@
 }
 
 @layer utilities {
-  /* Card hover: translateY(-2px) + shadow-md, image inside zooms 1.03 — docs/17-design-overhaul.md. */
+  /* Card hover: shadow-md, image inside zooms 1.03 (Yelp-style: no lift). */
   .card-hover {
-    transition:
-      transform var(--motion-duration) var(--motion-ease),
-      box-shadow var(--motion-duration) var(--motion-ease);
+    transition: box-shadow var(--motion-duration) var(--motion-ease);
   }
   .card-hover:hover,
   .card-hover:focus-within {
-    transform: translateY(-2px);
     @apply shadow-md;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .card-hover:hover,
-    .card-hover:focus-within {
-      transform: none;
-    }
   }
 
   .card-hover-image {
