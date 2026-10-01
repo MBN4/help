@@ -20,6 +20,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils/cn';
 
 const PRICE_TIERS = ['ONE', 'TWO', 'THREE', 'FOUR'] as const;
 const PRICE_SYMBOL: Record<string, string> = {
@@ -29,6 +30,7 @@ const PRICE_SYMBOL: Record<string, string> = {
   FOUR: '$$$$',
 };
 const RATING_OPTIONS = [4, 3, 2, 1];
+const FEATURES_PREVIEW = 6;
 
 export function FilterPanel(): React.ReactElement {
   const t = useTranslations('search');
@@ -47,6 +49,7 @@ export function FilterPanel(): React.ReactElement {
     (searchParams.get('features') ?? '').split(',').filter(Boolean),
   );
 
+  const [showAllFeatures, setShowAllFeatures] = React.useState(false);
   const { data: categories } = useCategoryTree();
   const { data: cities } = useCities();
   const { data: areas } = useAreas(city);
@@ -73,7 +76,7 @@ export function FilterPanel(): React.ReactElement {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <h2 className="font-semibold">{t('filters')}</h2>
+        <h2 className="font-display text-lg font-bold">{t('filters')}</h2>
         <Button
           type="button"
           variant="ghost"
@@ -83,6 +86,18 @@ export function FilterPanel(): React.ReactElement {
           {t('clearFilters')}
         </Button>
       </div>
+
+      <label className="flex items-center gap-1.5 text-sm font-medium">
+        <Checkbox
+          checked={openNow}
+          onCheckedChange={(checked) =>
+            apply({ openNow: checked ? 'true' : undefined })
+          }
+        />
+        {t('openNowOnly')}
+      </label>
+
+      <Separator />
 
       <div className="space-y-1.5">
         <Label>{t('category')}</Label>
@@ -174,18 +189,28 @@ export function FilterPanel(): React.ReactElement {
 
       <div className="space-y-1.5">
         <Label>{t('priceLevel')}</Label>
-        <div className="flex flex-wrap gap-3">
-          {PRICE_TIERS.map((tier) => (
-            <label key={tier} className="flex items-center gap-1.5 text-sm">
-              <Checkbox
-                checked={selectedPriceLevels.has(tier)}
-                onCheckedChange={() =>
+        <div className="flex gap-2" role="group" aria-label={t('priceLevel')}>
+          {PRICE_TIERS.map((tier) => {
+            const active = selectedPriceLevels.has(tier);
+            return (
+              <button
+                key={tier}
+                type="button"
+                aria-pressed={active}
+                onClick={() =>
                   toggleInSet('priceLevel', selectedPriceLevels, tier)
                 }
-              />
-              {PRICE_SYMBOL[tier]}
-            </label>
-          ))}
+                className={cn(
+                  'h-9 flex-1 rounded-md border text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  active
+                    ? 'border-saffron-500 bg-saffron-500 text-ink'
+                    : 'border-border bg-card text-ink hover:bg-saffron-100',
+                )}
+              >
+                {PRICE_SYMBOL[tier]}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -193,7 +218,10 @@ export function FilterPanel(): React.ReactElement {
         <div className="space-y-1.5">
           <Label>{t('features')}</Label>
           <div className="space-y-1.5">
-            {features.map((feature) => (
+            {(showAllFeatures
+              ? features
+              : features.slice(0, FEATURES_PREVIEW)
+            ).map((feature) => (
               <label
                 key={feature.id}
                 className="flex items-center gap-1.5 text-sm"
@@ -207,21 +235,19 @@ export function FilterPanel(): React.ReactElement {
                 {feature.name}
               </label>
             ))}
+            {features.length > FEATURES_PREVIEW && (
+              <button
+                type="button"
+                onClick={() => setShowAllFeatures((value) => !value)}
+                aria-expanded={showAllFeatures}
+                className="text-sm font-medium text-saffron-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {showAllFeatures ? t('showFewer') : t('showMore')}
+              </button>
+            )}
           </div>
         </div>
       )}
-
-      <Separator />
-
-      <label className="flex items-center gap-1.5 text-sm font-medium">
-        <Checkbox
-          checked={openNow}
-          onCheckedChange={(checked) =>
-            apply({ openNow: checked ? 'true' : undefined })
-          }
-        />
-        {t('openNowOnly')}
-      </label>
     </div>
   );
 }

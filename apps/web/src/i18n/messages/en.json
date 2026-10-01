@@ -74,6 +74,8 @@
     "resultsCount": "{count, plural, =0 {No results} one {# result} other {# results}}",
     "filters": "Filters",
     "clearFilters": "Clear filters",
+    "showMore": "Show more",
+    "showFewer": "Show fewer",
     "sortBy": "Sort by",
     "sortRelevance": "Relevance",
     "sortRating": "Rating",
@@ -98,7 +100,10 @@
     "anyRating": "Any rating",
     "ratingAndUp": "{rating}+ stars",
     "apply": "Apply filters",
-    "paginationLabel": "Pagination"
+    "paginationLabel": "Pagination",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "goToPage": "Page {page}"
   },
   "city": {
     "metaTitle": "Local Businesses in {city} — Buisnez",
