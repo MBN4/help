@@ -45,7 +45,7 @@ export function MobileNav(): React.ReactElement {
           href={item.href}
           className={cn(
             'flex flex-1 flex-col items-center gap-0.5 py-2 text-xs font-medium',
-            item.active ? 'text-saffron-700' : 'text-muted-foreground',
+            item.active ? 'text-brand-700' : 'text-muted-foreground',
           )}
         >
           <item.icon className="h-5 w-5" aria-hidden="true" />

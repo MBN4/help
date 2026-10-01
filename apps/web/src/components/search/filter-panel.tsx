@@ -203,8 +203,8 @@ export function FilterPanel(): React.ReactElement {
                 className={cn(
                   'h-9 flex-1 rounded-md border text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                   active
-                    ? 'border-saffron-500 bg-saffron-500 text-ink'
-                    : 'border-border bg-card text-ink hover:bg-saffron-100',
+                    ? 'border-brand-500 bg-brand-500 text-white'
+                    : 'border-border bg-card text-ink hover:bg-brand-100',
                 )}
               >
                 {PRICE_SYMBOL[tier]}
@@ -240,7 +240,7 @@ export function FilterPanel(): React.ReactElement {
                 type="button"
                 onClick={() => setShowAllFeatures((value) => !value)}
                 aria-expanded={showAllFeatures}
-                className="text-sm font-medium text-saffron-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="text-sm font-medium text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {showAllFeatures ? t('showFewer') : t('showMore')}
               </button>

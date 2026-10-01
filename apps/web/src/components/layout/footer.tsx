@@ -19,7 +19,7 @@ export async function Footer(): Promise<React.ReactElement> {
       <div className="container grid grid-cols-2 gap-8 text-sm sm:grid-cols-3 md:grid-cols-4">
         <div className="col-span-2 sm:col-span-1">
           <Link href="/" className="font-display text-lg font-bold text-ink">
-            Buisnez<span className="text-saffron-600">.</span>
+            Buisnez<span className="text-brand-600">.</span>
           </Link>
           <p className="mt-2 text-muted-foreground">{t('madeInPakistan')}</p>
         </div>

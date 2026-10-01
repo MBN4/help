@@ -13,12 +13,11 @@ const badgeVariants = cva(
         success: 'border-transparent bg-success text-success-foreground',
         warning: 'border-transparent bg-warning text-warning-foreground',
         accent: 'border-transparent bg-accent text-accent-foreground',
-        /* Tasteful tinted-pill status badges (Phase 11 design overhaul) — used for open/closed instead of
-           a solid fill, per docs/17-design-overhaul.md's "Closed — sparingly" guidance. Text uses
-           emerald-700, not the lighter status-open token, against the tint — axe's color-contrast rule
-           caught status-open text at 3.93:1 on this background (needs 4.5:1); emerald-700 measures ~6.9:1. */
-        open: 'border-transparent bg-status-open/10 text-emerald-700',
-        closed: 'border-transparent bg-status-closed/10 text-status-closed',
+        /* Tinted-pill open/closed status. Open uses the brand red tint (brand-700 on brand-100, well above
+           4.5:1 — axe's color-contrast rule is enforced in e2e); Closed is a quiet neutral so the two
+           never read as "good red / bad red". */
+        open: 'border-transparent bg-brand-100 text-brand-700',
+        closed: 'border-transparent bg-muted text-muted-foreground',
       },
     },
     defaultVariants: { variant: 'default' },

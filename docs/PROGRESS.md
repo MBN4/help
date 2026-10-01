@@ -1190,3 +1190,64 @@ match the client`). **Pre-existing before this redesign** (the nesting was uncha
 `docs/PROGRESS.md` (this entry), [`07-frontend.md`](07-frontend.md) (component/layout changes),
 [`17-design-overhaul.md`](17-design-overhaul.md) (marked what shipped vs. what was simplified), new
 [`14-build-roadmap.md`](14-build-roadmap.md) (already existed from Phase 10 kickoff, not new to this phase).
+
+## Phase 12: Yelp-style UI pass (red + white)
+
+**Status: built, merged to `main` locally (not pushed).** A second presentation-only redesign, done in seven
+steps on one branch each (`feat/yelp-ui-1-tokens` … `feat/yelp-ui-7-verify`), each merged before the next.
+No API, route, schema or logic changes. Brand boundary from [`17-design-overhaul.md`](17-design-overhaul.md)
+unchanged: no Yelp logo, fonts, wording or exact red.
+
+### What shipped (by step)
+
+1. **Tokens** — neutral theme, one action colour, Inter only, 8px radius. (Started saffron; recoloured to
+   crimson `brand-*` tokens at the user's request after step 6.)
+2. **Header/nav** — white sticky header with scroll shadow, single rounded dual-field search, outlined Log in
+   / filled Sign up, category row with hover/focus dropdowns on `lg+`.
+3. **Home** — 3-slide hero carousel, round-icon category grid, restyled activity cards, footer with a
+   _Browse by city_ directory.
+4. **Search** — horizontal numbered result rows, sticky filter rail (price chips, amenities _Show more_),
+   numbered pagination.
+5. **Business profile** — _Claimed_ badge, photo mosaic, action row incl. Share, sticky scroll-spy section
+   tabs, rating summary with per-star bars, review cards with avatars.
+6. **Polish** — city/category pages on the same rows, shared `Pagination`, shadow-only card hover, button
+   press state, smooth anchor scrolling, new search loading skeleton.
+7. **Verification and docs** — this entry; `07-frontend.md` and `17-design-overhaul.md` updated.
+   Follow-up in the same step: "Open now" pills recoloured from green to the brand tint; premium touches
+   (star-input hover preview + pop, display-star twinkle on card hover, favourite-heart pop).
+
+### Deviations (deliberate)
+
+- **Profile tabs scroll, they don't swap panels** — Yelp's profile is one long page with a sticky section
+  bar, and swapping panels would hide the review form and crawlable content.
+- **No review quote / feature bullets / extra tags on result rows** — not in `BusinessSummary`; adding them
+  needs an API change, out of scope.
+- **No "Add photo" on the profile** — no upload endpoint outside the review form.
+- **No half-star rating input** — ratings are integers 1–5 end to end. Half-star hover would imply a value
+  that cannot be stored; it needs a schema/API decision first.
+- **No `loading.tsx` on routes that call `notFound()`** — it makes real 404s return 200 (soft 404s). Caught
+  by the "unknown business slug renders a 404" e2e test; only the search route has a loading skeleton.
+- Hero slides use gradients, not photos (no licensed image available). No marker hover on search results
+  (no Maps key).
+
+### Test results
+
+- `pnpm lint`, `typecheck` and `build` clean on every step.
+- Playwright was run with `E2E_SKIP_RESET=1` (the default global setup runs `prisma migrate reset --force`,
+  which Prisma blocks for AI agents without explicit user consent, so the DB was **not** reset — runs used
+  the existing data).
+- Final state on idle machine: a11y **5/5**, home, city (2), business-profile (2 incl. the 404), search
+  **3/4**, business-owner **5/5**, phase8 trust-and-safety **3/3**.
+- Still red, all pre-existing and reproduced on the unmodified code or already documented: `search.spec.ts`
+  sort-select (Radix Select in this Chromium, Phase 9), `admin-edit-forms.spec.ts` role-select and
+  area-management (same), `account-contributions.spec.ts` auth-transport test (page reload timeout; fails
+  identically with all Phase 12 changes stashed).
+- A single full run (17 min) under load also showed city/business-owner/phase8 timeouts while lint and
+  typecheck were running at the same time; all passed when re-run alone on an idle machine.
+- Screenshots (1280px and 375px) were reviewed at each step and discarded, not committed.
+
+### Environment notes
+
+- `next build` and `next dev` share `apps/web/.next`: after a build, `rm -rf apps/web/.next` before `pnpm
+dev` or the dev server throws "Cannot find module ./vendor-chunks/…".
+- Do not run `pkill -f` with a pattern that appears in your own command line — it kills the shell.

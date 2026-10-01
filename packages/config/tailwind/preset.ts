@@ -71,11 +71,12 @@ const preset: Partial<Config> = {
           500: 'hsl(var(--emerald-500))',
           100: 'hsl(var(--emerald-100))',
         },
-        saffron: {
-          100: 'hsl(var(--saffron-100))',
-          500: 'hsl(var(--saffron-500))',
-          600: 'hsl(var(--saffron-600))',
-          700: 'hsl(var(--saffron-700))',
+        brand: {
+          100: 'hsl(var(--brand-100))',
+          500: 'hsl(var(--brand-500))',
+          600: 'hsl(var(--brand-600))',
+          700: 'hsl(var(--brand-700))',
+          900: 'hsl(var(--brand-900))',
         },
         'star-gold': 'hsl(var(--star-gold))',
         ink: 'hsl(var(--ink))',
@@ -135,6 +136,11 @@ const preset: Partial<Config> = {
         88: '22rem',
       },
       keyframes: {
+        pop: {
+          '0%': { transform: 'scale(1)' },
+          '40%': { transform: 'scale(1.35)' },
+          '100%': { transform: 'scale(1)' },
+        },
         'accordion-down': {
           from: { height: '0' },
           to: { height: 'var(--radix-accordion-content-height)' },
@@ -145,6 +151,7 @@ const preset: Partial<Config> = {
         },
       },
       animation: {
+        pop: 'pop 0.3s ease-out',
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
       },

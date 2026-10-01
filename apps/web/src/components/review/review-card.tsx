@@ -26,7 +26,7 @@ export function ReviewCard({
       <div className="flex items-center gap-3">
         <span
           aria-hidden="true"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-saffron-100 font-display text-lg font-bold text-saffron-700"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-100 font-display text-lg font-bold text-brand-700"
         >
           {review.userName.trim().charAt(0).toUpperCase()}
         </span>

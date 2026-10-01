@@ -419,6 +419,11 @@
     "avatarAlt": "{name}'s profile photo"
   },
   "review": {
+    "ratingWord1": "Terrible",
+    "ratingWord2": "Poor",
+    "ratingWord3": "Average",
+    "ratingWord4": "Good",
+    "ratingWord5": "Excellent",
     "writeReview": "Write a review",
     "editReview": "Edit your review",
     "yourRating": "Your rating",

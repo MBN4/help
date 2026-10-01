@@ -60,7 +60,7 @@ export function LocationPicker({
         <MapPin
           className={cn(
             'h-4 w-4 shrink-0',
-            onDark ? 'text-white/70' : 'text-saffron-700',
+            onDark ? 'text-white/70' : 'text-brand-700',
           )}
           aria-hidden="true"
         />

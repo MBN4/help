@@ -277,7 +277,7 @@ export default async function BusinessProfilePage({
               {business.phone && (
                 <a
                   href={toTelHref(business.phone) ?? undefined}
-                  className="flex items-center gap-2 text-sm hover:text-saffron-700"
+                  className="flex items-center gap-2 text-sm hover:text-brand-700"
                 >
                   <Phone className="h-4 w-4" aria-hidden="true" />
                   {formatPhonePK(business.phone)}
@@ -288,7 +288,7 @@ export default async function BusinessProfilePage({
                   href={`https://wa.me/${business.whatsapp.replace('+', '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm hover:text-saffron-700"
+                  className="flex items-center gap-2 text-sm hover:text-brand-700"
                 >
                   <MessageCircle className="h-4 w-4" aria-hidden="true" />
                   {formatPhonePK(business.whatsapp)}
@@ -299,7 +299,7 @@ export default async function BusinessProfilePage({
                   href={business.website}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 truncate text-sm hover:text-saffron-700"
+                  className="flex items-center gap-2 truncate text-sm hover:text-brand-700"
                 >
                   <Globe className="h-4 w-4 shrink-0" aria-hidden="true" />
                   <span className="truncate">{business.website}</span>

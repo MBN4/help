@@ -100,7 +100,7 @@ export default async function CityHubPage({
             <Link
               key={category.id}
               href={`/${citySlug}/${category.slug}`}
-              className="rounded-lg border border-border bg-card p-4 text-center font-medium transition-[background-color,box-shadow] duration-[var(--motion-duration)] hover:bg-saffron-100 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="rounded-lg border border-border bg-card p-4 text-center font-medium transition-[background-color,box-shadow] duration-[var(--motion-duration)] hover:bg-brand-100 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {category.name}
             </Link>

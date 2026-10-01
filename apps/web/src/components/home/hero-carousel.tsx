@@ -75,7 +75,7 @@ export function HeroCarousel(): React.ReactElement {
         {...slideProps(0)}
         className={cn(
           slideClass(0),
-          'bg-gradient-to-br from-emerald-900 via-emerald-700 to-emerald-500',
+          'bg-gradient-to-br from-brand-700 via-brand-600 to-brand-500',
         )}
       >
         <div
@@ -93,27 +93,20 @@ export function HeroCarousel(): React.ReactElement {
 
       <div
         {...slideProps(1)}
-        className={cn(
-          slideClass(1),
-          'bg-gradient-to-br from-saffron-500 to-saffron-100 text-ink',
-        )}
+        className={cn(slideClass(1), 'bg-brand-100 text-ink')}
       >
         <div className="relative mx-auto max-w-2xl space-y-5">
           <h2 className="font-display text-display font-bold text-ink text-balance">
             {t('slideReviewTitle')}
           </h2>
           <p className="text-lg text-ink/85">{t('slideReviewBody')}</p>
-          <Button
-            asChild
-            size="lg"
-            className="bg-ink text-white hover:bg-ink/90"
-          >
+          <Button asChild size="lg">
             <Link href="/search">{t('slideReviewCta')}</Link>
           </Button>
         </div>
       </div>
 
-      <div {...slideProps(2)} className={cn(slideClass(2), 'bg-ink')}>
+      <div {...slideProps(2)} className={cn(slideClass(2), 'bg-brand-900')}>
         <div
           aria-hidden="true"
           className={cn('absolute inset-0 opacity-[0.07]', dotPattern)}
@@ -123,7 +116,11 @@ export function HeroCarousel(): React.ReactElement {
             {t('slideBusinessTitle')}
           </h2>
           <p className="text-lg text-white/85">{t('slideBusinessBody')}</p>
-          <Button asChild size="lg">
+          <Button
+            asChild
+            size="lg"
+            className="bg-white text-brand-700 hover:bg-white/90"
+          >
             <Link href="/account/businesses">{t('slideBusinessCta')}</Link>
           </Button>
         </div>

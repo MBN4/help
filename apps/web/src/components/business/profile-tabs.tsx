@@ -58,8 +58,8 @@ export function ProfileTabs({
               className={cn(
                 'block whitespace-nowrap border-b-2 py-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 active === tab.id
-                  ? 'border-saffron-500 text-ink'
-                  : 'border-transparent text-muted-foreground hover:border-saffron-500/60 hover:text-ink',
+                  ? 'border-brand-500 text-ink'
+                  : 'border-transparent text-muted-foreground hover:border-brand-500/60 hover:text-ink',
               )}
             >
               {tab.label}

@@ -2,6 +2,13 @@
 
 A **presentation-only** redesign. It rebuilds the visual layer and key page layouts to feel like a modern, photo-forward discovery site (the patterns that make Yelp work) while keeping Buisnez's own brand, and **without changing any feature, API, route, schema, or business logic.**
 
+> **Update — Phase 12 (Yelp-style UI pass):** colours, fonts, header, home, search, profile and city pages
+> were reworked again toward Yelp's structure; the palette and typography below are **superseded** (crimson
+> red action colour on white/neutral surfaces, Inter only, white header, category dropdowns, section-tabbed
+> profile).
+> The brand-boundary rule still applies unchanged. See `07-frontend.md` ("Yelp-style UI pass") and
+> `PROGRESS.md` Phase 12.
+
 > **Status: shipped, Phase 11** — see `PROGRESS.md`'s Phase 11 entry for the full build/test/deviation
 > record. Three deliberate simplifications from this spec, each documented with its reasoning there:
 > the category bar ships as a flat scrollable link row instead of per-category dropdown menus; the

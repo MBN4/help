@@ -24,7 +24,7 @@ export async function Header(): Promise<React.ReactElement> {
           className="flex shrink-0 items-center gap-0.5 font-display text-xl font-bold tracking-tight text-ink"
         >
           Buisnez
-          <span className="text-saffron-600">.</span>
+          <span className="text-brand-600">.</span>
         </Link>
 
         <div className="hidden flex-1 md:flex md:max-w-2xl">
