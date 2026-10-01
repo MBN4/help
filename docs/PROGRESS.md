@@ -1232,18 +1232,36 @@ unchanged: no Yelp logo, fonts, wording or exact red.
 
 ### Test results
 
+**Clean verification run (supersedes the earlier partial runs).** Nothing else running (no dev servers, lint
+or builds); API and web both served as **production builds** (`node dist/main`, `next start`); database
+reset with consent against the local dev DB on `localhost:5544` (all three `DATABASE_URL`s checked: `.env`,
+`apps/api/.env`, `packages/database/.env`).
+
+- Backend: **34/34 unit, 107/107 e2e** (reset-test-env confirmed in the log: migrate reset, seed, Redis flush).
+- Playwright, full suite, `--workers=1`: **22 passed, 7 failed, 2 skipped, 4 did not run** (of 35).
+  Skipped = `maps-real` (needs a Google Maps key). Did not run = 3 serial `business-owner` tests and the
+  `phase8` appeal test, which sit behind a failed serial predecessor.
+- **Baseline comparison:** the identical suite was run on `2267c80` (the commit before any Yelp-style work,
+  same reset, same prod-build setup). It produced the **same 7 failures, same 2 skipped, same 4 did-not-run**.
+  Result: **no new regression from the Phase 12 re-theme.**
+
+| Failing test                                      | Classification                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `search.spec` sort-dropdown                       | Known (Radix Select in this Chromium, Phase 9) — fails identically at baseline                                                                                                                                                                                                                                                                                                                             |
+| `admin-edit-forms` role select                    | Known (Radix Select, Phase 9) — fails identically at baseline                                                                                                                                                                                                                                                                                                                                              |
+| `admin-edit-forms` area management                | Known (Phase 9) — fails identically at baseline                                                                                                                                                                                                                                                                                                                                                            |
+| `a11y` business profile                           | Pre-existing, not previously listed. Fails at baseline and when run alone. Cause confirmed: on a production build, clicking the first result before hydration leaves the page on `/search` (React error #418 hydration mismatch on that page — the FilterPanel warning already recorded in Phase 11); the same click after hydration navigates fine. A race in the test + that mismatch, not a theme issue |
+| `admin.spec` ADMIN toggles featured               | Pre-existing, not previously listed. Fails at baseline in the full run; **passes when run alone** (after a fresh reset) — fails only after earlier tests                                                                                                                                                                                                                                                   |
+| `business-owner` dashboard lists claimed business | Same: fails at baseline in the full run, passes alone (all 5 `business-owner` tests pass alone)                                                                                                                                                                                                                                                                                                            |
+| `phase8` self-review hard block                   | Same: fails at baseline in the full run, passes alone (all 3 `phase8` tests pass alone)                                                                                                                                                                                                                                                                                                                    |
+
+The three "passes alone, fails in the full run" tests all stop at login/registration (`Log out` button or
+the "verify" text never appears within 10 s) after the Radix-Select failures above. The root cause (leftover
+state or throttling from the earlier failing tests) was **not** isolated — it reproduces at baseline, so it
+is not part of this work, but it is unexplained. `account-contributions` auth-transport (previously red in
+dev mode) **passed** in this production-build run.
+
 - `pnpm lint`, `typecheck` and `build` clean on every step.
-- Playwright was run with `E2E_SKIP_RESET=1` (the default global setup runs `prisma migrate reset --force`,
-  which Prisma blocks for AI agents without explicit user consent, so the DB was **not** reset — runs used
-  the existing data).
-- Final state on idle machine: a11y **5/5**, home, city (2), business-profile (2 incl. the 404), search
-  **3/4**, business-owner **5/5**, phase8 trust-and-safety **3/3**.
-- Still red, all pre-existing and reproduced on the unmodified code or already documented: `search.spec.ts`
-  sort-select (Radix Select in this Chromium, Phase 9), `admin-edit-forms.spec.ts` role-select and
-  area-management (same), `account-contributions.spec.ts` auth-transport test (page reload timeout; fails
-  identically with all Phase 12 changes stashed).
-- A single full run (17 min) under load also showed city/business-owner/phase8 timeouts while lint and
-  typecheck were running at the same time; all passed when re-run alone on an idle machine.
 - Screenshots (1280px and 375px) were reviewed at each step and discarded, not committed.
 
 ### Environment notes
