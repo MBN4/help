@@ -10,6 +10,7 @@ import { Link } from '@/i18n/navigation';
 import { AuthCard } from '@/components/auth/auth-card';
 import { OAuthButtons } from '@/components/auth/oauth-buttons';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 
@@ -83,9 +84,8 @@ export default function RegisterPage(): React.ReactElement {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="password">{t('passwordLabel')}</Label>
-          <Input
+          <PasswordInput
             id="password"
-            type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             placeholder={t('passwordPlaceholder')}

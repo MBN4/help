@@ -154,6 +154,11 @@ apps/web/.next` if it errors) after editing `packages/config/tailwind/preset.ts`
 - **Polish (step 6)**: city/category pages use `BusinessListItem`; shared `Pagination`
   (`components/search/pagination.tsx`); cards gain a shadow instead of lifting; buttons have a press state;
   `scroll-behavior: smooth` — all with reduced-motion overrides.
+- **Auth screens**: `PasswordInput` (`components/ui/password-input.tsx`) adds a show/hide eye to login,
+  register and reset-password. Its accessible name is visually-hidden text inside the button, not
+  `aria-label`, because the e2e suite finds the field with `getByLabel(/password/i)` and a second labelled
+  match would break strict mode. "Forgot your password?" sits under the field on login, and `AuthCard`
+  takes `backHref`/`backLabel` for a "Back to login" link (used on forgot- and reset-password).
 - **Do not add `loading.tsx` to routes that call `notFound()`** (`business/[slug]`, `[city]`,
   `[city]/[category]`): the streamed response commits status 200 before `notFound()` runs, turning real 404s
   into soft 404s. The e2e "unknown business slug renders a 404" test guards this.

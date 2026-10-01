@@ -34,7 +34,11 @@ export default function ForgotPasswordPage(): React.ReactElement {
 
   if (sent) {
     return (
-      <AuthCard title={t('forgotPasswordTitle')}>
+      <AuthCard
+        backHref="/login"
+        backLabel={t('backToLogin')}
+        title={t('forgotPasswordTitle')}
+      >
         <p className="text-sm text-foreground/90">{t('forgotPasswordSent')}</p>
         <Button asChild variant="outline" className="w-full">
           <Link href="/login">{t('goToLogin')}</Link>
@@ -45,6 +49,8 @@ export default function ForgotPasswordPage(): React.ReactElement {
 
   return (
     <AuthCard
+      backHref="/login"
+      backLabel={t('backToLogin')}
       title={t('forgotPasswordTitle')}
       subtitle={t('forgotPasswordSubtitle')}
     >
