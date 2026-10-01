@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { Phone, Globe, MessageCircle } from 'lucide-react';
+import { BadgeCheck, Phone, Globe, MessageCircle } from 'lucide-react';
 import { formatPhonePK, toTelHref } from '@buisnez/shared';
 import {
   ApiError,
@@ -28,6 +28,10 @@ import { OpenNowBadge } from '@/components/business/open-now-badge';
 import { FeatureList } from '@/components/business/feature-list';
 import { HoursTable } from '@/components/business/hours-table';
 import { PhotoGallery } from '@/components/photo/photo-gallery';
+import { PhotoMosaic } from '@/components/photo/photo-mosaic';
+import { ProfileTabs } from '@/components/business/profile-tabs';
+import { RatingSummary } from '@/components/business/rating-summary';
+import { Badge } from '@/components/ui/badge';
 import { ReviewList } from '@/components/review/review-list';
 import { ReviewSection } from '@/components/review/review-section';
 import { BusinessCard } from '@/components/business/business-card';
@@ -123,7 +127,7 @@ export default async function BusinessProfilePage({
       );
 
   return (
-    <div className="container space-y-8 py-6">
+    <div className="container space-y-6 py-6">
       <TrackEvent
         event="business viewed"
         properties={{ businessId: business.id, slug: business.slug }}
@@ -135,25 +139,41 @@ export default async function BusinessProfilePage({
 
       <header className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          <h1 className="font-display text-h1">{business.name}</h1>
-          <OpenNowBadge isOpenNow={business.isOpenNow} />
+          <h1 className="font-display text-3xl font-bold sm:text-4xl">
+            {business.name}
+          </h1>
+          {business.isClaimed && (
+            <Badge variant="outline" className="gap-1">
+              <BadgeCheck className="h-3.5 w-3.5" aria-hidden="true" />
+              {t('claimed')}
+            </Badge>
+          )}
           <div className="ms-auto flex items-center gap-2">
             <SuggestEditButton businessId={business.id} />
             <ReportButton targetType="BUSINESS" targetId={business.id} />
           </div>
         </div>
-        <p className="text-muted-foreground">
-          {business.category.name}
-          {business.category.parent
-            ? ` · ${business.category.parent.name}`
-            : ''}
-        </p>
         <div className="flex flex-wrap items-center gap-2">
           <RatingStars rating={business.aggregates.averageRating} size="md" />
+          {business.aggregates.averageRating !== null && (
+            <span className="font-semibold text-ink">
+              {business.aggregates.averageRating.toFixed(1)}
+            </span>
+          )}
           <span className="text-sm text-muted-foreground">
-            {t('reviewsHeading')} ({business.aggregates.reviewCount})
+            ({business.aggregates.reviewCount}{' '}
+            {t('reviewsHeading').toLowerCase()})
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <span>
+            {business.category.name}
+            {business.category.parent
+              ? ` · ${business.category.parent.name}`
+              : ''}
           </span>
           <PriceLevel tier={business.priceTier} />
+          <OpenNowBadge isOpenNow={business.isOpenNow} />
         </div>
         {!business.isClaimed && (
           <ClaimBusinessButton
@@ -163,44 +183,31 @@ export default async function BusinessProfilePage({
         )}
       </header>
 
-      {/* Photo gallery hero + sticky sub-header CTAs — docs/17-design-overhaul.md "business profile page". */}
-      <div id="photos" className="scroll-mt-40">
-        <PhotoGallery photos={photos} businessName={business.name} />
-      </div>
+      <PhotoMosaic photos={photos} businessName={business.name} />
 
       <BusinessProfileActions
         businessId={business.id}
         name={business.name}
-        averageRating={business.aggregates.averageRating}
-        reviewCount={business.aggregates.reviewCount}
-        isOpenNow={business.isOpenNow}
         phone={business.phone}
         directionsHref={directionsHref}
       />
 
-      <nav
-        aria-label={t('jumpToSection')}
-        className="flex flex-wrap gap-x-5 gap-y-1 border-b border-border pb-3 text-sm font-medium text-muted-foreground"
-      >
-        <a href="#overview" className="hover:text-saffron-700">
-          {t('overview')}
-        </a>
-        {business.services.some((s) => s.isAvailable) && (
-          <a href="#services" className="hover:text-saffron-700">
-            {t('servicesMenu')}
-          </a>
-        )}
-        <a href="#reviews" className="hover:text-saffron-700">
-          {t('reviewsHeading')}
-        </a>
-        <a href="#photos" className="hover:text-saffron-700">
-          {t('photos')}
-        </a>
-      </nav>
+      <ProfileTabs
+        label={t('jumpToSection')}
+        tabs={[
+          { id: 'overview', label: t('overview') },
+          ...(business.services.some((s) => s.isAvailable)
+            ? [{ id: 'services', label: t('servicesMenu') }]
+            : []),
+          { id: 'location', label: t('locationAndHours') },
+          { id: 'reviews', label: t('reviewsHeading') },
+          ...(photos.length > 0 ? [{ id: 'photos', label: t('photos') }] : []),
+        ]}
+      />
 
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="space-y-8 lg:col-span-2">
-          <section id="overview" className="scroll-mt-40 space-y-2">
+          <section id="overview" className="scroll-mt-48 space-y-2">
             <h2 className="font-display text-h2">{t('aboutTitle')}</h2>
             <p className="text-foreground/90">
               {business.description ?? t('noDescription')}
@@ -216,8 +223,9 @@ export default async function BusinessProfilePage({
 
           <ServicesMenu services={business.services} />
 
-          <section id="reviews" className="scroll-mt-40 space-y-4">
+          <section id="reviews" className="scroll-mt-48 space-y-4">
             <h2 className="font-display text-h2">{t('reviewsHeading')}</h2>
+            <RatingSummary aggregates={business.aggregates} />
             <ReviewSection business={business} />
             {reviews.length === 0 ? (
               <p className="text-muted-foreground">{t('noReviews')}</p>
@@ -225,6 +233,13 @@ export default async function BusinessProfilePage({
               <ReviewList businessId={business.id} reviews={reviews} />
             )}
           </section>
+
+          {photos.length > 0 && (
+            <section id="photos" className="scroll-mt-48 space-y-3">
+              <h2 className="font-display text-h2">{t('photos')}</h2>
+              <PhotoGallery photos={photos} businessName={business.name} />
+            </section>
+          )}
 
           {similar.length > 0 && (
             <section className="space-y-3">
@@ -238,8 +253,8 @@ export default async function BusinessProfilePage({
           )}
         </div>
 
-        <aside className="space-y-4 lg:sticky lg:top-40 lg:h-fit">
-          <Card>
+        <aside className="space-y-4 lg:sticky lg:top-44 lg:h-fit">
+          <Card id="location" className="scroll-mt-48">
             <CardContent className="space-y-3 p-4">
               {business.location && (
                 <LazyMapView
