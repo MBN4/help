@@ -55,7 +55,17 @@
     "exploreByCity": "Explore by city",
     "popularIn": "Popular in {city}",
     "trendingIn": "Trending in {city}",
-    "recentlyReviewed": "Recently reviewed"
+    "recentlyReviewed": "Recently reviewed",
+    "carouselLabel": "Highlights",
+    "slidePrev": "Previous slide",
+    "slideNext": "Next slide",
+    "slideDot": "Go to slide {n}",
+    "slideReviewTitle": "Share what you think",
+    "slideReviewBody": "Your review helps others find the right place, and helps good businesses get noticed.",
+    "slideReviewCta": "Write a review",
+    "slideBusinessTitle": "Own a business?",
+    "slideBusinessBody": "Claim your page, reply to reviews and keep your hours and details up to date.",
+    "slideBusinessCta": "Claim your business"
   },
   "search": {
     "metaTitle": "Search Businesses — Buisnez",
@@ -162,6 +172,7 @@
     "addPhoto": "Add a photo",
     "topCategories": "Top categories",
     "cities": "Cities",
+    "browseCities": "Browse by city",
     "languages": "Languages",
     "languageEnglish": "English",
     "languageUrduSoon": "Urdu (coming soon)",

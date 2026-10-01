@@ -13,17 +13,13 @@ export async function Footer(): Promise<React.ReactElement> {
   const topCategories = [...categories]
     .sort((a, b) => a.order - b.order)
     .slice(0, 8);
-  const topCities = cities.slice(0, 8);
 
   return (
-    <footer className="mt-12 bg-canvas pb-20 pt-12 sm:pb-12">
-      <div className="container grid grid-cols-2 gap-8 text-sm sm:grid-cols-3 md:grid-cols-5">
+    <footer className="mt-12 border-t border-border bg-canvas pb-20 pt-12 sm:pb-12">
+      <div className="container grid grid-cols-2 gap-8 text-sm sm:grid-cols-3 md:grid-cols-4">
         <div className="col-span-2 sm:col-span-1">
-          <Link
-            href="/"
-            className="font-display text-lg font-extrabold text-emerald-900"
-          >
-            Buisnez<span className="text-saffron-500">.</span>
+          <Link href="/" className="font-display text-lg font-bold text-ink">
+            Buisnez<span className="text-saffron-600">.</span>
           </Link>
           <p className="mt-2 text-muted-foreground">{t('madeInPakistan')}</p>
         </div>
@@ -75,21 +71,24 @@ export async function Footer(): Promise<React.ReactElement> {
             {t('advertise')}
           </Link>
         </nav>
+      </div>
 
-        <div className="flex flex-col gap-2">
-          <h2 className="font-display text-sm font-bold text-ink">
-            {t('cities')}
-          </h2>
-          {topCities.map((city) => (
-            <Link
-              key={city.id}
-              href={`/${city.slug}`}
-              className="text-muted-foreground hover:text-ink"
-            >
-              {city.name}
-            </Link>
+      <div className="container mt-8 border-t border-border pt-6">
+        <h2 className="font-display text-sm font-bold text-ink">
+          {t('browseCities')}
+        </h2>
+        <ul className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+          {cities.map((city) => (
+            <li key={city.id}>
+              <Link
+                href={`/${city.slug}`}
+                className="text-muted-foreground hover:text-ink hover:underline"
+              >
+                {city.name}
+              </Link>
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
 
       <div className="container mt-8 flex flex-col gap-3 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
