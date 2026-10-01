@@ -25,7 +25,14 @@ export function RatingStars({
       {Array.from({ length: MAX_STARS }, (_, index) => {
         const fillRatio = Math.max(0, Math.min(1, value - index));
         return (
-          <span key={index} className={cn('relative inline-block', dimension)}>
+          <span
+            key={index}
+            style={{ transitionDelay: `${index * 35}ms` }}
+            className={cn(
+              'relative inline-block transition-transform duration-200 ease-out group-hover:scale-110 motion-reduce:transform-none',
+              dimension,
+            )}
+          >
             <Star className={cn(dimension, 'absolute inset-0 text-border')} />
             {fillRatio > 0 && (
               <span

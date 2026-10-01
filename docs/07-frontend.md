@@ -114,6 +114,50 @@ Yelp, Buisnez's own emerald/saffron identity. Full rationale, deviations, and re
   review) and a `ServicesMenu` section — the latter renders `BusinessProfile.services`, which the API has
   returned since Phase 6 but no public page ever displayed.
 
+### Yelp-style UI pass (Phase 12) — supersedes parts of the section above
+
+A second presentation-only pass moved the look closer to Yelp's _structure and behaviour_ while keeping
+Buisnez's own name, wordmark, copy and icons (no Yelp red, logo, fonts or wording). It was built in seven
+steps, one branch each (`feat/yelp-ui-1-tokens` … `feat/yelp-ui-7-verify`), merged one at a time. Where this
+section and the Phase 11 section disagree, this one is current.
+
+- **Tokens (step 1, recoloured after step 6)**: neutral surfaces and text (`ink`, `body-text`, `muted-text`,
+  `canvas`, `hairline`) and **crimson red as the single action colour** — token family `brand-100/500/600/
+700/900` (`--primary` is `brand-500` `#BF1736` with white text, 6.0:1; `brand-700` for brand-coloured text
+  and hover). It started as saffron and was switched to red on request; the tokens were renamed
+  `saffron-*` → `brand-*` so a future recolour is a one-file change (`globals.css`). The red is deliberately
+  deeper/cooler than Yelp's own. Emerald tokens remain defined but are no longer used for "Open now" — that
+  badge is now a `brand-100` pill with `brand-700` text, and "Closed" is a neutral gray pill. Gold
+  `star-gold` stays for ratings. Radius `--radius` is 0.5rem. **Inter only** — Plus Jakarta Sans was
+  removed; `font-display` now resolves to Inter and weight carries hierarchy.
+- **Tailwind preset changes are not hot-reloaded** by `next dev` — restart the dev server (and `rm -rf
+apps/web/.next` if it errors) after editing `packages/config/tailwind/preset.ts`.
+- **Rating stars**: `RatingStars` (display) twinkles with a staggered scale when its card is hovered;
+  `StarRatingInput` previews the fill on hover, pops the chosen star and shows a word ("Good"). Ratings are
+  stored as integers 1–5 (DB, API and Zod schemas), so there is no half-star input. `FavoriteButton`'s
+  heart pops on save. All use the `pop` keyframe from the preset and respect `prefers-reduced-motion`.
+- **Header (step 2)**: white sticky bar (`HeaderShell` adds a shadow after scroll), single rounded dual-field
+  search, outlined _Log in_ and filled _Sign up_. `CategoryBar` has hover/focus **dropdowns** of each
+  category's children (pure CSS, server component, 120 ms fade) on `lg+` — first six inline, rest under
+  _More_ — and stays a flat scrollable row below `lg`. The desktop `<nav>` comes first in the DOM on purpose
+  (the city e2e picks the first `/lahore/` link and it must be visible).
+- **Home (step 3)**: `HeroCarousel` (three fading slides, arrows, dots, pauses on hover/focus, no autoplay
+  under reduced motion, inactive slides `inert` + `aria-hidden`; slide 1 holds the page's only `<h1>`),
+  round-icon category grid, light footer with a _Browse by city_ directory.
+- **Search (step 4)**: `BusinessListItem` horizontal rows with a numbered name and one stretched title link
+  (`FavoriteButton` stays a sibling), sticky left filter rail (price toggle chips, amenities "Show more"),
+  numbered pagination. The results API has no review snippet, feature list or multiple tags, so rows show
+  one category tag only.
+- **Profile (step 5)**: header with _Claimed_ badge, `PhotoMosaic`, action row (`BusinessProfileActions`,
+  now un-sticky), sticky `ProfileTabs` with scroll-spy, `RatingSummary` (average + per-star bars), review
+  cards with initial avatars. Tabs scroll to sections rather than swapping panels (see PROGRESS Phase 12).
+- **Polish (step 6)**: city/category pages use `BusinessListItem`; shared `Pagination`
+  (`components/search/pagination.tsx`); cards gain a shadow instead of lifting; buttons have a press state;
+  `scroll-behavior: smooth` — all with reduced-motion overrides.
+- **Do not add `loading.tsx` to routes that call `notFound()`** (`business/[slug]`, `[city]`,
+  `[city]/[category]`): the streamed response commits status 200 before `notFound()` runs, turning real 404s
+  into soft 404s. The e2e "unknown business slug renders a 404" test guards this.
+
 ## Data layers — server data vs. client state
 
 1. **Server data**: server components fetch directly via the typed API client (`src/lib/api`); client

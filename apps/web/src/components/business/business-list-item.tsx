@@ -97,7 +97,7 @@ export function BusinessListItem({
           <span
             className={cn(
               'font-semibold',
-              business.isOpenNow ? 'text-emerald-700' : 'text-status-closed',
+              business.isOpenNow ? 'text-brand-700' : 'text-muted-foreground',
             )}
           >
             {business.isOpenNow ? t('openNow') : t('closedNow')}
