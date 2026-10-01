@@ -29,7 +29,7 @@ export function ActivityCard({
     expanded || !isLong ? body : `${body.slice(0, SNIPPET_LIMIT).trimEnd()}…`;
 
   return (
-    <Card className="card-hover overflow-hidden">
+    <Card className="group overflow-hidden transition-shadow duration-[var(--motion-duration)] ease-out hover:shadow-md focus-within:shadow-md">
       <Link
         href={`/business/${activity.business.slug}`}
         className="block"
@@ -42,7 +42,7 @@ export function ActivityCard({
               alt={activity.business.name}
               fill
               sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-              className="card-hover-image object-cover"
+              className="object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03] motion-reduce:transform-none"
             />
           ) : (
             <div className="h-full w-full bg-emerald-100" />
