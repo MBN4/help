@@ -11,6 +11,7 @@ import { Link, useRouter } from '@/i18n/navigation';
 import { AuthCard } from '@/components/auth/auth-card';
 import { OAuthButtons } from '@/components/auth/oauth-buttons';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 
@@ -73,22 +74,21 @@ function LoginForm(): React.ReactElement {
           />
         </div>
         <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="password">{t('passwordLabel')}</Label>
-            <Link
-              href="/forgot-password"
-              className="text-xs text-brand-700 hover:underline"
-            >
-              {t('forgotPasswordLink')}
-            </Link>
-          </div>
-          <Input
+          <Label htmlFor="password">{t('passwordLabel')}</Label>
+          <PasswordInput
             id="password"
-            type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             required
           />
+          <div className="text-end">
+            <Link
+              href="/forgot-password"
+              className="text-sm font-medium text-brand-700 hover:underline"
+            >
+              {t('forgotPasswordLink')}
+            </Link>
+          </div>
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
         <Button type="submit" className="w-full" disabled={pending}>

@@ -8,7 +8,7 @@ import { resetPassword } from '@/lib/api';
 import { authErrorKey } from '@/lib/utils/api-error-message';
 import { Link } from '@/i18n/navigation';
 import { AuthCard } from '@/components/auth/auth-card';
-import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 
@@ -61,7 +61,11 @@ function ResetPasswordForm(): React.ReactElement {
 
   if (!token) {
     return (
-      <AuthCard title={t('resetPasswordTitle')}>
+      <AuthCard
+        backHref="/login"
+        backLabel={t('backToLogin')}
+        title={t('resetPasswordTitle')}
+      >
         <p className="text-sm text-destructive">{t('resetPasswordError')}</p>
       </AuthCard>
     );
@@ -69,7 +73,11 @@ function ResetPasswordForm(): React.ReactElement {
 
   if (success) {
     return (
-      <AuthCard title={t('resetPasswordTitle')}>
+      <AuthCard
+        backHref="/login"
+        backLabel={t('backToLogin')}
+        title={t('resetPasswordTitle')}
+      >
         <p className="text-sm text-foreground/90">
           {t('resetPasswordSuccess')}
         </p>
@@ -81,13 +89,16 @@ function ResetPasswordForm(): React.ReactElement {
   }
 
   return (
-    <AuthCard title={t('resetPasswordTitle')}>
+    <AuthCard
+      backHref="/login"
+      backLabel={t('backToLogin')}
+      title={t('resetPasswordTitle')}
+    >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="password">{t('newPasswordLabel')}</Label>
-          <Input
+          <PasswordInput
             id="password"
-            type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             minLength={8}
@@ -96,9 +107,8 @@ function ResetPasswordForm(): React.ReactElement {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="confirmPassword">{t('confirmPasswordLabel')}</Label>
-          <Input
+          <PasswordInput
             id="confirmPassword"
-            type="password"
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
             minLength={8}
