@@ -19,7 +19,7 @@ export function ServicesMenu({
   }
 
   return (
-    <section id="services" className="scroll-mt-40 space-y-3">
+    <section id="services" className="scroll-mt-48 space-y-3">
       <h2 className="font-display text-h2">{t('servicesMenu')}</h2>
       <ul className="divide-y divide-border rounded-xl border border-border">
         {available.map((service) => (
