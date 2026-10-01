@@ -71,11 +71,12 @@ const preset: Partial<Config> = {
           500: 'hsl(var(--emerald-500))',
           100: 'hsl(var(--emerald-100))',
         },
-        saffron: {
-          100: 'hsl(var(--saffron-100))',
-          500: 'hsl(var(--saffron-500))',
-          600: 'hsl(var(--saffron-600))',
-          700: 'hsl(var(--saffron-700))',
+        brand: {
+          100: 'hsl(var(--brand-100))',
+          500: 'hsl(var(--brand-500))',
+          600: 'hsl(var(--brand-600))',
+          700: 'hsl(var(--brand-700))',
+          900: 'hsl(var(--brand-900))',
         },
         'star-gold': 'hsl(var(--star-gold))',
         ink: 'hsl(var(--ink))',

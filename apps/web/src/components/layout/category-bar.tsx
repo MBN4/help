@@ -14,9 +14,9 @@ const INLINE_COUNT = 6;
 const panelClass =
   'invisible absolute start-0 top-full z-50 min-w-56 translate-y-1 rounded-lg border border-border bg-white py-2 opacity-0 shadow-lg transition-[opacity,transform,visibility] duration-[var(--motion-duration-dropdown)] ease-out group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100';
 const panelLinkClass =
-  'block px-4 py-1.5 text-sm text-ink/80 hover:bg-saffron-100 hover:text-ink focus-visible:bg-saffron-100 focus-visible:outline-none';
+  'block px-4 py-1.5 text-sm text-ink/80 hover:bg-brand-100 hover:text-ink focus-visible:bg-brand-100 focus-visible:outline-none';
 const triggerClass =
-  'flex items-center gap-1 whitespace-nowrap border-b-2 border-transparent py-3 text-sm font-medium text-ink/80 transition-colors hover:border-saffron-500 hover:text-ink focus-visible:border-saffron-500 focus-visible:outline-none group-focus-within:border-saffron-500 group-hover:border-saffron-500';
+  'flex items-center gap-1 whitespace-nowrap border-b-2 border-transparent py-3 text-sm font-medium text-ink/80 transition-colors hover:border-brand-500 hover:text-ink focus-visible:border-brand-500 focus-visible:outline-none group-focus-within:border-brand-500 group-hover:border-brand-500';
 
 /**
  * Second header row. Below `lg` it is a flat scrollable link row (touch has no hover); from `lg` up each
@@ -89,7 +89,7 @@ export async function CategoryBar({
             <Link
               key={category.id}
               href={href(category.slug)}
-              className="whitespace-nowrap hover:text-ink hover:underline hover:decoration-saffron-500 hover:decoration-2 hover:underline-offset-4"
+              className="whitespace-nowrap hover:text-ink hover:underline hover:decoration-brand-500 hover:decoration-2 hover:underline-offset-4"
             >
               {category.name}
             </Link>

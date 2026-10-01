@@ -105,7 +105,7 @@ export default function RegisterPage(): React.ReactElement {
         {t('haveAccount')}{' '}
         <Link
           href="/login"
-          className="font-medium text-saffron-700 hover:underline"
+          className="font-medium text-brand-700 hover:underline"
         >
           {t('loginLink')}
         </Link>

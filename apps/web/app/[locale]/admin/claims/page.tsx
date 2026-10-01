@@ -79,7 +79,7 @@ export default function AdminClaimsPage(): React.ReactElement {
                   href={claim.documentUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-sm text-saffron-700 underline"
+                  className="text-sm text-brand-700 underline"
                 >
                   {t('claims.viewDocument')}
                 </a>

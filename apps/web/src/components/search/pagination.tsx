@@ -36,8 +36,8 @@ function PageLink({
       className={cn(
         'flex h-9 min-w-9 items-center justify-center rounded-md border px-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         current
-          ? 'border-saffron-500 bg-saffron-500 text-ink'
-          : 'border-border bg-card text-ink hover:bg-saffron-100',
+          ? 'border-brand-500 bg-brand-500 text-white'
+          : 'border-border bg-card text-ink hover:bg-brand-100',
       )}
     >
       {children}

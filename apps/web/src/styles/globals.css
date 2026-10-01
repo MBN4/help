@@ -6,16 +6,19 @@
   :root {
     color-scheme: light;
 
-    /* Buisnez brand (Yelp-style UI pass, step 1) — saffron is the single action color; surfaces and text
-       are neutral. Emerald stays only for status ("Open now") and the header until step 2 repaints it. */
-    --emerald-900: 164 81% 12%; /* #06392B — header bg until step 2 */
+    /* Buisnez brand — crimson red + white (Yelp-style pass). `brand-500` is the action fill with white
+       text on it (6.0:1); `brand-700` is for brand-coloured text and hover. Deliberately a cooler,
+       deeper red than Yelp's own — docs/17-design-overhaul.md's brand boundary still applies.
+       Emerald is kept only for status ("Open now"). */
+    --emerald-900: 164 81% 12%;
     --emerald-700: 162 79% 20%; /* #0B5D45 — status text */
     --emerald-500: 165 77% 30%; /* #12886A — status */
-    --emerald-100: 156 37% 92%; /* #E3F2EC — status tint */
-    --saffron-100: 41 100% 94%; /* #FFF1D6 — tint / selected chips / hover */
-    --saffron-500: 38 82% 53%; /* #E9A227 — primary action fill (text on it is ink) */
-    --saffron-600: 37 90% 41%; /* #C77D0A — hover fill, focus ring */
-    --saffron-700: 37 100% 27%; /* #8A5300 — saffron TEXT on white (6.5:1) */
+    --emerald-100: 156 37% 92%;
+    --brand-100: 352 100% 96%; /* #FFEFF2 — tint / selected chips / hover */
+    --brand-500: 350 78% 42%; /* #BF1736 — primary fill (white text on it) */
+    --brand-600: 350 80% 35%; /* #A0122C — hover fill, focus ring */
+    --brand-700: 350 82% 29%; /* #86102A — brand text and hover text */
+    --brand-900: 350 75% 20%; /* #5A0D1D — deepest, dark carousel slide */
     --star-gold: 37 91% 55%; /* #F5A623 — gold stars */
 
     --ink: 250 14% 19%; /* #2B2A37 — headings */
@@ -28,24 +31,24 @@
     --status-open: 165 77% 30%; /* same as emerald-500 */
     --status-closed: 4 76% 40%; /* #B42318 — sparingly */
 
-    /* Saffron ramp (primary). */
-    --primary-50: 43 100% 97%;
-    --primary-100: var(--saffron-100);
-    --primary-200: 41 96% 83%;
-    --primary-300: 40 92% 72%;
-    --primary-400: 39 87% 62%;
-    --primary-500: var(--saffron-500);
-    --primary-600: var(--saffron-600);
-    --primary-700: var(--saffron-700);
-    --primary-800: 37 100% 20%;
-    --primary-900: 36 100% 14%;
-    --primary: var(--saffron-500);
-    --primary-foreground: var(--ink);
+    /* Brand ramp (primary). */
+    --primary-50: 350 100% 98%;
+    --primary-100: var(--brand-100);
+    --primary-200: 351 90% 88%;
+    --primary-300: 351 85% 77%;
+    --primary-400: 350 80% 60%;
+    --primary-500: var(--brand-500);
+    --primary-600: var(--brand-600);
+    --primary-700: var(--brand-700);
+    --primary-800: 350 80% 24%;
+    --primary-900: var(--brand-900);
+    --primary: var(--brand-500);
+    --primary-foreground: 0 0% 100%;
 
-    --accent: var(--saffron-500);
-    --accent-foreground: var(--ink);
+    --accent: var(--brand-500);
+    --accent-foreground: 0 0% 100%;
 
-    --secondary: var(--saffron-100);
+    --secondary: var(--brand-100);
     --secondary-foreground: var(--ink);
 
     --background: var(--surface);
@@ -62,7 +65,7 @@
 
     --border: var(--hairline);
     --input: var(--hairline);
-    --ring: var(--saffron-600);
+    --ring: var(--brand-600);
 
     --destructive: var(--status-closed);
     --destructive-foreground: 0 0% 100%;
@@ -70,7 +73,7 @@
     --success: var(--status-open);
     --success-foreground: 0 0% 100%;
 
-    --warning: var(--saffron-700);
+    --warning: var(--brand-700);
     --warning-foreground: 0 0% 100%;
 
     --radius: 0.5rem;

@@ -50,7 +50,7 @@ export default function AccountLayout({
             className={cn(
               'shrink-0 rounded-md px-3 py-2 text-sm font-medium',
               pathname === item.href
-                ? 'bg-secondary text-saffron-700'
+                ? 'bg-secondary text-brand-700'
                 : 'text-muted-foreground hover:bg-secondary',
             )}
           >

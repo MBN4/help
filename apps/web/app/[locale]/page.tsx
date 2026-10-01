@@ -135,10 +135,10 @@ export default async function HomePage({
                   href={`/${DEFAULT_CITY_SLUG}/${category.slug}`}
                   className="group flex flex-col items-center gap-2 text-center text-sm font-medium text-ink focus-visible:outline-none"
                 >
-                  <span className="flex h-16 w-16 items-center justify-center rounded-full border border-border bg-white text-ink/80 shadow-sm transition-[transform,box-shadow,background-color,color] duration-[var(--motion-duration)] ease-out group-hover:-translate-y-0.5 group-hover:bg-saffron-100 group-hover:text-saffron-700 group-hover:shadow-md group-focus-visible:ring-2 group-focus-visible:ring-ring motion-reduce:transform-none">
+                  <span className="flex h-16 w-16 items-center justify-center rounded-full border border-border bg-white text-ink/80 shadow-sm transition-[transform,box-shadow,background-color,color] duration-[var(--motion-duration)] ease-out group-hover:-translate-y-0.5 group-hover:bg-brand-100 group-hover:text-brand-700 group-hover:shadow-md group-focus-visible:ring-2 group-focus-visible:ring-ring motion-reduce:transform-none">
                     <Icon className="h-7 w-7" aria-hidden="true" />
                   </span>
-                  <span className="group-hover:underline group-hover:decoration-saffron-500 group-hover:decoration-2 group-hover:underline-offset-4">
+                  <span className="group-hover:underline group-hover:decoration-brand-500 group-hover:decoration-2 group-hover:underline-offset-4">
                     {category.name}
                   </span>
                 </Link>
@@ -163,7 +163,7 @@ export default async function HomePage({
                 <li key={business.id}>
                   <Link
                     href={`/business/${business.slug}`}
-                    className="text-sm text-foreground hover:text-saffron-700 hover:underline"
+                    className="text-sm text-foreground hover:text-brand-700 hover:underline"
                   >
                     {business.name}
                   </Link>
