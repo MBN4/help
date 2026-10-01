@@ -51,7 +51,7 @@ export function SearchMapToggle({
         center={viewport}
         zoom={viewport.zoom}
         markers={markers}
-        className="h-[calc(100vh-8rem)] min-h-[420px]"
+        className="h-[calc(100vh-9rem)] min-h-[420px]"
       />
     );
   }
