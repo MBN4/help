@@ -6,46 +6,47 @@
   :root {
     color-scheme: light;
 
-    /* Buisnez brand (Phase 11 design overhaul) — deep emerald + warm saffron.
-       Hex values are docs/17-design-overhaul.md's spec, converted to the H/S/L triplets
-       this file's `hsl(var(--x))` convention expects everywhere else in the app. */
-    --emerald-900: 164 81% 12%; /* #06392B — header bg, deepest */
-    --emerald-700: 162 79% 20%; /* #0B5D45 — primary */
-    --emerald-500: 165 77% 30%; /* #12886A — primary hover / accents */
-    --emerald-100: 156 37% 92%; /* #E3F2EC — tint / selected chips */
-    --saffron-500: 38 82% 53%; /* #E9A227 — secondary accent (CTAs, highlights) */
-    --saffron-600: 37 90% 41%; /* #C77D0A — saffron text on light */
-    --star-gold: 37 91% 55%; /* #F5A623 — gold stars, never red */
+    /* Buisnez brand (Yelp-style UI pass, step 1) — saffron is the single action color; surfaces and text
+       are neutral. Emerald stays only for status ("Open now") and the header until step 2 repaints it. */
+    --emerald-900: 164 81% 12%; /* #06392B — header bg until step 2 */
+    --emerald-700: 162 79% 20%; /* #0B5D45 — status text */
+    --emerald-500: 165 77% 30%; /* #12886A — status */
+    --emerald-100: 156 37% 92%; /* #E3F2EC — status tint */
+    --saffron-100: 41 100% 94%; /* #FFF1D6 — tint / selected chips / hover */
+    --saffron-500: 38 82% 53%; /* #E9A227 — primary action fill (text on it is ink) */
+    --saffron-600: 37 90% 41%; /* #C77D0A — hover fill, focus ring */
+    --saffron-700: 37 100% 27%; /* #8A5300 — saffron TEXT on white (6.5:1) */
+    --star-gold: 37 91% 55%; /* #F5A623 — gold stars */
 
-    --ink: 156 19% 11%; /* #16201C — headings */
-    --body-text: 150 7% 22%; /* #333B37 — body text */
-    --muted-text: 220 9% 46%; /* #6B7280 — secondary text */
-    --hairline: 220 13% 91%; /* #E5E7EB */
+    --ink: 250 14% 19%; /* #2B2A37 — headings */
+    --body-text: 225 8% 28%; /* #414550 — body text */
+    --muted-text: 220 9% 40%; /* #5D6470 — secondary text (AA on white and canvas) */
+    --hairline: 0 0% 90%; /* #E6E6E6 */
     --surface: 0 0% 100%; /* #FFFFFF — cards */
-    --canvas: 120 0% 97%; /* #F7F8F7 — page bg / section bands */
+    --canvas: 0 0% 96%; /* #F5F5F5 — page bg / section bands */
 
     --status-open: 165 77% 30%; /* same as emerald-500 */
     --status-closed: 4 76% 40%; /* #B42318 — sparingly */
 
-    /* Interpolated ramp (spec only gives 900/700/500/100; the rest keep the same hue/sat family). */
-    --primary-50: 163 45% 97%;
-    --primary-100: var(--emerald-100);
-    --primary-200: 160 40% 82%;
-    --primary-300: 162 45% 68%;
-    --primary-400: 163 55% 48%;
-    --primary-500: var(--emerald-500);
-    --primary-600: 163 78% 24%;
-    --primary-700: var(--emerald-700);
-    --primary-800: 163 80% 16%;
-    --primary-900: var(--emerald-900);
-    --primary: var(--emerald-700);
-    --primary-foreground: 0 0% 100%;
+    /* Saffron ramp (primary). */
+    --primary-50: 43 100% 97%;
+    --primary-100: var(--saffron-100);
+    --primary-200: 41 96% 83%;
+    --primary-300: 40 92% 72%;
+    --primary-400: 39 87% 62%;
+    --primary-500: var(--saffron-500);
+    --primary-600: var(--saffron-600);
+    --primary-700: var(--saffron-700);
+    --primary-800: 37 100% 20%;
+    --primary-900: 36 100% 14%;
+    --primary: var(--saffron-500);
+    --primary-foreground: var(--ink);
 
     --accent: var(--saffron-500);
     --accent-foreground: var(--ink);
 
-    --secondary: var(--emerald-100);
-    --secondary-foreground: var(--emerald-900);
+    --secondary: var(--saffron-100);
+    --secondary-foreground: var(--ink);
 
     --background: var(--surface);
     --foreground: var(--ink);
@@ -61,7 +62,7 @@
 
     --border: var(--hairline);
     --input: var(--hairline);
-    --ring: var(--emerald-700);
+    --ring: var(--saffron-600);
 
     --destructive: var(--status-closed);
     --destructive-foreground: 0 0% 100%;
@@ -69,10 +70,10 @@
     --success: var(--status-open);
     --success-foreground: 0 0% 100%;
 
-    --warning: var(--saffron-600);
+    --warning: var(--saffron-700);
     --warning-foreground: 0 0% 100%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
     --radius-pill: 9999px;
 
     /* Motion (design-overhaul spec: 160ms ease-out default, disabled under reduced-motion). */

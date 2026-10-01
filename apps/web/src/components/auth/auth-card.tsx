@@ -20,7 +20,7 @@ export function AuthCard({
     <div className="container flex min-h-[70vh] items-center justify-center py-10">
       <Card className="w-full max-w-sm">
         <CardHeader className="items-center text-center">
-          <Link href="/" className="mb-2 text-lg font-bold text-primary">
+          <Link href="/" className="mb-2 text-lg font-bold text-saffron-700">
             Buisnez
           </Link>
           <CardTitle>{title}</CardTitle>

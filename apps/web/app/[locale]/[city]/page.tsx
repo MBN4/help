@@ -100,7 +100,7 @@ export default async function CityHubPage({
             <Link
               key={category.id}
               href={`/${citySlug}/${category.slug}`}
-              className="rounded-lg border border-border bg-card p-4 text-center font-medium transition-colors hover:border-primary hover:text-primary"
+              className="rounded-lg border border-border bg-card p-4 text-center font-medium transition-colors hover:border-primary hover:text-saffron-700"
             >
               {category.name}
             </Link>
