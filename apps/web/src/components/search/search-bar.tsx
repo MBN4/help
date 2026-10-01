@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select';
 
 export interface SearchBarProps {
-  /** `hero` = large, on the homepage hero photo. `header` = compact, sits in the sticky emerald-900 bar. */
+  /** `hero` = large, on the homepage hero photo. `header` = compact, sits in the sticky white bar. */
   variant?: 'hero' | 'header';
   className?: string;
 }
@@ -57,10 +57,7 @@ export function SearchBar({
       className={cn(
         'flex w-full flex-col gap-2 sm:flex-row sm:items-center',
         isHeader
-          ? // Sits inside the emerald-900 header, which sets text-white for its own content — this
-            // pill is near-white, so it must reset back to a dark foreground itself (a11y: axe's
-            // color-contrast rule caught white-on-white here before this fix).
-            'rounded-pill bg-white/95 p-1 text-foreground shadow-sm sm:gap-0 sm:divide-x sm:divide-border'
+          ? 'rounded-pill border border-border bg-white p-1 text-foreground shadow-sm transition-shadow focus-within:shadow-md hover:shadow-md sm:gap-0 sm:divide-x sm:divide-border'
           : 'rounded-2xl border border-border bg-card p-3 shadow-lg sm:gap-0 sm:divide-x sm:divide-border',
         className,
       )}
