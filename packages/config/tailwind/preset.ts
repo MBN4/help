@@ -72,8 +72,10 @@ const preset: Partial<Config> = {
           100: 'hsl(var(--emerald-100))',
         },
         saffron: {
+          100: 'hsl(var(--saffron-100))',
           500: 'hsl(var(--saffron-500))',
           600: 'hsl(var(--saffron-600))',
+          700: 'hsl(var(--saffron-700))',
         },
         'star-gold': 'hsl(var(--star-gold))',
         ink: 'hsl(var(--ink))',
@@ -92,9 +94,9 @@ const preset: Partial<Config> = {
         pill: 'var(--radius-pill)',
       },
       boxShadow: {
-        sm: '0 1px 2px 0 rgb(22 32 28 / 0.06), 0 1px 1px 0 rgb(22 32 28 / 0.04)',
-        md: '0 4px 12px -2px rgb(22 32 28 / 0.12), 0 2px 6px -2px rgb(22 32 28 / 0.06)',
-        lg: '0 12px 32px -6px rgb(22 32 28 / 0.18), 0 4px 12px -4px rgb(22 32 28 / 0.08)',
+        sm: '0 1px 2px 0 rgb(43 42 55 / 0.06), 0 1px 1px 0 rgb(43 42 55 / 0.04)',
+        md: '0 4px 12px -2px rgb(43 42 55 / 0.12), 0 2px 6px -2px rgb(43 42 55 / 0.06)',
+        lg: '0 12px 32px -6px rgb(43 42 55 / 0.18), 0 4px 12px -4px rgb(43 42 55 / 0.08)',
       },
       fontFamily: {
         sans: [
@@ -107,7 +109,6 @@ const preset: Partial<Config> = {
           'sans-serif',
         ],
         display: [
-          'var(--font-display)',
           'var(--font-sans)',
           'ui-sans-serif',
           'system-ui',
@@ -124,7 +125,7 @@ const preset: Partial<Config> = {
         '3xl': ['1.875rem', { lineHeight: '2.25rem' }],
         '4xl': ['2.5rem', { lineHeight: '2.75rem' }],
         /* docs/17-design-overhaul.md's named display scale, alongside the existing xs..4xl utility scale. */
-        display: ['2.75rem', { lineHeight: '1.2', fontWeight: '800' }],
+        display: ['2.75rem', { lineHeight: '1.2', fontWeight: '700' }],
         h1: ['2rem', { lineHeight: '1.2', fontWeight: '700' }],
         h2: ['1.5rem', { lineHeight: '1.2', fontWeight: '700' }],
         h3: ['1.25rem', { lineHeight: '1.2', fontWeight: '700' }],

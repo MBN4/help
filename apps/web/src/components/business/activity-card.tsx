@@ -60,7 +60,7 @@ export function ActivityCard({
               className="h-7 w-7 shrink-0 rounded-full object-cover"
             />
           ) : (
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-saffron-100 text-saffron-700">
               <UserIcon className="h-3.5 w-3.5" aria-hidden="true" />
             </span>
           )}
@@ -97,7 +97,7 @@ export function ActivityCard({
               <button
                 type="button"
                 onClick={() => setExpanded(true)}
-                className="ms-1 font-medium text-emerald-700 hover:underline"
+                className="ms-1 font-medium text-saffron-700 hover:underline"
               >
                 {t('readMore')}
               </button>

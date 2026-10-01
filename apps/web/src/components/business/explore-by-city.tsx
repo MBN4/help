@@ -84,8 +84,8 @@ export function ExploreByCity({
             className={cn(
               'rounded-pill border px-4 py-1.5 text-sm font-medium transition-colors',
               city.slug === activeSlug
-                ? 'border-emerald-700 bg-emerald-700 text-white'
-                : 'border-border bg-card text-foreground hover:border-emerald-700 hover:text-emerald-700',
+                ? 'border-saffron-500 bg-saffron-500 text-ink'
+                : 'border-border bg-card text-foreground hover:border-saffron-500 hover:text-saffron-700',
             )}
           >
             {city.name}
@@ -140,7 +140,7 @@ function BusinessLinkColumn({
               </span>
               <Link
                 href={`/business/${business.slug}`}
-                className="min-w-0 flex-1 truncate hover:text-emerald-700 hover:underline"
+                className="min-w-0 flex-1 truncate hover:text-saffron-700 hover:underline"
               >
                 {business.name}
               </Link>

@@ -77,7 +77,7 @@ function LoginForm(): React.ReactElement {
             <Label htmlFor="password">{t('passwordLabel')}</Label>
             <Link
               href="/forgot-password"
-              className="text-xs text-primary hover:underline"
+              className="text-xs text-saffron-700 hover:underline"
             >
               {t('forgotPasswordLink')}
             </Link>
@@ -102,7 +102,7 @@ function LoginForm(): React.ReactElement {
         {t('noAccount')}{' '}
         <Link
           href="/register"
-          className="font-medium text-primary hover:underline"
+          className="font-medium text-saffron-700 hover:underline"
         >
           {t('signupLink')}
         </Link>

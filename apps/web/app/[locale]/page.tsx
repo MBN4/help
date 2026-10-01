@@ -119,7 +119,7 @@ export default async function HomePage({
           className="absolute inset-0 opacity-10 [background-image:radial-gradient(circle_at_1px_1px,white_1px,transparent_0)] [background-size:24px_24px]"
         />
         <div className="relative mx-auto max-w-3xl space-y-6">
-          <h1 className="font-display text-display font-extrabold text-balance">
+          <h1 className="font-display text-display font-bold text-white text-balance">
             {t('heroTitle')}
           </h1>
           <p className="text-white/85">{t('heroSubtitle')}</p>
@@ -151,7 +151,7 @@ export default async function HomePage({
                   className="card-hover flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-5 text-center font-medium"
                 >
                   <Icon
-                    className="h-6 w-6 text-emerald-700"
+                    className="h-6 w-6 text-saffron-700"
                     aria-hidden="true"
                   />
                   {category.name}
@@ -177,7 +177,7 @@ export default async function HomePage({
                 <li key={business.id}>
                   <Link
                     href={`/business/${business.slug}`}
-                    className="text-sm text-foreground hover:text-emerald-700 hover:underline"
+                    className="text-sm text-foreground hover:text-saffron-700 hover:underline"
                   >
                     {business.name}
                   </Link>

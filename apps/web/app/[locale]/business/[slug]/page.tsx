@@ -182,18 +182,18 @@ export default async function BusinessProfilePage({
         aria-label={t('jumpToSection')}
         className="flex flex-wrap gap-x-5 gap-y-1 border-b border-border pb-3 text-sm font-medium text-muted-foreground"
       >
-        <a href="#overview" className="hover:text-emerald-700">
+        <a href="#overview" className="hover:text-saffron-700">
           {t('overview')}
         </a>
         {business.services.some((s) => s.isAvailable) && (
-          <a href="#services" className="hover:text-emerald-700">
+          <a href="#services" className="hover:text-saffron-700">
             {t('servicesMenu')}
           </a>
         )}
-        <a href="#reviews" className="hover:text-emerald-700">
+        <a href="#reviews" className="hover:text-saffron-700">
           {t('reviewsHeading')}
         </a>
-        <a href="#photos" className="hover:text-emerald-700">
+        <a href="#photos" className="hover:text-saffron-700">
           {t('photos')}
         </a>
       </nav>
@@ -262,7 +262,7 @@ export default async function BusinessProfilePage({
               {business.phone && (
                 <a
                   href={toTelHref(business.phone) ?? undefined}
-                  className="flex items-center gap-2 text-sm hover:text-primary"
+                  className="flex items-center gap-2 text-sm hover:text-saffron-700"
                 >
                   <Phone className="h-4 w-4" aria-hidden="true" />
                   {formatPhonePK(business.phone)}
@@ -273,7 +273,7 @@ export default async function BusinessProfilePage({
                   href={`https://wa.me/${business.whatsapp.replace('+', '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm hover:text-primary"
+                  className="flex items-center gap-2 text-sm hover:text-saffron-700"
                 >
                   <MessageCircle className="h-4 w-4" aria-hidden="true" />
                   {formatPhonePK(business.whatsapp)}
@@ -284,7 +284,7 @@ export default async function BusinessProfilePage({
                   href={business.website}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 truncate text-sm hover:text-primary"
+                  className="flex items-center gap-2 truncate text-sm hover:text-saffron-700"
                 >
                   <Globe className="h-4 w-4 shrink-0" aria-hidden="true" />
                   <span className="truncate">{business.website}</span>

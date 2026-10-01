@@ -82,7 +82,7 @@ export default function AdminLayout({
             className={cn(
               'shrink-0 rounded-md px-3 py-2 text-sm font-medium',
               pathname === item.href
-                ? 'bg-secondary text-primary'
+                ? 'bg-secondary text-saffron-700'
                 : 'text-muted-foreground hover:bg-secondary',
             )}
           >

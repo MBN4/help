@@ -19,7 +19,7 @@ export function FeatureList({
           className="flex items-center gap-2 text-sm text-foreground"
         >
           <CheckCircle2
-            className="h-4 w-4 shrink-0 text-primary"
+            className="h-4 w-4 shrink-0 text-saffron-700"
             aria-hidden="true"
           />
           {feature.name}

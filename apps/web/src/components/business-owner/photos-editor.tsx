@@ -120,7 +120,7 @@ export function PhotosEditor({
             type="button"
             onClick={() => inputRef.current?.click()}
             disabled={uploading}
-            className="flex h-24 w-24 flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border text-xs text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-50"
+            className="flex h-24 w-24 flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border text-xs text-muted-foreground hover:border-primary hover:text-saffron-700 disabled:opacity-50"
           >
             {uploading ? reviewT('uploading') : reviewT('addPhoto')}
           </button>

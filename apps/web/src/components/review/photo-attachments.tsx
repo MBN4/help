@@ -73,7 +73,7 @@ export function PhotoAttachments({
             type="button"
             onClick={() => inputRef.current?.click()}
             disabled={stage === 'uploading' || stage === 'processing'}
-            className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border text-xs text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-50"
+            className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border text-xs text-muted-foreground hover:border-primary hover:text-saffron-700 disabled:opacity-50"
           >
             {stage === 'uploading' || stage === 'processing'
               ? t('uploading')
