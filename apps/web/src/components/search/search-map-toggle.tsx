@@ -30,22 +30,42 @@ export function SearchMapToggle({
     setViewport({ ...center, zoom: 12 });
   }, [center, setViewport]);
 
-  const markers = businesses.flatMap((business) => {
-    if (!business.location) {
-      return [];
-    }
-    return [
-      {
-        id: business.id,
-        lat: business.location.lat,
-        lng: business.location.lng,
-        title: business.name,
-        href: businessUrl(business.slug),
-      },
-    ];
-  });
+  const markers = React.useMemo(
+    () =>
+      businesses.flatMap((business, index) => {
+        if (!business.location) {
+          return [];
+        }
+        return [
+          {
+            label: String(index + 1),
+            id: business.id,
+            lat: business.location.lat,
+            lng: business.location.lng,
+            title: business.name,
+            href: businessUrl(business.slug),
+          },
+        ];
+      }),
+    [businesses],
+  );
+
+  // The split-view map lives in a column that is CSS-hidden below `lg`; don't build a Leaflet map (and
+  // request tiles) for it on phones, where the toggle below is used instead.
+  const [isDesktop, setIsDesktop] = React.useState(false);
+  React.useEffect(() => {
+    const query = window.matchMedia('(min-width: 1024px)');
+    setIsDesktop(query.matches);
+    const onChange = (event: MediaQueryListEvent): void =>
+      setIsDesktop(event.matches);
+    query.addEventListener('change', onChange);
+    return () => query.removeEventListener('change', onChange);
+  }, []);
 
   if (alwaysVisible) {
+    if (!isDesktop) {
+      return <></>;
+    }
     return (
       <LazyMapView
         center={viewport}

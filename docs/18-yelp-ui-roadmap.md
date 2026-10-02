@@ -8,17 +8,17 @@ Related: `17-design-overhaul.md` (earlier design tokens/decisions), `PROGRESS.md
 
 ## Status
 
-| #   | Phase                                                                                                | Branch                          | Status                   |
-| --- | ---------------------------------------------------------------------------------------------------- | ------------------------------- | ------------------------ |
-| 0   | Yelp-style homepage: hero slider, transparent nav, activity cards, single city dropdown, mobile hero | `feat/yelp-style-home-ui`       | **Done, merged to main** |
-| 1   | Bug fixes: admin pages overflow on phones, 404 wording                                               | `fix/phase-1-bugs`              | **Done, merged to main** |
-| 2   | Yelp-style stars everywhere + "Find / Near" header search                                            | `feat/phase-2-stars-search-bar` | **Next — not started**   |
-| 3   | Search results page (map column) + business page                                                     | `feat/phase-3-search-business`  | Not started              |
-| 4   | Auth pages + reviewer profile + account pages                                                        | `feat/phase-4-auth-profile`     | Not started              |
-| 5   | Category/city pages + hero photos                                                                    | `feat/phase-5-browse-hero`      | Not started              |
-| 6   | Final full-site verification + docs                                                                  | `chore/phase-6-verification`    | Not started              |
+| #   | Phase                                                                                                | Branch                          | Status                           |
+| --- | ---------------------------------------------------------------------------------------------------- | ------------------------------- | -------------------------------- |
+| 0   | Yelp-style homepage: hero slider, transparent nav, activity cards, single city dropdown, mobile hero | `feat/yelp-style-home-ui`       | **Done, merged to main**         |
+| 1   | Bug fixes: admin pages overflow on phones, 404 wording                                               | `fix/phase-1-bugs`              | **Done, merged to main**         |
+| 2   | Yelp-style stars everywhere + "Find / Near" header search                                            | `feat/phase-2-stars-search-bar` | **Done, merged to main**         |
+| 3   | Search results page (map column) + business page                                                     | `feat/phase-3-search-business`  | **Done (merge pending user OK)** |
+| 4   | Auth pages + reviewer profile + account pages                                                        | `feat/phase-4-auth-profile`     | **Next — not started**           |
+| 5   | Category/city pages + hero photos                                                                    | `feat/phase-5-browse-hero`      | Not started                      |
+| 6   | Final full-site verification + docs                                                                  | `chore/phase-6-verification`    | Not started                      |
 
-**4 phases remain (3–6).** Do them in order; do not start the next until the user says so.
+**3 phases remain (4–6).** Do them in order; do not start the next until the user says so.
 
 ## Workflow rules (from the user)
 
@@ -145,3 +145,21 @@ hidden on phones). Routes: `/`, `/lahore`, `/lahore/food-dining`, `/business/<sl
   when merging with a fallback, and pass the label explicitly as `SelectValue` children.
 - Known limitation: on `/search?city=karachi` the header Near field still shows "All cities", because the
   header cannot read `?city=` without `useSearchParams` (forces a Suspense/CSR bailout in the layout).
+
+## Phase 3 result (what changed)
+
+- **Maps are now OpenStreetMap via Leaflet** (user's choice — the project has no Google Maps API key). Added
+  `leaflet` + `@types/leaflet` to `apps/web`. `components/map/map-view.tsx` was rewritten (same
+  `MapViewProps`, plus an optional marker `label`): red Yelp-style pins built as `L.divIcon` (no image assets),
+  the search page numbers the pins to match the result list, popups link to the business, scroll-wheel zoom is
+  off, `fitBounds` when there are several markers. Tiles come from `tile.openstreetmap.org` (keep the
+  attribution; light-use policy — switch tile provider if traffic grows).
+- The search page's desktop split-view map only mounts at `>= lg` (a hidden Leaflet map on phones wasted tile
+  requests); phones use the "Show map" toggle. Markers are memoized so panning is not reset on re-render.
+- Still on Google (out of scope, unchanged): the owner dashboard's `components/business-owner/pin-drop-map.tsx`
+  and `components/map/use-google-maps-script.ts`; it falls back to manual coordinates without a key.
+- The "gray blocks" seen in the Phase-1 audit were not bugs: they were the old map fallback panel and the
+  "Log in to write a review" prompt, seen in full-page screenshots.
+- **pnpm gotcha:** `pnpm add` here re-resolved the whole lockfile (~7,400 changed lines, eslint `jiti` variant)
+  and broke the ESLint links. The lockfile was restored from git and only the leaflet entries were added by
+  hand; `pnpm install --frozen-lockfile` then verified it. Prefer that approach for future dependency adds.
