@@ -201,10 +201,10 @@
     "FOUR": "$$$$"
   },
   "auth": {
-    "registerTitle": "Create your account",
-    "registerSubtitle": "Join Buisnez to review, favourite, and follow local businesses.",
-    "loginTitle": "Log in",
-    "loginSubtitle": "Welcome back.",
+    "registerTitle": "Sign up for Buisnez",
+    "registerSubtitle": "Join to review, favourite, and follow local businesses across Pakistan.",
+    "loginTitle": "Log in to Buisnez",
+    "loginSubtitle": "Welcome back. Pick up where you left off.",
     "nameLabel": "Full name",
     "emailLabel": "Email",
     "passwordLabel": "Password",
@@ -248,7 +248,13 @@
     "oauthStubTitle": "Simulated {provider} sign-in",
     "oauthStubSubtitle": "No {provider} credentials are configured in this environment, so this stands in for the real consent screen — enter any name and email to continue.",
     "oauthStubCta": "Continue",
-    "returnToNotice": "Log in to continue."
+    "returnToNotice": "Log in to continue.",
+    "or": "or",
+    "showcaseTitle": "Real reviews from real people",
+    "showcaseBody": "Find, rate and share the best local businesses across Pakistan.",
+    "showcaseReviewer": "A happy customer",
+    "showcaseTime": "Just now",
+    "showcaseReview": "Friendly staff, great food and spotless service. Will definitely be back!"
   },
   "admin": {
     "nav": {
