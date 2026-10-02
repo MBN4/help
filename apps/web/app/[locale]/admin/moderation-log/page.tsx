@@ -26,18 +26,18 @@ export default function AdminModerationLogPage(): React.ReactElement {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-semibold">{t('moderationLog.title')}</h1>
-        <div className="flex gap-2">
+        <div className="flex w-full gap-2 sm:w-auto">
           <Input
             placeholder={t('moderationLog.filterAction')}
             value={action}
             onChange={(e) => setAction(e.target.value)}
-            className="w-48"
+            className="min-w-0 flex-1 sm:w-48 sm:flex-none"
           />
           <Input
             placeholder={t('moderationLog.filterTargetType')}
             value={targetType}
             onChange={(e) => setTargetType(e.target.value)}
-            className="w-48"
+            className="min-w-0 flex-1 sm:w-48 sm:flex-none"
           />
         </div>
       </div>
@@ -51,7 +51,7 @@ export default function AdminModerationLogPage(): React.ReactElement {
               <CardContent className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
                 <div className="flex items-center gap-2">
                   <Badge>{entry.action}</Badge>
-                  <span className="text-muted-foreground">
+                  <span className="min-w-0 break-all text-muted-foreground">
                     {entry.targetType} · {entry.targetId}
                   </span>
                 </div>
