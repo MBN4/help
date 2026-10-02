@@ -114,9 +114,11 @@ export default async function HomePage({
 
       <div className="container space-y-12 pt-10">
         {recentActivity.length > 0 && (
-          <section className="space-y-3">
-            <h2 className="font-display text-h2">{t('recentActivity')}</h2>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <section className="space-y-8">
+            <h2 className="text-center font-display text-3xl font-bold">
+              {t('recentActivity')}
+            </h2>
+            <div className="grid grid-cols-1 items-start gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {recentActivity.map((activity) => (
                 <ActivityCard key={activity.id} activity={activity} />
               ))}

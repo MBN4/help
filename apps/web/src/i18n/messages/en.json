@@ -49,7 +49,7 @@
     "highlyRated": "Highly rated",
     "featured": "Featured",
     "recentlyAdded": "Recently added",
-    "recentActivity": "Recent activity",
+    "recentActivity": "Recent Activity",
     "readMore": "Read more",
     "helpfulCount": "{count, plural, =0 {Helpful} one {# found helpful} other {# found helpful}}",
     "exploreByCity": "Explore by city",
@@ -65,7 +65,9 @@
     "slideBusinessBody": "Claim your page, reply to reviews and keep your hours and details up to date.",
     "slideBusinessCta": "Claim your business",
     "slidePause": "Pause slideshow",
-    "slidePlay": "Play slideshow"
+    "slidePlay": "Play slideshow",
+    "activityWroteReview": "{name} wrote a review",
+    "justNow": "Just now"
   },
   "search": {
     "metaTitle": "Search Businesses — Buisnez",
