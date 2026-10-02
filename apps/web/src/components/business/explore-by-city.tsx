@@ -123,7 +123,7 @@ function BusinessLinkColumn({
   isLoading: boolean;
 }): React.ReactElement {
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="min-w-0 rounded-xl border border-border bg-card p-4">
       <h3 className="mb-3 font-display text-sm font-bold text-ink">{title}</h3>
       {isLoading ? (
         <div className="space-y-2">
@@ -144,7 +144,10 @@ function BusinessLinkColumn({
               >
                 {business.name}
               </Link>
-              <RatingBadge rating={business.averageRating} />
+              <RatingBadge
+                rating={business.averageRating}
+                className="shrink-0"
+              />
             </li>
           ))}
         </ol>
