@@ -8,17 +8,17 @@ Related: `17-design-overhaul.md` (earlier design tokens/decisions), `PROGRESS.md
 
 ## Status
 
-| #   | Phase                                                                                                | Branch                          | Status                   |
-| --- | ---------------------------------------------------------------------------------------------------- | ------------------------------- | ------------------------ |
-| 0   | Yelp-style homepage: hero slider, transparent nav, activity cards, single city dropdown, mobile hero | `feat/yelp-style-home-ui`       | **Done, merged to main** |
-| 1   | Bug fixes: admin pages overflow on phones, 404 wording                                               | `fix/phase-1-bugs`              | **Done, merged to main** |
-| 2   | Yelp-style stars everywhere + "Find / Near" header search                                            | `feat/phase-2-stars-search-bar` | **Done, merged to main** |
-| 3   | Search results page (map column) + business page                                                     | `feat/phase-3-search-business`  | **Done, merged to main** |
-| 4   | Auth pages + reviewer profile + account pages                                                        | `feat/phase-4-auth-profile`     | **Done, merged to main** |
-| 5   | Category/city pages + hero photos                                                                    | `feat/phase-5-browse-hero`      | **Next — not started**   |
-| 6   | Final full-site verification + docs                                                                  | `chore/phase-6-verification`    | Not started              |
+| #   | Phase                                                                                                | Branch                          | Status                           |
+| --- | ---------------------------------------------------------------------------------------------------- | ------------------------------- | -------------------------------- |
+| 0   | Yelp-style homepage: hero slider, transparent nav, activity cards, single city dropdown, mobile hero | `feat/yelp-style-home-ui`       | **Done, merged to main**         |
+| 1   | Bug fixes: admin pages overflow on phones, 404 wording                                               | `fix/phase-1-bugs`              | **Done, merged to main**         |
+| 2   | Yelp-style stars everywhere + "Find / Near" header search                                            | `feat/phase-2-stars-search-bar` | **Done, merged to main**         |
+| 3   | Search results page (map column) + business page                                                     | `feat/phase-3-search-business`  | **Done, merged to main**         |
+| 4   | Auth pages + reviewer profile + account pages                                                        | `feat/phase-4-auth-profile`     | **Done, merged to main**         |
+| 5   | Category/city pages + hero photos                                                                    | `feat/phase-5-browse-hero`      | **Done (merge pending user OK)** |
+| 6   | Final full-site verification + docs                                                                  | `chore/phase-6-verification`    | **Next — not started**           |
 
-**2 phases remain (5–6).** Do them in order; do not start the next until the user says so.
+**1 phase remains (6).** Do them in order; do not start the next until the user says so.
 
 ## Workflow rules (from the user)
 
@@ -177,3 +177,18 @@ hidden on phones). Routes: `/`, `/lahore`, `/lahore/food-dining`, `/business/<sl
   already fine (photos load lazily — gray boxes in a screenshot are just not-yet-loaded picsum images).
 - Operational note: a heavy tool run got OOM-killed (exit 137) and took the Docker containers, API and web dev
   server down; `docker compose up -d`, then start API and web (`rm -rf apps/web/.next` first) fixed it.
+
+## Phase 5 result (what changed)
+
+- **City page** (`/[city]`): branded gradient banner with the city name, icon tiles for categories (same style as
+  the homepage "Popular categories"), then "Top businesses" in the shared list + map layout.
+- **Category page** (`/[city]/[category]`): bigger heading, "All {parent}" and subcategory pill links
+  (`category.parent` / `category.children`), list + map layout.
+- **`components/business/listing-with-map.tsx`**: list on the left, sticky Leaflet map on the right at `lg`+
+  (numbered pins match list ranks), "Show map" toggle above the list on phones. Reuses `SearchMapToggle`.
+- **Hero photos**: `hero-carousel.tsx` now renders each slide's `image` with `next/image` (priority on slide 1)
+  under a left-to-right dark gradient. The three images are **placeholder picsum.photos URLs** (ids 1060 coffee
+  brewing, 431 latte + receipts, 835 dark table) — replace them with licensed brand photos (put files in
+  `apps/web/public/hero/` and use `/hero/…` paths). No photo credit/caption line was added (none can be invented).
+- Homepage lower blocks (popular categories, explore by city, featured, highly rated) were reviewed and already
+  match the new style, so they were left alone.

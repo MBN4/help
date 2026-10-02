@@ -7,11 +7,16 @@ import { breadcrumbListJsonLd, itemListJsonLd } from '@/lib/seo/json-ld';
 import { JsonLd } from '@/components/seo/json-ld';
 import { Breadcrumb } from '@/components/layout/breadcrumb';
 import { BusinessListItem } from '@/components/business/business-list-item';
+import { ListingWithMap } from '@/components/business/listing-with-map';
+import { Link } from '@/i18n/navigation';
 import { Pagination } from '@/components/search/pagination';
 
 export const revalidate = 600;
 
 const PER_PAGE = 20;
+
+const chipClass =
+  'rounded-pill border border-border bg-white px-4 py-1.5 text-sm font-medium text-ink transition-colors hover:border-brand-500 hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 interface PageProps {
   params: Promise<{ locale: string; city: string; category: string }>;
@@ -96,8 +101,8 @@ export default async function CityCategoryPage({
       <JsonLd data={breadcrumbListJsonLd(breadcrumbLinks)} />
       <JsonLd data={itemListJsonLd(businesses)} />
 
-      <section className="space-y-1">
-        <h1 className="text-3xl font-bold">
+      <section className="space-y-2">
+        <h1 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">
           {t('heading', { category: category.name, city: city.name })}
         </h1>
         <p className="text-muted-foreground">
@@ -106,9 +111,33 @@ export default async function CityCategoryPage({
             city: city.name,
           })}
         </p>
+        {(category.parent || category.children.length > 0) && (
+          <nav
+            aria-label={t('relatedCategories')}
+            className="flex flex-wrap gap-2 pt-2"
+          >
+            {category.parent && (
+              <Link
+                href={`/${citySlug}/${category.parent.slug}`}
+                className={chipClass}
+              >
+                {t('allOf', { category: category.parent.name })}
+              </Link>
+            )}
+            {category.children.map((child) => (
+              <Link
+                key={child.id}
+                href={`/${citySlug}/${child.slug}`}
+                className={chipClass}
+              >
+                {child.name}
+              </Link>
+            ))}
+          </nav>
+        )}
       </section>
 
-      <div className="space-y-3">
+      <ListingWithMap businesses={businesses}>
         {businesses.map((business, index) => (
           <BusinessListItem
             key={business.id}
@@ -116,7 +145,7 @@ export default async function CityCategoryPage({
             rank={(page - 1) * PER_PAGE + index + 1}
           />
         ))}
-      </div>
+      </ListingWithMap>
 
       <Pagination
         page={page}
