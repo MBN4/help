@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Image from 'next/image';
 import { Pause, Play, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
@@ -16,7 +17,8 @@ interface Slide {
   title: string;
   cta: string;
   href: string;
-  /** Optional full-bleed photo under the gradient (e.g. `/hero/tailor.jpg`); gradient alone when omitted. */
+  /** Optional full-bleed photo under the gradient — a `public/` path or an allowed remote host; gradient alone
+   * when omitted. The current picsum.photos URLs are PLACEHOLDERS: swap in licensed brand photos. */
   image?: string;
   background: string;
   mobileSearch?: boolean;
@@ -49,6 +51,7 @@ export function HeroCarousel(): React.ReactElement {
       title: t('heroTitle'),
       cta: t('searchCta'),
       href: '/search',
+      image: 'https://picsum.photos/id/1060/1920/1080',
       background: 'from-brand-900 via-brand-700 to-brand-600',
       mobileSearch: true,
     },
@@ -56,12 +59,14 @@ export function HeroCarousel(): React.ReactElement {
       title: t('slideReviewTitle'),
       cta: t('slideReviewCta'),
       href: '/search',
+      image: 'https://picsum.photos/id/431/1920/1080',
       background: 'from-neutral-900 via-brand-900 to-brand-700',
     },
     {
       title: t('slideBusinessTitle'),
       cta: t('slideBusinessCta'),
       href: '/account/businesses',
+      image: 'https://picsum.photos/id/835/1920/1080',
       background: 'from-brand-800 via-neutral-900 to-neutral-950',
     },
   ];
@@ -95,17 +100,23 @@ export function HeroCarousel(): React.ReactElement {
             )}
           >
             {slide.image && (
-              <div
-                aria-hidden="true"
-                className="absolute inset-0 bg-cover bg-center"
-                style={{ backgroundImage: `url(${slide.image})` }}
+              <Image
+                src={slide.image}
+                alt=""
+                fill
+                priority={i === 0}
+                sizes="100vw"
+                className="object-cover"
               />
             )}
             <div
               aria-hidden="true"
               className={cn('absolute inset-0 opacity-[0.07]', dotPattern)}
             />
-            <div className="absolute inset-0 bg-black/20" aria-hidden="true" />
+            <div
+              className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/35 to-black/10"
+              aria-hidden="true"
+            />
             <div className="container relative pb-16 pt-40 md:pt-36">
               <div className="ps-8 sm:ps-10">
                 <Heading className="max-w-3xl font-display text-5xl font-extrabold leading-[1.05] text-white text-balance sm:text-6xl">

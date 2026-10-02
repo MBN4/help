@@ -122,7 +122,9 @@
     "heading": "Best {category} in {city}",
     "resultsSubtitle": "{count, plural, =0 {No businesses found} one {# business} other {# businesses}} in {city}",
     "notFound": "We couldn't find that category.",
-    "paginationLabel": "Pagination"
+    "paginationLabel": "Pagination",
+    "relatedCategories": "Related categories",
+    "allOf": "All {category}"
   },
   "business": {
     "hours": "Hours",
