@@ -594,8 +594,8 @@
     "searchNotFoundDescription": "We couldn't load search results right now.",
     "businessNotFoundTitle": "We couldn't find that business",
     "businessNotFoundDescription": "This listing may have been removed or the link may be incorrect.",
-    "cityNotFoundTitle": "We couldn't find that city",
-    "cityNotFoundDescription": "Check the URL, or browse all cities from the home page.",
+    "cityNotFoundTitle": "We couldn't find that page",
+    "cityNotFoundDescription": "This page or city doesn't exist. Check the URL, or head back home to browse cities.",
     "categoryNotFoundTitle": "We couldn't find that category",
     "categoryNotFoundDescription": "Check the URL, or browse all categories from the home page.",
     "accountErrorDescription": "We couldn't load your account right now."

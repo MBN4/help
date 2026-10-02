@@ -70,7 +70,7 @@ export default function AdminUsersPage(): React.ReactElement {
           placeholder={t('users.search')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-56"
+          className="w-full sm:w-56"
         />
       </div>
 

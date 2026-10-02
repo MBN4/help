@@ -87,15 +87,16 @@ export default function AdminBusinessesPage(): React.ReactElement {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-semibold">{t('businesses.title')}</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
           <Input
             placeholder={t('businesses.search')}
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            className="w-56"
+            className="min-w-0 flex-1 sm:w-56 sm:flex-none"
           />
           <Button
             size="sm"
+            className="shrink-0"
             variant={includeDeleted ? 'default' : 'outline'}
             onClick={() => setIncludeDeleted((v) => !v)}
           >
