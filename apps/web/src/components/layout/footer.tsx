@@ -98,7 +98,12 @@ export async function Footer(): Promise<React.ReactElement> {
           <span>{t('languageUrduSoon')}</span>
           <span>{t('languageRomanUrduSoon')}</span>
         </div>
-        <p>{t('copyright', { year })}</p>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <Link href="/privacy" className="hover:text-ink hover:underline">
+            {t('privacy')}
+          </Link>
+          <p>{t('copyright', { year })}</p>
+        </div>
       </div>
     </footer>
   );
