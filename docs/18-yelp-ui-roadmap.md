@@ -8,15 +8,15 @@ Related: `17-design-overhaul.md` (earlier design tokens/decisions), `PROGRESS.md
 
 ## Status
 
-| #   | Phase                                                                                                | Branch                          | Status                           |
-| --- | ---------------------------------------------------------------------------------------------------- | ------------------------------- | -------------------------------- |
-| 0   | Yelp-style homepage: hero slider, transparent nav, activity cards, single city dropdown, mobile hero | `feat/yelp-style-home-ui`       | **Done, merged to main**         |
-| 1   | Bug fixes: admin pages overflow on phones, 404 wording                                               | `fix/phase-1-bugs`              | **Done, merged to main**         |
-| 2   | Yelp-style stars everywhere + "Find / Near" header search                                            | `feat/phase-2-stars-search-bar` | **Done, merged to main**         |
-| 3   | Search results page (map column) + business page                                                     | `feat/phase-3-search-business`  | **Done, merged to main**         |
-| 4   | Auth pages + reviewer profile + account pages                                                        | `feat/phase-4-auth-profile`     | **Done (merge pending user OK)** |
-| 5   | Category/city pages + hero photos                                                                    | `feat/phase-5-browse-hero`      | **Next — not started**           |
-| 6   | Final full-site verification + docs                                                                  | `chore/phase-6-verification`    | Not started                      |
+| #   | Phase                                                                                                | Branch                          | Status                   |
+| --- | ---------------------------------------------------------------------------------------------------- | ------------------------------- | ------------------------ |
+| 0   | Yelp-style homepage: hero slider, transparent nav, activity cards, single city dropdown, mobile hero | `feat/yelp-style-home-ui`       | **Done, merged to main** |
+| 1   | Bug fixes: admin pages overflow on phones, 404 wording                                               | `fix/phase-1-bugs`              | **Done, merged to main** |
+| 2   | Yelp-style stars everywhere + "Find / Near" header search                                            | `feat/phase-2-stars-search-bar` | **Done, merged to main** |
+| 3   | Search results page (map column) + business page                                                     | `feat/phase-3-search-business`  | **Done, merged to main** |
+| 4   | Auth pages + reviewer profile + account pages                                                        | `feat/phase-4-auth-profile`     | **Done, merged to main** |
+| 5   | Category/city pages + hero photos                                                                    | `feat/phase-5-browse-hero`      | **Next — not started**   |
+| 6   | Final full-site verification + docs                                                                  | `chore/phase-6-verification`    | Not started              |
 
 **2 phases remain (5–6).** Do them in order; do not start the next until the user says so.
 
