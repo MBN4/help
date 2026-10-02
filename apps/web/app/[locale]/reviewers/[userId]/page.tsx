@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { BadgeCheck } from 'lucide-react';
+import Image from 'next/image';
+import { BadgeCheck, Camera, Star, ThumbsUp } from 'lucide-react';
 import { ApiError, getPublicUserProfile } from '@/lib/api';
 import { buildMetadata } from '@/lib/seo/metadata';
 import { Link } from '@/i18n/navigation';
@@ -50,39 +51,76 @@ export default async function ReviewerProfilePage({
     loadProfile(userId),
   ]);
 
-  return (
-    <div className="container max-w-2xl space-y-6 py-6">
-      <header className="space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-bold">{profile.name}</h1>
-          {profile.isVerifiedReviewer && (
-            <Badge variant="outline" className="gap-1">
-              <BadgeCheck className="h-3 w-3" aria-hidden="true" />
-              {reviewT('verifiedReviewer')}
-            </Badge>
-          )}
-        </div>
-        <p className="text-sm text-muted-foreground">
-          {t('memberSince', {
-            date: new Date(profile.memberSince).toLocaleDateString('en-GB', {
-              year: 'numeric',
-              month: 'short',
-            }),
-          })}
-        </p>
-        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-          <span>{t('reviewCount', { count: profile.reviewCount })}</span>
-          <span>{t('photoCount', { count: profile.photoCount })}</span>
-          <span>
-            {t('helpfulVotesReceived', {
-              count: profile.helpfulVotesReceived,
-            })}
-          </span>
-        </div>
-      </header>
+  const memberSince = new Date(profile.memberSince).toLocaleDateString(
+    'en-GB',
+    { year: 'numeric', month: 'short' },
+  );
+  const stats = [
+    { icon: Star, text: t('reviewCount', { count: profile.reviewCount }) },
+    { icon: Camera, text: t('photoCount', { count: profile.photoCount }) },
+    {
+      icon: ThumbsUp,
+      text: t('helpfulVotesReceived', { count: profile.helpfulVotesReceived }),
+    },
+  ];
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">{t('recentReviewsTitle')}</h2>
+  return (
+    <div className="container grid gap-8 py-8 md:grid-cols-[280px_1fr]">
+      <aside className="space-y-5 md:sticky md:top-44 md:h-fit">
+        <div className="flex items-center gap-4 md:flex-col md:items-start">
+          {profile.avatarUrl ? (
+            <Image
+              src={profile.avatarUrl}
+              alt=""
+              width={112}
+              height={112}
+              className="h-20 w-20 shrink-0 rounded-full object-cover md:h-28 md:w-28"
+            />
+          ) : (
+            <span
+              aria-hidden="true"
+              className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-brand-100 font-display text-3xl font-bold text-brand-700 md:h-28 md:w-28 md:text-4xl"
+            >
+              {profile.name.charAt(0).toUpperCase()}
+            </span>
+          )}
+          <div className="space-y-1">
+            <h1 className="font-display text-2xl font-bold">{profile.name}</h1>
+            <p className="text-sm text-muted-foreground">
+              {t('memberSince', { date: memberSince })}
+            </p>
+            {profile.isVerifiedReviewer && (
+              <Badge variant="outline" className="gap-1">
+                <BadgeCheck className="h-3 w-3" aria-hidden="true" />
+                {reviewT('verifiedReviewer')}
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        {profile.bio && (
+          <p className="text-sm leading-relaxed text-foreground/90">
+            {profile.bio}
+          </p>
+        )}
+
+        <ul className="divide-y divide-border rounded border border-border bg-white">
+          {stats.map(({ icon: Icon, text }) => (
+            <li
+              key={text}
+              className="flex items-center gap-3 px-4 py-3 text-sm"
+            >
+              <Icon className="h-4 w-4 text-brand-600" aria-hidden="true" />
+              {text}
+            </li>
+          ))}
+        </ul>
+      </aside>
+
+      <section className="min-w-0 space-y-4">
+        <h2 className="font-display text-2xl font-bold">
+          {t('recentReviewsTitle')}
+        </h2>
         {profile.recentReviews.length === 0 && (
           <p className="text-muted-foreground">{t('noReviews')}</p>
         )}
@@ -90,19 +128,19 @@ export default async function ReviewerProfilePage({
           {profile.recentReviews.map((review) => (
             <article
               key={review.id}
-              className="space-y-1.5 border-b border-border pb-4"
+              className="space-y-2 rounded border border-border bg-white p-4"
             >
               <Link
                 href={`/business/${review.businessSlug}`}
-                className="font-semibold hover:underline"
+                className="font-display text-base font-bold hover:underline"
               >
                 {review.businessName}
               </Link>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <RatingBadge rating={review.rating} />
                 <time
                   dateTime={review.createdAt}
-                  className="text-xs text-muted-foreground"
+                  className="text-sm text-muted-foreground"
                 >
                   {new Date(review.createdAt).toLocaleDateString('en-GB', {
                     year: 'numeric',
@@ -111,9 +149,11 @@ export default async function ReviewerProfilePage({
                   })}
                 </time>
               </div>
-              {review.title && <p className="font-medium">{review.title}</p>}
+              {review.title && <p className="font-semibold">{review.title}</p>}
               {review.body && (
-                <p className="text-sm text-foreground/90">{review.body}</p>
+                <p className="text-sm leading-relaxed text-ink">
+                  {review.body}
+                </p>
               )}
             </article>
           ))}

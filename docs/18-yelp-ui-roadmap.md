@@ -8,17 +8,17 @@ Related: `17-design-overhaul.md` (earlier design tokens/decisions), `PROGRESS.md
 
 ## Status
 
-| #   | Phase                                                                                                | Branch                          | Status                   |
-| --- | ---------------------------------------------------------------------------------------------------- | ------------------------------- | ------------------------ |
-| 0   | Yelp-style homepage: hero slider, transparent nav, activity cards, single city dropdown, mobile hero | `feat/yelp-style-home-ui`       | **Done, merged to main** |
-| 1   | Bug fixes: admin pages overflow on phones, 404 wording                                               | `fix/phase-1-bugs`              | **Done, merged to main** |
-| 2   | Yelp-style stars everywhere + "Find / Near" header search                                            | `feat/phase-2-stars-search-bar` | **Done, merged to main** |
-| 3   | Search results page (map column) + business page                                                     | `feat/phase-3-search-business`  | **Done, merged to main** |
-| 4   | Auth pages + reviewer profile + account pages                                                        | `feat/phase-4-auth-profile`     | **Next — not started**   |
-| 5   | Category/city pages + hero photos                                                                    | `feat/phase-5-browse-hero`      | Not started              |
-| 6   | Final full-site verification + docs                                                                  | `chore/phase-6-verification`    | Not started              |
+| #   | Phase                                                                                                | Branch                          | Status                           |
+| --- | ---------------------------------------------------------------------------------------------------- | ------------------------------- | -------------------------------- |
+| 0   | Yelp-style homepage: hero slider, transparent nav, activity cards, single city dropdown, mobile hero | `feat/yelp-style-home-ui`       | **Done, merged to main**         |
+| 1   | Bug fixes: admin pages overflow on phones, 404 wording                                               | `fix/phase-1-bugs`              | **Done, merged to main**         |
+| 2   | Yelp-style stars everywhere + "Find / Near" header search                                            | `feat/phase-2-stars-search-bar` | **Done, merged to main**         |
+| 3   | Search results page (map column) + business page                                                     | `feat/phase-3-search-business`  | **Done, merged to main**         |
+| 4   | Auth pages + reviewer profile + account pages                                                        | `feat/phase-4-auth-profile`     | **Done (merge pending user OK)** |
+| 5   | Category/city pages + hero photos                                                                    | `feat/phase-5-browse-hero`      | **Next — not started**           |
+| 6   | Final full-site verification + docs                                                                  | `chore/phase-6-verification`    | Not started                      |
 
-**3 phases remain (4–6).** Do them in order; do not start the next until the user says so.
+**2 phases remain (5–6).** Do them in order; do not start the next until the user says so.
 
 ## Workflow rules (from the user)
 
@@ -163,3 +163,17 @@ hidden on phones). Routes: `/`, `/lahore`, `/lahore/food-dining`, `/business/<sl
 - **pnpm gotcha:** `pnpm add` here re-resolved the whole lockfile (~7,400 changed lines, eslint `jiti` variant)
   and broke the ESLint links. The lockfile was restored from git and only the leaflet entries were added by
   hand; `pnpm install --frozen-lockfile` then verified it. Prefer that approach for future dependency adds.
+
+## Phase 4 result (what changed)
+
+- **Auth pages** (`components/auth/auth-card.tsx`, used by login/register/forgot/reset/verify): split layout like
+  Yelp — form on the left (top-aligned, `h1` title, optional back link), decorative brand panel on the right
+  (`AuthShowcase`, hidden below `lg`: headline + a sample review card with `RatingBadge`). Login/register put the
+  Google/Facebook buttons **above** the form with an `OrDivider` ("or"); titles are now "Log in to Buisnez" /
+  "Sign up for Buisnez". Strings under `auth.*` in `en.json` (`or`, `showcase*`).
+- **Reviewer profile** (`/reviewers/[userId]`): two columns — sticky sidebar (large avatar or initial, name,
+  member since, verified badge, bio, stats list with icons) and bordered review cards.
+- **Account**: "My reviews" uses the same bordered review cards. Profile, photos, favourites and businesses were
+  already fine (photos load lazily — gray boxes in a screenshot are just not-yet-loaded picsum images).
+- Operational note: a heavy tool run got OOM-killed (exit 137) and took the Docker containers, API and web dev
+  server down; `docker compose up -d`, then start API and web (`rm -rf apps/web/.next` first) fixed it.

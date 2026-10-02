@@ -8,7 +8,7 @@ import { useInvalidateSession } from '@/lib/hooks/use-session';
 import { authErrorKey } from '@/lib/utils/api-error-message';
 import { Link } from '@/i18n/navigation';
 import { AuthCard } from '@/components/auth/auth-card';
-import { OAuthButtons } from '@/components/auth/oauth-buttons';
+import { OAuthButtons, OrDivider } from '@/components/auth/oauth-buttons';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
@@ -60,6 +60,9 @@ export default function RegisterPage(): React.ReactElement {
 
   return (
     <AuthCard title={t('registerTitle')} subtitle={t('registerSubtitle')}>
+      <OAuthButtons />
+      <OrDivider />
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="name">{t('nameLabel')}</Label>
@@ -94,12 +97,10 @@ export default function RegisterPage(): React.ReactElement {
           />
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <Button type="submit" className="w-full" disabled={pending}>
+        <Button type="submit" size="lg" className="w-full" disabled={pending}>
           {t('registerCta')}
         </Button>
       </form>
-
-      <OAuthButtons />
 
       <p className="text-center text-sm text-muted-foreground">
         {t('haveAccount')}{' '}

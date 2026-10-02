@@ -17,7 +17,7 @@ export default function AccountReviewsPage(): React.ReactElement {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">{t('reviewsTitle')}</h1>
+      <h1 className="font-display text-2xl font-bold">{t('reviewsTitle')}</h1>
       {isLoading && <Skeleton className="h-32 w-full" />}
       {!isLoading && data?.length === 0 && (
         <p className="text-muted-foreground">{t('reviewsEmpty')}</p>
@@ -26,11 +26,11 @@ export default function AccountReviewsPage(): React.ReactElement {
         {data?.map((review) => (
           <article
             key={review.id}
-            className="space-y-1.5 border-b border-border pb-4"
+            className="space-y-2 rounded border border-border bg-white p-4"
           >
             <Link
               href={`/business/${review.business.slug}`}
-              className="font-semibold hover:underline"
+              className="font-display text-base font-bold hover:underline"
             >
               {review.business.name}
             </Link>
@@ -38,7 +38,7 @@ export default function AccountReviewsPage(): React.ReactElement {
               <RatingBadge rating={review.rating} />
               <time
                 dateTime={review.createdAt}
-                className="text-xs text-muted-foreground"
+                className="text-sm text-muted-foreground"
               >
                 {new Date(review.createdAt).toLocaleDateString('en-GB', {
                   year: 'numeric',
@@ -47,9 +47,9 @@ export default function AccountReviewsPage(): React.ReactElement {
                 })}
               </time>
             </div>
-            {review.title && <p className="font-medium">{review.title}</p>}
+            {review.title && <p className="font-semibold">{review.title}</p>}
             {review.body && (
-              <p className="text-sm text-foreground/90">{review.body}</p>
+              <p className="text-sm leading-relaxed text-ink">{review.body}</p>
             )}
             <ModerationStatusBanner
               targetType="REVIEW"
