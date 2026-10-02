@@ -16,7 +16,7 @@ const panelClass =
 const panelLinkClass =
   'block px-4 py-1.5 text-sm text-ink/80 hover:bg-brand-100 hover:text-ink focus-visible:bg-brand-100 focus-visible:outline-none';
 const triggerClass =
-  'flex items-center gap-1 whitespace-nowrap border-b-2 border-transparent py-3 text-sm font-medium text-ink/80 transition-colors hover:border-brand-500 hover:text-ink focus-visible:border-brand-500 focus-visible:outline-none group-focus-within:border-brand-500 group-hover:border-brand-500';
+  'flex items-center gap-1 whitespace-nowrap border-b-2 border-transparent py-3 text-sm font-medium text-ink/80 group-data-[overlay=true]/hdr:text-white transition-colors hover:border-brand-500 hover:text-ink group-data-[overlay=true]/hdr:hover:text-white focus-visible:border-brand-500 focus-visible:outline-none group-focus-within:border-brand-500 group-hover:border-brand-500';
 
 /**
  * Second header row. Below `lg` it is a flat scrollable link row (touch has no hover); from `lg` up each
@@ -84,12 +84,12 @@ export async function CategoryBar({
       </nav>
 
       <nav aria-label={t('categories')} className="lg:hidden">
-        <div className="container flex items-center gap-5 overflow-x-auto py-2 text-sm font-medium text-ink/80 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="container flex items-center gap-5 overflow-x-auto py-2 text-sm font-medium text-ink/80 group-data-[overlay=true]/hdr:text-white [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {topLevel.map((category) => (
             <Link
               key={category.id}
               href={href(category.slug)}
-              className="whitespace-nowrap hover:text-ink hover:underline hover:decoration-brand-500 hover:decoration-2 hover:underline-offset-4"
+              className="whitespace-nowrap hover:text-ink group-data-[overlay=true]/hdr:hover:text-white hover:underline hover:decoration-brand-500 hover:decoration-2 hover:underline-offset-4"
             >
               {category.name}
             </Link>

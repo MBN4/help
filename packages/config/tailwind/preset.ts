@@ -141,6 +141,10 @@ const preset: Partial<Config> = {
           '40%': { transform: 'scale(1.35)' },
           '100%': { transform: 'scale(1)' },
         },
+        'hero-progress': {
+          from: { transform: 'scaleY(0)' },
+          to: { transform: 'scaleY(1)' },
+        },
         'accordion-down': {
           from: { height: '0' },
           to: { height: 'var(--radix-accordion-content-height)' },
@@ -152,6 +156,7 @@ const preset: Partial<Config> = {
       },
       animation: {
         pop: 'pop 0.3s ease-out',
+        'hero-progress': 'hero-progress 7s linear forwards',
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
       },

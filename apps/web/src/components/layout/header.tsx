@@ -21,7 +21,7 @@ export async function Header(): Promise<React.ReactElement> {
       <div className="container flex h-16 items-center gap-4">
         <Link
           href="/"
-          className="flex shrink-0 items-center gap-0.5 font-display text-xl font-bold tracking-tight text-ink"
+          className="flex shrink-0 items-center gap-0.5 font-display text-xl font-bold tracking-tight text-ink group-data-[overlay=true]/hdr:text-white"
         >
           Buisnez
           <span className="text-brand-600">.</span>
@@ -34,13 +34,13 @@ export async function Header(): Promise<React.ReactElement> {
         <div className="ms-auto hidden items-center gap-4 text-sm font-medium md:flex">
           <Link
             href="/account/businesses"
-            className="whitespace-nowrap text-ink/80 hover:text-ink"
+            className="whitespace-nowrap text-ink/80 hover:text-ink group-data-[overlay=true]/hdr:text-white group-data-[overlay=true]/hdr:hover:text-white/80"
           >
             {t('forBusiness')}
           </Link>
           <Link
             href="/search"
-            className="whitespace-nowrap text-ink/80 hover:text-ink"
+            className="whitespace-nowrap text-ink/80 hover:text-ink group-data-[overlay=true]/hdr:text-white group-data-[overlay=true]/hdr:hover:text-white/80"
           >
             {t('writeReview')}
           </Link>
@@ -50,18 +50,18 @@ export async function Header(): Promise<React.ReactElement> {
 
         <Link
           href="/search"
-          className="ms-auto flex h-9 w-9 items-center justify-center rounded-full border border-border md:hidden"
+          className="ms-auto flex h-9 w-9 items-center justify-center rounded-full border border-border group-data-[overlay=true]/hdr:border-white/60 group-data-[overlay=true]/hdr:text-white md:hidden"
           aria-label={t('search')}
         >
           <Search className="h-4 w-4" aria-hidden="true" />
         </Link>
       </div>
 
-      <div className="border-t border-border px-4 py-1 md:hidden">
+      <div className="border-t border-border px-4 py-1 group-data-[overlay=true]/hdr:border-transparent md:hidden">
         <LocationPicker cities={cities} />
       </div>
 
-      <div className="border-t border-border">
+      <div className="border-t border-border group-data-[overlay=true]/hdr:border-transparent">
         <CategoryBar categories={categories} citySlug={DEFAULT_CITY_SLUG} />
       </div>
     </HeaderShell>

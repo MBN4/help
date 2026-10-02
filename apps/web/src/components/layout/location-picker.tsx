@@ -54,13 +54,15 @@ export function LocationPicker({
           'h-9 w-auto min-w-[9rem] gap-1.5 border-none bg-transparent px-2 text-sm font-medium',
           onDark
             ? 'text-white/90 hover:text-white [&>svg]:text-white/70'
-            : 'text-foreground',
+            : 'text-foreground group-data-[overlay=true]/hdr:text-white group-data-[overlay=true]/hdr:hover:text-white group-data-[overlay=true]/hdr:[&>svg]:text-white/80',
         )}
       >
         <MapPin
           className={cn(
             'h-4 w-4 shrink-0',
-            onDark ? 'text-white/70' : 'text-brand-700',
+            onDark
+              ? 'text-white/70'
+              : 'text-brand-700 group-data-[overlay=true]/hdr:text-white',
           )}
           aria-hidden="true"
         />
