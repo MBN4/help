@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import type { BusinessReview } from '@buisnez/shared';
 import { ApiError, deleteReviewReply, replyToReview } from '@/lib/api';
-import { RatingStars } from '@/components/business/rating-stars';
+import { RatingBadge } from '@/components/business/rating-badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -62,7 +62,7 @@ function ReviewReplyRow({
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="font-medium">{review.userName}</span>
-            <RatingStars rating={review.rating} />
+            <RatingBadge rating={review.rating} />
           </div>
           <time className="text-xs text-muted-foreground">
             {new Date(review.createdAt).toLocaleDateString('en-GB', {

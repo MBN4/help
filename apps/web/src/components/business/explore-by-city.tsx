@@ -7,7 +7,7 @@ import type { CitySummary } from '@buisnez/shared';
 import { Link } from '@/i18n/navigation';
 import { searchBusinesses } from '@/lib/api';
 import { cn } from '@/lib/utils/cn';
-import { RatingStars } from './rating-stars';
+import { RatingBadge } from './rating-badge';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export interface ExploreByCityProps {
@@ -144,7 +144,7 @@ function BusinessLinkColumn({
               >
                 {business.name}
               </Link>
-              <RatingStars rating={business.averageRating} />
+              <RatingBadge rating={business.averageRating} />
             </li>
           ))}
         </ol>

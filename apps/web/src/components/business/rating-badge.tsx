@@ -3,14 +3,21 @@ import { cn } from '@/lib/utils/cn';
 
 export interface RatingBadgeProps {
   rating: number | null;
+  /** `sm` for cards/lists, `md` for the business page header and rating summary. */
+  size?: 'sm' | 'md';
   className?: string;
 }
 
 const MAX_STARS = 5;
 const EMPTY = '#dcdcdc';
 
+const SIZES = {
+  sm: { square: 'h-5 w-5', star: 'h-3.5 w-3.5' },
+  md: { square: 'h-7 w-7', star: 'h-5 w-5' },
+} as const;
+
 /** Yelp-style score colour — warmer/redder as the rating goes up. */
-function colourFor(rating: number): string {
+export function ratingColour(rating: number): string {
   if (rating >= 4.5) return '#f43939';
   if (rating >= 3.5) return '#ff643d';
   if (rating >= 2.5) return '#ff8742';
@@ -21,10 +28,12 @@ function colourFor(rating: number): string {
 /** Five rounded squares with white stars; fractional ratings fill a square partially from the left. */
 export function RatingBadge({
   rating,
+  size = 'sm',
   className,
 }: RatingBadgeProps): React.ReactElement {
   const value = rating ?? 0;
-  const colour = colourFor(value);
+  const colour = ratingColour(value);
+  const dimension = SIZES[size];
 
   return (
     <span
@@ -36,12 +45,15 @@ export function RatingBadge({
         return (
           <span
             key={index}
-            className="flex h-5 w-5 items-center justify-center rounded-[3px]"
+            className={cn(
+              'flex items-center justify-center rounded-[3px]',
+              dimension.square,
+            )}
             style={{
               background: `linear-gradient(to right, ${colour} ${fill}%, ${EMPTY} ${fill}%)`,
             }}
           >
-            <Star className="h-3.5 w-3.5 fill-white text-white" />
+            <Star className={cn('fill-white text-white', dimension.star)} />
           </span>
         );
       })}

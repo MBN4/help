@@ -44,7 +44,6 @@ export async function Header(): Promise<React.ReactElement> {
           >
             {t('writeReview')}
           </Link>
-          <LocationPicker cities={cities} />
           <UserMenu />
         </div>
 

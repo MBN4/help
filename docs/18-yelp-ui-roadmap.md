@@ -18,7 +18,7 @@ Related: `17-design-overhaul.md` (earlier design tokens/decisions), `PROGRESS.md
 | 5   | Category/city pages + hero photos                                                                    | `feat/phase-5-browse-hero`      | Not started              |
 | 6   | Final full-site verification + docs                                                                  | `chore/phase-6-verification`    | Not started              |
 
-**5 phases remain (2–6).** Do them in order; do not start the next until the user says so.
+**4 phases remain (3–6).** Do them in order; do not start the next until the user says so.
 
 ## Workflow rules (from the user)
 
@@ -130,3 +130,18 @@ hidden on phones). Routes: `/`, `/lahore`, `/lahore/food-dining`, `/business/<sl
 - Full-page screenshots miss lazy-loaded images below the fold and show gray blocks; scroll or use element
   screenshots before concluding an image is broken.
 - Fixed-width inputs (`w-48`) in a flex row overflow on phones — use `min-w-0 flex-1 sm:w-48 sm:flex-none`.
+
+## Phase 2 result (what changed)
+
+- `components/business/rating-stars.tsx` was deleted. Every rating now uses `RatingBadge`
+  (`rating-badge.tsx`, sizes `sm` / `md`, exported `ratingColour`): cards, lists, business page header and
+  rating summary, review cards, reviewer profile, account pages, owner reviews editor. The rating-summary bars
+  use the same red. The review-form input (`star-rating-input.tsx`) is unchanged and still gold.
+- Header search (`search-bar.tsx`, `variant="header"`) is now **Find + Near**: the category select was removed
+  from the header variant (the category bar covers it) and a city select with a pin icon was added. It starts
+  on the city in the URL (`/lahore`) and submits `/search?q=&city=`. The desktop nav no longer renders the
+  separate `LocationPicker` (still shown in the mobile row because the mobile header has no search bar).
+- Gotcha: Radix `Select` fires `onValueChange("")` when its value goes undefined → set; use `||` not `??`
+  when merging with a fallback, and pass the label explicitly as `SelectValue` children.
+- Known limitation: on `/search?city=karachi` the header Near field still shows "All cities", because the
+  header cannot read `?city=` without `useSearchParams` (forces a Suspense/CSR bailout in the layout).

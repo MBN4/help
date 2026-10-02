@@ -8,7 +8,7 @@ import { Link } from '@/i18n/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { RatingStars } from './rating-stars';
+import { RatingBadge } from './rating-badge';
 import { PriceLevel } from './price-level';
 import { OpenNowBadge } from './open-now-badge';
 import { FavoriteButton } from './favorite-button';
@@ -75,7 +75,7 @@ export function BusinessCard({
         </p>
 
         <div className="flex items-center gap-2 text-sm">
-          <RatingStars rating={business.averageRating} />
+          <RatingBadge rating={business.averageRating} />
           {business.averageRating !== null && (
             <span className="font-medium text-ink">
               {business.averageRating.toFixed(1)}

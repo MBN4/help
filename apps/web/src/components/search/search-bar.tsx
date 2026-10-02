@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Search } from 'lucide-react';
+import { MapPin, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { useCategoryTree } from '@/lib/hooks/use-categories';
@@ -41,11 +41,11 @@ export function SearchBar({
   const [category, setCategory] = React.useState<string>();
   const [selectedCity, setCity] = React.useState<string>();
   const isHeader = variant === 'header';
-  // The header already has a LocationPicker, so its search bar has no city select of its own — it scopes
-  // to the city in the URL instead.
+  // The header search is "Find" + "Near" (Yelp-style) and replaces the old standalone nav city picker on
+  // desktop, so it starts on the city in the URL; the hero keeps its own category + city selects.
   const [firstSegment] = pathname.split('/').filter(Boolean);
   const urlCity = cities?.find((c) => c.slug === firstSegment)?.slug;
-  const city = isHeader ? urlCity : selectedCity;
+  const city = selectedCity || (isHeader ? urlCity : undefined);
 
   function handleSubmit(event: React.FormEvent): void {
     event.preventDefault();
@@ -86,47 +86,54 @@ export function SearchBar({
         />
       </div>
 
-      <Select value={category} onValueChange={setCategory}>
+      {!isHeader && (
+        <Select value={category} onValueChange={setCategory}>
+          <SelectTrigger
+            className={cn(
+              'border-none bg-transparent shadow-none focus:ring-0 sm:w-44',
+              isHeader ? 'h-9' : 'h-11',
+            )}
+            aria-label={t('search.allCategories')}
+          >
+            <SelectValue placeholder={t('search.allCategories')} />
+          </SelectTrigger>
+          <SelectContent>
+            {categories?.map((node) => (
+              <SelectItem key={node.id} value={node.slug}>
+                {node.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+
+      <Select value={city} onValueChange={setCity}>
         <SelectTrigger
           className={cn(
-            'border-none bg-transparent shadow-none focus:ring-0 sm:w-44',
-            isHeader ? 'h-9' : 'h-11',
+            'border-none bg-transparent shadow-none focus:ring-0',
+            isHeader ? 'h-9 gap-1.5 sm:w-44' : 'h-11 sm:w-40',
           )}
-          aria-label={t('search.allCategories')}
+          aria-label={t('search.allCities')}
         >
-          <SelectValue placeholder={t('search.allCategories')} />
+          {isHeader && (
+            <MapPin
+              className="h-4 w-4 shrink-0 text-muted-foreground"
+              aria-hidden="true"
+            />
+          )}
+          <SelectValue placeholder={t('search.allCities')}>
+            {cities?.find((c) => c.slug === city)?.name ??
+              t('search.allCities')}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          {categories?.map((node) => (
-            <SelectItem key={node.id} value={node.slug}>
-              {node.name}
+          {cities?.map((c) => (
+            <SelectItem key={c.id} value={c.slug}>
+              {c.name}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
-
-      {!isHeader && (
-        <>
-          <Select value={selectedCity} onValueChange={setCity}>
-            <SelectTrigger
-              className={cn(
-                'border-none bg-transparent shadow-none focus:ring-0 sm:w-40',
-                isHeader ? 'h-9' : 'h-11',
-              )}
-              aria-label={t('search.allCities')}
-            >
-              <SelectValue placeholder={t('search.allCities')} />
-            </SelectTrigger>
-            <SelectContent>
-              {cities?.map((c) => (
-                <SelectItem key={c.id} value={c.slug}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </>
-      )}
 
       <Button
         type="submit"

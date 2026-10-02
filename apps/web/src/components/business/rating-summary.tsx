@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import type { BusinessAggregates } from '@buisnez/shared';
-import { RatingStars } from './rating-stars';
+import { RatingBadge } from './rating-badge';
 
 /** Reviews header: big average, star row, and one proportional bar per star level (5 → 1). */
 export async function RatingSummary({
@@ -19,7 +19,7 @@ export async function RatingSummary({
         <p className="font-display text-4xl font-bold text-ink">
           {aggregates.averageRating.toFixed(1)}
         </p>
-        <RatingStars rating={aggregates.averageRating} size="md" />
+        <RatingBadge rating={aggregates.averageRating} size="md" />
         <p className="text-sm text-muted-foreground">
           {t('basedOnReviews', { count: aggregates.reviewCount })}
         </p>
@@ -38,7 +38,7 @@ export async function RatingSummary({
               </span>
               <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-muted">
                 <span
-                  className="block h-full rounded-full bg-star-gold"
+                  className="block h-full rounded-full bg-[#f43939]"
                   style={{ width: `${percent}%` }}
                 />
               </span>
