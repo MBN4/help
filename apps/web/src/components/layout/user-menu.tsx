@@ -21,13 +21,20 @@ export function UserMenu(): React.ReactElement {
   }
 
   if (isLoading) {
-    return <Skeleton className="h-9 w-20" />;
+    return (
+      <Skeleton className="h-9 w-20 group-data-[overlay=true]/hdr:bg-white/20" />
+    );
   }
 
   if (!isAuthenticated) {
     return (
-      <div className="flex items-center gap-3 text-sm font-medium text-ink/80">
-        <Button asChild size="sm" variant="outline">
+      <div className="flex items-center gap-3 text-sm font-medium text-ink/80 group-data-[overlay=true]/hdr:text-white">
+        <Button
+          asChild
+          size="sm"
+          variant="outline"
+          className="group-data-[overlay=true]/hdr:border-white group-data-[overlay=true]/hdr:bg-transparent group-data-[overlay=true]/hdr:text-white group-data-[overlay=true]/hdr:hover:bg-white/15"
+        >
           <Link href="/login">{t('login')}</Link>
         </Button>
         <Button asChild size="sm">
@@ -38,7 +45,7 @@ export function UserMenu(): React.ReactElement {
   }
 
   return (
-    <div className="flex items-center gap-3 text-sm font-medium text-ink/80">
+    <div className="flex items-center gap-3 text-sm font-medium text-ink/80 group-data-[overlay=true]/hdr:text-white">
       <Link
         href="/account"
         className="flex items-center gap-1.5 hover:text-ink"
@@ -49,7 +56,7 @@ export function UserMenu(): React.ReactElement {
       <Button
         variant="ghost"
         size="sm"
-        className="text-ink/80"
+        className="text-ink/80 group-data-[overlay=true]/hdr:text-white group-data-[overlay=true]/hdr:hover:bg-white/15 group-data-[overlay=true]/hdr:hover:text-white"
         onClick={handleLogout}
       >
         {t('logout')}

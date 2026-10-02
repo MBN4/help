@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useRouter } from '@/i18n/navigation';
+import { usePathname, useRouter } from '@/i18n/navigation';
 import { useCategoryTree } from '@/lib/hooks/use-categories';
 import { useCities } from '@/lib/hooks/use-cities';
 import { Input } from '@/components/ui/input';
@@ -33,12 +33,19 @@ export function SearchBar({
 }: SearchBarProps): React.ReactElement {
   const t = useTranslations();
   const router = useRouter();
+  const pathname = usePathname();
   const { data: categories } = useCategoryTree();
   const { data: cities } = useCities();
 
   const [q, setQ] = React.useState('');
   const [category, setCategory] = React.useState<string>();
-  const [city, setCity] = React.useState<string>();
+  const [selectedCity, setCity] = React.useState<string>();
+  const isHeader = variant === 'header';
+  // The header already has a LocationPicker, so its search bar has no city select of its own — it scopes
+  // to the city in the URL instead.
+  const [firstSegment] = pathname.split('/').filter(Boolean);
+  const urlCity = cities?.find((c) => c.slug === firstSegment)?.slug;
+  const city = isHeader ? urlCity : selectedCity;
 
   function handleSubmit(event: React.FormEvent): void {
     event.preventDefault();
@@ -49,8 +56,6 @@ export function SearchBar({
     router.push(`/search?${params.toString()}`);
   }
 
-  const isHeader = variant === 'header';
-
   return (
     <form
       onSubmit={handleSubmit}
@@ -58,7 +63,7 @@ export function SearchBar({
         'flex w-full flex-col gap-2 sm:flex-row sm:items-center',
         isHeader
           ? 'rounded-pill border border-border bg-white p-1 text-foreground shadow-sm transition-shadow focus-within:shadow-md hover:shadow-md sm:gap-0 sm:divide-x sm:divide-border'
-          : 'rounded-2xl border border-border bg-card p-3 shadow-lg sm:gap-0 sm:divide-x sm:divide-border',
+          : 'rounded-2xl border border-border bg-card p-3 text-foreground shadow-lg sm:gap-0 sm:divide-x sm:divide-border',
         className,
       )}
     >
@@ -100,24 +105,28 @@ export function SearchBar({
         </SelectContent>
       </Select>
 
-      <Select value={city} onValueChange={setCity}>
-        <SelectTrigger
-          className={cn(
-            'border-none bg-transparent shadow-none focus:ring-0 sm:w-40',
-            isHeader ? 'h-9' : 'h-11',
-          )}
-          aria-label={t('search.allCities')}
-        >
-          <SelectValue placeholder={t('search.allCities')} />
-        </SelectTrigger>
-        <SelectContent>
-          {cities?.map((c) => (
-            <SelectItem key={c.id} value={c.slug}>
-              {c.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {!isHeader && (
+        <>
+          <Select value={selectedCity} onValueChange={setCity}>
+            <SelectTrigger
+              className={cn(
+                'border-none bg-transparent shadow-none focus:ring-0 sm:w-40',
+                isHeader ? 'h-9' : 'h-11',
+              )}
+              aria-label={t('search.allCities')}
+            >
+              <SelectValue placeholder={t('search.allCities')} />
+            </SelectTrigger>
+            <SelectContent>
+              {cities?.map((c) => (
+                <SelectItem key={c.id} value={c.slug}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </>
+      )}
 
       <Button
         type="submit"
