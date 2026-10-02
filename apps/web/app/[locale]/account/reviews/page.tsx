@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { getMyReviews } from '@/lib/api';
 import { Link } from '@/i18n/navigation';
-import { RatingStars } from '@/components/business/rating-stars';
+import { RatingBadge } from '@/components/business/rating-badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ModerationStatusBanner } from '@/components/moderation/moderation-status-banner';
 
@@ -35,7 +35,7 @@ export default function AccountReviewsPage(): React.ReactElement {
               {review.business.name}
             </Link>
             <div className="flex items-center gap-2">
-              <RatingStars rating={review.rating} />
+              <RatingBadge rating={review.rating} />
               <time
                 dateTime={review.createdAt}
                 className="text-xs text-muted-foreground"

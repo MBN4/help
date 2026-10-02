@@ -22,7 +22,7 @@ import {
   googleMapsDirectionsUrlForAddress,
 } from '@/lib/utils/maps';
 import { Breadcrumb } from '@/components/layout/breadcrumb';
-import { RatingStars } from '@/components/business/rating-stars';
+import { RatingBadge } from '@/components/business/rating-badge';
 import { PriceLevel } from '@/components/business/price-level';
 import { OpenNowBadge } from '@/components/business/open-now-badge';
 import { FeatureList } from '@/components/business/feature-list';
@@ -154,7 +154,7 @@ export default async function BusinessProfilePage({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <RatingStars rating={business.aggregates.averageRating} size="md" />
+          <RatingBadge rating={business.aggregates.averageRating} size="md" />
           {business.aggregates.averageRating !== null && (
             <span className="font-semibold text-ink">
               {business.aggregates.averageRating.toFixed(1)}

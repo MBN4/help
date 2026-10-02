@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 import { BadgeCheck, ThumbsUp } from 'lucide-react';
 import type { BusinessReview } from '@buisnez/shared';
 import { Link } from '@/i18n/navigation';
-import { RatingStars } from '@/components/business/rating-stars';
+import { RatingBadge } from '@/components/business/rating-badge';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ReportButton } from '@/components/report/report-button';
@@ -48,7 +48,7 @@ export function ReviewCard({
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <RatingStars rating={review.rating} />
+        <RatingBadge rating={review.rating} />
         <time
           dateTime={review.createdAt}
           className="text-sm text-muted-foreground"

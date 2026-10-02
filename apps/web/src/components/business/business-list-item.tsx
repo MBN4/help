@@ -8,7 +8,7 @@ import { Link } from '@/i18n/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils/cn';
-import { RatingStars } from './rating-stars';
+import { RatingBadge } from './rating-badge';
 import { PriceLevel } from './price-level';
 import { FavoriteButton } from './favorite-button';
 
@@ -67,7 +67,7 @@ export function BusinessListItem({
         </div>
 
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-          <RatingStars rating={business.averageRating} />
+          <RatingBadge rating={business.averageRating} />
           {business.averageRating !== null && (
             <span className="font-medium text-ink">
               {business.averageRating.toFixed(1)}

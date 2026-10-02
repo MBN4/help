@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { getMyOwnedBusinesses } from '@/lib/api';
 import { Link } from '@/i18n/navigation';
-import { RatingStars } from '@/components/business/rating-stars';
+import { RatingBadge } from '@/components/business/rating-badge';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -64,7 +64,7 @@ export default function AccountBusinessesPage(): React.ReactElement {
                     </Badge>
                   </div>
                   <div className="flex items-center gap-2">
-                    <RatingStars rating={business.averageRating} />
+                    <RatingBadge rating={business.averageRating} />
                     <span className="text-sm text-muted-foreground">
                       {t('reviewCount', { count: business.reviewCount })}
                     </span>

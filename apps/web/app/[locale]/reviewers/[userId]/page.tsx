@@ -5,7 +5,7 @@ import { BadgeCheck } from 'lucide-react';
 import { ApiError, getPublicUserProfile } from '@/lib/api';
 import { buildMetadata } from '@/lib/seo/metadata';
 import { Link } from '@/i18n/navigation';
-import { RatingStars } from '@/components/business/rating-stars';
+import { RatingBadge } from '@/components/business/rating-badge';
 import { Badge } from '@/components/ui/badge';
 
 export const revalidate = 600;
@@ -99,7 +99,7 @@ export default async function ReviewerProfilePage({
                 {review.businessName}
               </Link>
               <div className="flex items-center gap-2">
-                <RatingStars rating={review.rating} />
+                <RatingBadge rating={review.rating} />
                 <time
                   dateTime={review.createdAt}
                   className="text-xs text-muted-foreground"
