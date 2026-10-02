@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { useRouter } from '@/i18n/navigation';
 import { useCategoryTree } from '@/lib/hooks/use-categories';
 import { useCities } from '@/lib/hooks/use-cities';
+import { useHydrated } from '@/lib/hooks/use-hydrated';
 import { useAreas } from '@/lib/hooks/use-areas';
 import { useFeatures } from '@/lib/hooks/use-features';
 import { withUpdatedParams } from '@/lib/utils/search-params';
@@ -52,6 +53,7 @@ export function FilterPanel(): React.ReactElement {
   const [showAllFeatures, setShowAllFeatures] = React.useState(false);
   const { data: categories } = useCategoryTree();
   const { data: cities } = useCities();
+  const hydrated = useHydrated();
   const { data: areas } = useAreas(city);
   const { data: features } = useFeatures();
 
@@ -107,7 +109,9 @@ export function FilterPanel(): React.ReactElement {
         >
           <SelectTrigger aria-label={t('category')}>
             <SelectValue placeholder={t('allCategories')}>
-              {categories?.find((node) => node.slug === category)?.name}
+              {hydrated
+                ? categories?.find((node) => node.slug === category)?.name
+                : undefined}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
@@ -128,7 +132,9 @@ export function FilterPanel(): React.ReactElement {
         >
           <SelectTrigger aria-label={t('city')}>
             <SelectValue placeholder={t('allCities')}>
-              {cities?.find((c) => c.slug === city)?.name}
+              {hydrated
+                ? cities?.find((c) => c.slug === city)?.name
+                : undefined}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
@@ -150,7 +156,9 @@ export function FilterPanel(): React.ReactElement {
           >
             <SelectTrigger aria-label={t('area')}>
               <SelectValue placeholder={t('allAreas')}>
-                {areas?.find((a) => a.slug === area)?.name}
+                {hydrated
+                  ? areas?.find((a) => a.slug === area)?.name
+                  : undefined}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>

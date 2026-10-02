@@ -1269,3 +1269,40 @@ dev mode) **passed** in this production-build run.
 - `next build` and `next dev` share `apps/web/.next`: after a build, `rm -rf apps/web/.next` before `pnpm
 dev` or the dev server throws "Cannot find module ./vendor-chunks/…".
 - Do not run `pkill -f` with a pattern that appears in your own command line — it kills the shell.
+
+## Phase 13: Yelp-style UI roadmap (phases 0–6, `docs/18-yelp-ui-roadmap.md`)
+
+Web-only visual/behaviour pass, one branch per step, each merged to `main` with `--no-ff`. The roadmap doc is
+the source of truth for details; this entry is the summary.
+
+### What shipped
+
+- **Homepage**: full-bleed hero slider (vertical timer bars, pause button, no arrows, photo slides), transparent
+  header over the hero that turns solid on scroll, Yelp-style Recent Activity cards.
+- **Rating UI**: `RatingBadge` (coloured rounded squares) replaced the gold stars everywhere except the review
+  form input. Header search is Find + Near (city); the desktop nav no longer has a second city picker.
+- **Maps**: Google Maps (no API key in this environment) replaced by Leaflet + OpenStreetMap on the search and
+  business pages, numbered pins, list+map layout reused on the city and category pages. Owner pin-drop map is
+  still Google-based (falls back to manual coordinates).
+- **Auth/profile/account**: split-layout auth pages (social buttons first), reviewer profile sidebar layout,
+  card-style "My reviews". City page banner + icon tiles, category page subcategory pills.
+- **New page**: `/privacy` (Privacy Policy) linked from the footer and listed in the sitemap. Its contact address
+  is the placeholder constant `PRIVACY_CONTACT_EMAIL` in `src/lib/constants.ts`; the text should be reviewed by
+  the business/legal before launch.
+
+### Verification (final crawl)
+
+87 page loads: visitor / customer / owner / admin × 1440, 375 and 320 px. All routes returned the expected
+status; no broken images; no horizontal overflow after the fixes below. Two real problems were found and fixed in
+this pass: (1) a hydration mismatch on `/search?…&city=…` — Radix `SelectValue` labels looked up from
+client-fetched lists (filter panel, header Near field) now use `useHydrated()` so the first client render matches
+the server; (2) a 10 px overflow at 320 px from the "Explore by city" cards (`min-w-0` + non-shrinking rating).
+Expected non-200s: `/verify-email?token=x` (400 from the API) and an unknown URL (404).
+`tsc`, `eslint` and `prettier` are clean on `apps/web`. **Not re-run in this pass:** `next build` (shares
+`.next` with the dev server) and the Playwright e2e suite (known failures listed above are unchanged baseline).
+
+### Deviations / known limits
+
+- Hero photos are `picsum.photos` placeholders; swap for licensed brand photos (`apps/web/public/hero/`).
+- Header "Near" field cannot reflect `?city=` on `/search` (would need `useSearchParams` in the layout).
+- OSM public tile server is for light use; move to a tile provider if traffic grows.

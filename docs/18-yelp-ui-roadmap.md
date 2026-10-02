@@ -8,17 +8,17 @@ Related: `17-design-overhaul.md` (earlier design tokens/decisions), `PROGRESS.md
 
 ## Status
 
-| #   | Phase                                                                                                | Branch                          | Status                   |
-| --- | ---------------------------------------------------------------------------------------------------- | ------------------------------- | ------------------------ |
-| 0   | Yelp-style homepage: hero slider, transparent nav, activity cards, single city dropdown, mobile hero | `feat/yelp-style-home-ui`       | **Done, merged to main** |
-| 1   | Bug fixes: admin pages overflow on phones, 404 wording                                               | `fix/phase-1-bugs`              | **Done, merged to main** |
-| 2   | Yelp-style stars everywhere + "Find / Near" header search                                            | `feat/phase-2-stars-search-bar` | **Done, merged to main** |
-| 3   | Search results page (map column) + business page                                                     | `feat/phase-3-search-business`  | **Done, merged to main** |
-| 4   | Auth pages + reviewer profile + account pages                                                        | `feat/phase-4-auth-profile`     | **Done, merged to main** |
-| 5   | Category/city pages + hero photos                                                                    | `feat/phase-5-browse-hero`      | **Done, merged to main** |
-| 6   | Final full-site verification + docs                                                                  | `chore/phase-6-verification`    | **Next — not started**   |
+| #   | Phase                                                                                                | Branch                          | Status                           |
+| --- | ---------------------------------------------------------------------------------------------------- | ------------------------------- | -------------------------------- |
+| 0   | Yelp-style homepage: hero slider, transparent nav, activity cards, single city dropdown, mobile hero | `feat/yelp-style-home-ui`       | **Done, merged to main**         |
+| 1   | Bug fixes: admin pages overflow on phones, 404 wording                                               | `fix/phase-1-bugs`              | **Done, merged to main**         |
+| 2   | Yelp-style stars everywhere + "Find / Near" header search                                            | `feat/phase-2-stars-search-bar` | **Done, merged to main**         |
+| 3   | Search results page (map column) + business page                                                     | `feat/phase-3-search-business`  | **Done, merged to main**         |
+| 4   | Auth pages + reviewer profile + account pages                                                        | `feat/phase-4-auth-profile`     | **Done, merged to main**         |
+| 5   | Category/city pages + hero photos                                                                    | `feat/phase-5-browse-hero`      | **Done, merged to main**         |
+| 6   | Final full-site verification + docs                                                                  | `chore/phase-6-verification`    | **Done (merge pending user OK)** |
 
-**1 phase remains (6).** Do them in order; do not start the next until the user says so.
+**All phases done — 0 remaining** (Phase 6 merge pending the user's OK). Do them in order; do not start the next until the user says so.
 
 ## Workflow rules (from the user)
 
@@ -192,3 +192,12 @@ hidden on phones). Routes: `/`, `/lahore`, `/lahore/food-dining`, `/business/<sl
   `apps/web/public/hero/` and use `/hero/…` paths). No photo credit/caption line was added (none can be invented).
 - Homepage lower blocks (popular categories, explore by city, featured, highly rated) were reviewed and already
   match the new style, so they were left alone.
+
+## Phase 6 result (what changed)
+
+- Full-site verification crawl (87 loads, 4 roles, 1440/375/320 px) — see `PROGRESS.md` "Phase 13". Fixed a
+  hydration mismatch (`useHydrated()` hook, `src/lib/hooks/use-hydrated.ts`, used for Radix `SelectValue` labels
+  in `filter-panel.tsx` and `search-bar.tsx`) and a 320 px overflow in `explore-by-city.tsx`.
+- Added the **Privacy Policy** page at `/privacy` (+ footer link, sitemap entry). Placeholder contact email:
+  `PRIVACY_CONTACT_EMAIL` in `src/lib/constants.ts` — change it.
+- Not done: `next build` and the e2e suite were not re-run (see `PROGRESS.md`).

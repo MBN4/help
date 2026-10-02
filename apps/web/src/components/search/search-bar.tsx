@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { useCategoryTree } from '@/lib/hooks/use-categories';
 import { useCities } from '@/lib/hooks/use-cities';
+import { useHydrated } from '@/lib/hooks/use-hydrated';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils/cn';
@@ -36,6 +37,7 @@ export function SearchBar({
   const pathname = usePathname();
   const { data: categories } = useCategoryTree();
   const { data: cities } = useCities();
+  const hydrated = useHydrated();
 
   const [q, setQ] = React.useState('');
   const [category, setCategory] = React.useState<string>();
@@ -122,8 +124,9 @@ export function SearchBar({
             />
           )}
           <SelectValue placeholder={t('search.allCities')}>
-            {cities?.find((c) => c.slug === city)?.name ??
-              t('search.allCities')}
+            {(hydrated
+              ? cities?.find((c) => c.slug === city)?.name
+              : undefined) ?? t('search.allCities')}
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
