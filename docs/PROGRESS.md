@@ -1306,3 +1306,45 @@ Expected non-200s: `/verify-email?token=x` (400 from the API) and an unknown URL
 - Hero photos are `picsum.photos` placeholders; swap for licensed brand photos (`apps/web/public/hero/`).
 - Header "Near" field cannot reflect `?city=` on `/search` (would need `useSearchParams` in the layout).
 - OSM public tile server is for light use; move to a tile provider if traffic grows.
+
+## Feature: Contact on WhatsApp (branch `feat/whatsapp-contact`)
+
+### What was added
+
+- **Shared helpers** (`packages/shared/src/utils`): `normalizePhoneForWhatsApp`, `isValidPhonePK`,
+  `toStoredPhonePK`, `getWhatsAppTarget` (`whatsapp` → `phone` → `null`), `buildWhatsAppHref`; plus
+  `whatsappNumberSchema` (accepts PK input formats, stores `+92XXXXXXXXXX`). `packages/shared` now has a Jest
+  setup (`pnpm --filter @buisnez/shared test`, 19 tests) and a `tsconfig.build.json` that excludes specs.
+- **Owner editing**: `UpdateBusinessInfoRequest.whatsapp` is now `whatsappNumberSchema.nullable().optional()`
+  (validated, normalised, clearable with `null`); the owner form sends `null` when emptied. Guarded by the
+  existing `BusinessOwnerGuard`.
+- **Profile page**: WhatsApp button in the action row with phone fallback and the translatable prefilled message
+  (`whatsapp.prefilledMessage`); the sidebar link uses the same helpers.
+
+### Migration
+
+**None needed.** The nullable `Business.whatsapp` column, its API exposure on the profile and manage payloads,
+and the owner/admin inputs already existed (initial migration `20260918095100_init`). Schema unchanged.
+
+### Not done
+
+- `BusinessSummary`/`BusinessCard`: summaries carry no `phone` (needed for the fallback) and adding it means
+  changing search queries, which this feature was told not to touch. Profile page only.
+
+### Verification
+
+- Demo states on the local dev DB: `karachi-biryani-house` (whatsapp `+923001234567`), `lahore-fort-cafe`
+  (phone only), `model-town-grocers` (neither). Rendered HTML and `apps/web/e2e/whatsapp-contact.spec.ts`
+  confirm: button → `https://wa.me/923001234567?text=Hi%2C%20I%20found%20you%20on%20Buisnez…`; phone-only falls
+  back to the phone digits; neither → no button. Owner set (`0300 1234567` → `+923001234567`) and clear
+  persist (DB-checked). Non-owner rejection is covered by the new `PATCH info (whatsapp)` row in the API
+  authorization table. Screenshots: `docs/screenshots/whatsapp-*.png`.
+- `pnpm lint`, `pnpm typecheck`, `pnpm build`: clean. API unit: 34/34. API e2e: 111 tests; a cold-start 5 s
+  timeout on owner PATCH routes (web revalidation) appears on the first run after a DB reset and passes on rerun
+  (29/29).
+- Playwright against a production build: the 4 WhatsApp tests pass. The full suite has **pre-existing failures
+  that fail identically on unmodified `main`** (checked by stashing this branch and rebuilding): Radix Select
+  interactions (`search.spec` sort, `admin-edit-forms` role/areas), `admin.spec` featured/taxonomy, and
+  `business-owner`/`phase8` serial dependents (login/dropdown timeouts in this environment's headless Chromium).
+  Under `next dev` with 2 workers the suite is much flakier (17 failures, mostly navigation timeouts).
+  No tests were weakened.

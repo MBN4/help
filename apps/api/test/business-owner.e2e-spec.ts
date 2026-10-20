@@ -212,6 +212,35 @@ describe('Business owner experience (e2e)', () => {
       expect(res.body.data.phone).toBe('+92-300-1234567');
     });
 
+    it('sets the WhatsApp number, normalizing it to +92 form', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/api/v1/businesses/${businessId}`)
+        .set(...CSRF_HEADER)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ whatsapp: '0300 1234567' })
+        .expect(200);
+      expect(res.body.data.whatsapp).toBe('+923001234567');
+    });
+
+    it('rejects an invalid WhatsApp number', async () => {
+      await request(app.getHttpServer())
+        .patch(`/api/v1/businesses/${businessId}`)
+        .set(...CSRF_HEADER)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ whatsapp: 'not-a-number' })
+        .expect(400);
+    });
+
+    it('clears the WhatsApp number with null', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/api/v1/businesses/${businessId}`)
+        .set(...CSRF_HEADER)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ whatsapp: null })
+        .expect(200);
+      expect(res.body.data.whatsapp).toBeNull();
+    });
+
     it('sets hours for all 7 days', async () => {
       const days = [
         'MONDAY',
@@ -358,6 +387,12 @@ describe('Business owner experience (e2e)', () => {
         method: 'patch',
         path: () => `/api/v1/businesses/${businessId}`,
         body: { phone: '+92-300-0000000' },
+      },
+      {
+        name: 'PATCH info (whatsapp)',
+        method: 'patch',
+        path: () => `/api/v1/businesses/${businessId}`,
+        body: { whatsapp: '+923001234567' },
       },
       {
         name: 'PUT hours',
