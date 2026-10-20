@@ -12,9 +12,9 @@ export interface CategoryBarProps {
 const INLINE_COUNT = 6;
 
 const panelClass =
-  'invisible absolute start-0 top-full z-50 min-w-56 translate-y-1 rounded-lg border border-border bg-white py-2 opacity-0 shadow-lg transition-[opacity,transform,visibility] duration-[var(--motion-duration-dropdown)] ease-out group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100';
+  'invisible absolute start-0 top-full z-50 -mt-0.5 min-w-56 overflow-hidden rounded-b-lg rounded-t-none border border-t-2 border-border border-t-brand-500 bg-white py-1.5 opacity-0 shadow-lg transition-[opacity,visibility] duration-[var(--motion-duration-dropdown)] ease-out group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100';
 const panelLinkClass =
-  'block px-4 py-1.5 text-sm text-ink/80 hover:bg-brand-100 hover:text-ink focus-visible:bg-brand-100 focus-visible:outline-none';
+  'block px-4 py-2 text-sm text-ink/80 transition-colors hover:bg-brand-100 hover:text-ink focus-visible:bg-brand-100 focus-visible:outline-none';
 const triggerClass =
   'flex items-center gap-1 whitespace-nowrap border-b-2 border-transparent py-3 text-sm font-medium text-ink/80 group-data-[overlay=true]/hdr:text-white transition-colors hover:border-brand-500 hover:text-ink group-data-[overlay=true]/hdr:hover:text-white focus-visible:border-brand-500 focus-visible:outline-none group-focus-within:border-brand-500 group-hover:border-brand-500';
 
