@@ -39,6 +39,61 @@ export function toTelHref(phone: string | null | undefined): string | null {
   return phone ? `tel:${phone}` : null;
 }
 
+/**
+ * Normalizes a Pakistani (or already-international) phone number to the digit-only format `wa.me`
+ * expects, e.g. `"0300 1234567"` and `"+92 300 1234567"` both -> `"923001234567"`. Returns null when the
+ * input has no digits or is not a plausible international number (8-15 digits).
+ */
+export function normalizePhoneForWhatsApp(
+  phone: string | null | undefined,
+): string | null {
+  if (!phone) {
+    return null;
+  }
+  const trimmed = phone.trim();
+  const hasPlus = trimmed.startsWith('+');
+  let digits = trimmed.replace(/\D/g, '');
+  if (!digits) {
+    return null;
+  }
+  if (digits.startsWith('00')) {
+    digits = digits.slice(2);
+  } else if (!hasPlus && digits.startsWith('0')) {
+    digits = `92${digits.slice(1)}`;
+  }
+  return digits.length >= 8 && digits.length <= 15 ? digits : null;
+}
+
+/** Strict Pakistan mobile/landline check on user input: normalizes to `92` + 10 digits. */
+export function isValidPhonePK(phone: string): boolean {
+  return /^92\d{10}$/.test(normalizePhoneForWhatsApp(phone) ?? '');
+}
+
+/** Converts a PK number in any common input format to the stored `+92XXXXXXXXXX` form, or null if invalid. */
+export function toStoredPhonePK(phone: string): string | null {
+  const digits = normalizePhoneForWhatsApp(phone);
+  return digits && /^92\d{10}$/.test(digits) ? `+${digits}` : null;
+}
+
+/**
+ * Picks the number to contact a business on WhatsApp: its dedicated `whatsapp` number when set, else
+ * its `phone`. Returns the `wa.me` digit string, or null when neither yields a usable number.
+ */
+export function getWhatsAppTarget(business: {
+  whatsapp?: string | null;
+  phone?: string | null;
+}): string | null {
+  return (
+    normalizePhoneForWhatsApp(business.whatsapp) ??
+    normalizePhoneForWhatsApp(business.phone)
+  );
+}
+
+/** Builds `https://wa.me/<digits>?text=<message>`. */
+export function buildWhatsAppHref(digits: string, message: string): string {
+  return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
+}
+
 function karachiPartsAt(date: Date): { dayOfWeek: DayOfWeek; time: string } {
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: KARACHI_TIME_ZONE,
