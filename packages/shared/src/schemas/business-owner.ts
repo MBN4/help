@@ -8,6 +8,16 @@ import {
   businessHoursEntrySchema,
   businessServiceSchema,
 } from './business';
+import { toStoredPhonePK } from '../utils';
+
+/** Accepts common PK formats ("0300 1234567", "+92 300 1234567") and stores them as `+92XXXXXXXXXX`. */
+export const whatsappNumberSchema = z
+  .string()
+  .trim()
+  .refine((value) => toStoredPhonePK(value) !== null, {
+    message: 'Enter a valid Pakistani phone number, e.g. +92 300 1234567',
+  })
+  .transform((value) => toStoredPhonePK(value) as string);
 
 const locationRefSchema = z.object({ name: z.string(), slug: z.string() });
 
@@ -65,7 +75,7 @@ export const updateBusinessInfoRequestSchema = z
     description: z.string().trim().max(5000).optional(),
     categoryId: z.string().uuid().optional(),
     phone: z.string().trim().max(30).optional(),
-    whatsapp: z.string().trim().max(30).optional(),
+    whatsapp: whatsappNumberSchema.nullable().optional(),
     email: z.string().trim().email().optional(),
     website: z.string().trim().url().optional(),
   })
