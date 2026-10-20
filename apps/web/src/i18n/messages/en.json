@@ -1,4 +1,7 @@
 {
+  "whatsapp": {
+    "prefilledMessage": "Hi, I found you on Buisnez and wanted to ask about..."
+  },
   "common": {
     "appName": "Buisnez",
     "tagline": "Discover trusted local businesses in Pakistan",

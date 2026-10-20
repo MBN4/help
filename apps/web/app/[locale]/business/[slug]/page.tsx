@@ -2,7 +2,12 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { BadgeCheck, Phone, Globe, MessageCircle } from 'lucide-react';
-import { formatPhonePK, toTelHref } from '@buisnez/shared';
+import {
+  buildWhatsAppHref,
+  formatPhonePK,
+  getWhatsAppTarget,
+  toTelHref,
+} from '@buisnez/shared';
 import {
   ApiError,
   getBusiness,
@@ -86,9 +91,10 @@ export default async function BusinessProfilePage({
   const { locale, slug } = await params;
   setRequestLocale(locale);
 
-  const [t, breadcrumbT, { data: business }] = await Promise.all([
+  const [t, breadcrumbT, tWhatsapp, { data: business }] = await Promise.all([
     getTranslations('business'),
     getTranslations('breadcrumb'),
+    getTranslations('whatsapp'),
     loadBusiness(slug),
   ]);
 
@@ -189,6 +195,7 @@ export default async function BusinessProfilePage({
         businessId={business.id}
         name={business.name}
         phone={business.phone}
+        whatsapp={business.whatsapp}
         directionsHref={directionsHref}
       />
 
@@ -285,7 +292,10 @@ export default async function BusinessProfilePage({
               )}
               {business.whatsapp && (
                 <a
-                  href={`https://wa.me/${business.whatsapp.replace('+', '')}`}
+                  href={buildWhatsAppHref(
+                    getWhatsAppTarget(business) ?? '',
+                    tWhatsapp('prefilledMessage'),
+                  )}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 text-sm hover:text-brand-700"

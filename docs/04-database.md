@@ -257,6 +257,7 @@ model Business {
   /// geography(Point, 4326) — created by migration 0001_postgis_and_indexes, not managed by Prisma migrate
   location    Unsupported("geography(Point, 4326)")?
   phone       String?
+  /// Optional WhatsApp number, stored as `+92XXXXXXXXXX`. Contact falls back to `phone` when null.
   whatsapp    String?
   email       String?
   website     String?

@@ -265,6 +265,17 @@ server-computed `isOpenNow` boolean as a prop — see [`06-api-endpoints.md`](06
 `formatPhonePK`, `toTelHref`, and `isOpenNow` (display-only, e.g. for an hours table — never a badge's source
 of truth) live in `@buisnez/shared/src/utils`.
 
+### WhatsApp contact
+
+`BusinessProfileActions` renders a **WhatsApp** outline button (green `MessageCircle` icon, otherwise the same
+styling as Call/Directions) between Call and Save. It is shown only when `getWhatsAppTarget({ whatsapp, phone })`
+returns a number — the dedicated `whatsapp` field, else `phone`, else the button is omitted. It opens
+`https://wa.me/<digits>?text=<message>` in a new tab; the message is the translatable `whatsapp.prefilledMessage`
+string. Shared helpers (`@buisnez/shared`): `normalizePhoneForWhatsApp` (`"0300 1234567"` and
+`"+92 300 1234567"` → `923001234567`), `getWhatsAppTarget`, `buildWhatsAppHref`, `toStoredPhonePK`. The owner
+listing editor's WhatsApp input validates with `whatsappNumberSchema` and clears the number when emptied. The
+sidebar contact list link uses the same helpers. Not added to `BusinessCard`: summaries carry no phone.
+
 ## Layout
 
 - **Header** (server component) — brand mark, `LocationPicker` (client; backed by `GET /locations/cities`,

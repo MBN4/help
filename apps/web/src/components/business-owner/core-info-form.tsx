@@ -67,7 +67,7 @@ export function CoreInfoForm({
         description: description.trim(),
         categoryId,
         phone: phone.trim() || undefined,
-        whatsapp: whatsapp.trim() || undefined,
+        whatsapp: whatsapp.trim() || null,
         email: email.trim() || undefined,
         website: website.trim() || undefined,
       });
